@@ -18,35 +18,29 @@ const nextConfig = {
   
   // API routing
   async rewrites() {
-    // Only set up rewrites in development
-    if (process.env.NODE_ENV === 'development') {
-      // Get backend URL from environment or use default
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5002';
-      console.log(`Setting up rewrites to backend: ${backendUrl}`);
-      
-      return [
-        // Primary API proxy route
-        {
-          source: '/api/proxy/:path*',
-          destination: `${backendUrl}/api/:path*`,
-        },
-        // Direct API route access
-        {
-          source: '/api/:path*',
-          has: [
-            {
-              type: 'header',
-              key: 'x-proxy-to-backend',
-              value: 'true',
-            },
-          ],
-          destination: `${backendUrl}/api/:path*`,
-        }
-      ];
-    }
+    // Get backend URL from environment or use default
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5002';
+    console.log(`Setting up rewrites to backend: ${backendUrl}`);
     
-    // In production, return empty rewrites
-    return [];
+    return [
+      // Primary API proxy route
+      {
+        source: '/api/proxy/:path*',
+        destination: `${backendUrl}/api/:path*`,
+      },
+      // Direct API route access
+      {
+        source: '/api/:path*',
+        has: [
+          {
+            type: 'header',
+            key: 'x-proxy-to-backend',
+            value: 'true',
+          },
+        ],
+        destination: `${backendUrl}/api/:path*`,
+      }
+    ];
   },
   
   // Experimental features

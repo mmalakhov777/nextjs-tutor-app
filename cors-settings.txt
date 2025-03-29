@@ -1,0 +1,45 @@
+# CORS Settings for Backend Developer
+
+Hello, please update the CORS settings on the backend to include both development and production domains.
+
+## Current CORS Configuration
+
+The backend is currently configured to accept requests from:
+- http://localhost:4200 ✅ (working)
+
+However, it does not include Access-Control-Allow-Origin for the production domain:
+- https://nextjs-tutor-app-589q675ya-mmalakhov777s-projects.vercel.app ❌ (not working)
+
+## Required CORS Headers
+
+Please add the following origins to your CORS configuration:
+
+```python
+# Example for Flask
+CORS(app, origins=[
+    "http://localhost:4200",
+    "https://nextjs-tutor-app-589q675ya-mmalakhov777s-projects.vercel.app"
+], supports_credentials=True)
+```
+
+## Required Headers
+- Access-Control-Allow-Origin: https://nextjs-tutor-app-589q675ya-mmalakhov777s-projects.vercel.app
+- Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+- Access-Control-Allow-Headers: Content-Type, Authorization
+- Access-Control-Allow-Credentials: true
+- Vary: Origin
+
+## Testing
+
+Once updated, you can verify the CORS configuration is working with this command:
+```
+curl -v -H "Origin: https://nextjs-tutor-app-589q675ya-mmalakhov777s-projects.vercel.app" https://mellow-person-production.up.railway.app/api/status
+```
+
+The response should include:
+```
+access-control-allow-origin: https://nextjs-tutor-app-589q675ya-mmalakhov777s-projects.vercel.app
+access-control-allow-credentials: true
+```
+
+Thank you! 
