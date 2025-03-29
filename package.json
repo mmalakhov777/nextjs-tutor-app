@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 4200",
-    "build": "NODE_ENV=production next build",
+    "build": "next build",
     "start": "next start --port 4200",
     "lint": "next lint",
     "clean": "rm -rf .next node_modules",
