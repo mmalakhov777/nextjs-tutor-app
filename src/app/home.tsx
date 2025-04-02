@@ -210,9 +210,21 @@ export default function Home({
           const url = new URL(window.location.href);
           url.searchParams.set('conversation_id', sessions[0].id);
           window.history.pushState({}, '', url.toString());
+          
+          // Call initialization complete callback
+          if (onInitializationComplete) {
+            console.log("Calling onInitializationComplete after loading existing session");
+            onInitializationComplete();
+          }
         } else if (!conversationIdParam && !chat.currentConversationId && sessions.length === 0) {
           // If there are no existing conversations, create a new one
           initializeConversation(userId);
+        } else if (conversationIdParam) {
+          // If URL already has conversation_id, we're already initialized
+          if (onInitializationComplete) {
+            console.log("Calling onInitializationComplete for existing conversation_id");
+            onInitializationComplete();
+          }
         }
       });
     }
@@ -353,6 +365,7 @@ export default function Home({
     } finally {
       setIsCreatingSession(false);
       if (onInitializationComplete) {
+        console.log("Calling onInitializationComplete from initializeConversation");
         onInitializationComplete();
       }
     }
@@ -464,12 +477,27 @@ export default function Home({
       setTimeout(() => setNotification(null), 2000);
       
       setIsLoadingSession(false);
+      
+      // Call initialization complete callback
+      if (onInitializationComplete) {
+        console.log("Calling onInitializationComplete after loading conversation by ID");
+        onInitializationComplete();
+      }
+      
       return true;
     } catch (error) {
       console.error('Error loading conversation:', error);
       setNotification('Failed to load conversation: ' + (error instanceof Error ? error.message : String(error)));
       setTimeout(() => setNotification(null), 2000);
+      
       setIsLoadingSession(false);
+      
+      // Call initialization complete even on error
+      if (onInitializationComplete) {
+        console.log("Calling onInitializationComplete after error loading conversation");
+        onInitializationComplete();
+      }
+      
       return false;
     }
   };

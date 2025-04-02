@@ -35,11 +35,17 @@ export default function ChatPage() {
     // Check if user_id is missing
     if (!userId) {
       setShowErrorModal(true);
+      setIsInitializing(false);
+      return;
     }
     
     // If we have a user ID but no conversation ID, Home component will handle the initialization
     if (userId && !conversationId) {
       setIsInitializing(true);
+    } else {
+      // If we already have a conversation ID, we're not initializing
+      setIsInitializing(false);
+      setIsInitializationComplete(true);
     }
     
     if (vectorStoreId) {
@@ -56,6 +62,7 @@ export default function ChatPage() {
 
   // Function to handle when initialization is complete
   const handleInitializationComplete = () => {
+    console.log("Initialization complete");
     setIsInitializing(false);
     setIsInitializationComplete(true);
   };
@@ -70,7 +77,7 @@ export default function ChatPage() {
       
       {/* Initializing indicator - only show when initializing and not yet complete */}
       {isInitializing && !isInitializationComplete && !showErrorModal && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-white border border-slate-200 text-slate-900 px-4 py-2 rounded-md shadow-md z-50 flex items-center gap-2">
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-white border border-slate-200 text-slate-900 px-4 py-2 rounded-md shadow-md z-50 flex items-center gap-2 transition-opacity duration-300 ease-in-out">
           <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
           <span>Preparing your chat experience...</span>
         </div>
