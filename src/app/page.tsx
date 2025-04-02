@@ -8,12 +8,18 @@ declare global {
   interface Window {
     MSD?: {
       getUser: () => { id: string } | null;
+      openAuthDialog?: (options: {
+        isClosable?: boolean;
+        initialWindow?: string;
+        oauth2Redirect?: string;
+        oauth2OpenInNewTab?: boolean;
+      }) => Promise<void>;
     };
   }
 }
 
 // Function to get user ID from MSD
-function getUserId(): string | null {
+async function getUserId(): Promise<string | null> {
   // Check if window is defined (client-side)
   if (typeof window !== "undefined") {
     // Try to get user ID from MSD if available
@@ -34,6 +40,28 @@ function getUserId(): string | null {
     if (storedUserId) {
       return storedUserId;
     }
+    
+    // If still no user ID, open auth dialog
+    if (window.MSD && window.MSD.openAuthDialog) {
+      try {
+        await window.MSD.openAuthDialog({
+          isClosable: false,
+          initialWindow: 'signup',
+          oauth2Redirect: '/chat',
+          oauth2OpenInNewTab: false,
+        });
+        
+        // After auth dialog, try to get the user again
+        if (window.MSD && typeof window.MSD.getUser === 'function') {
+          const user = window.MSD.getUser();
+          if (user && user.id) {
+            return user.id;
+          }
+        }
+      } catch (e) {
+        console.error("Error opening auth dialog:", e);
+      }
+    }
   }
   
   // Fall back to generating a random ID if all else fails
@@ -53,16 +81,27 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    // Wait a moment to ensure MSD is initialized
-    const timer = setTimeout(() => {
-      // Get user ID from MSD or fallback
-      const userId = getUserId();
-      
-      // Redirect to the chat page with the user ID
-      router.push(`/chat?user_id=${userId}`);
-    }, 300); // Short delay to allow MSD to initialize
+    // Create async function to handle the redirect
+    const handleRedirect = async () => {
+      try {
+        // Wait a moment to ensure MSD is initialized
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Get user ID from MSD or fallback
+        const userId = await getUserId();
+        
+        // Redirect to the chat page with the user ID
+        router.push(`/chat?user_id=${userId}`);
+      } catch (error) {
+        console.error("Error during redirect:", error);
+        // Still try to redirect even if there's an error
+        const fallbackId = Date.now().toString();
+        router.push(`/chat?user_id=${fallbackId}`);
+      }
+    };
     
-    return () => clearTimeout(timer);
+    // Call the async function
+    handleRedirect();
   }, [router]);
 
   // Return a loading state while the redirect happens
