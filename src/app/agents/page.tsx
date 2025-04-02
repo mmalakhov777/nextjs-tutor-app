@@ -269,51 +269,7 @@ function AgentsPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/30 pt-6">
-      <div className="container mx-auto px-4">
-        <div className="flex justify-end mb-6 gap-2">
-          <Link href={`/chat${window.location.search}`}>
-            <Button 
-              className="h-8 px-3 text-sm flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700"
-            >
-              <MessageSquare size={14} />
-              Chat
-            </Button>
-          </Link>
-        </div>
-
-        {!window.location.search.includes('user_id') && (
-          <div className="text-center p-8 bg-white rounded-lg shadow-sm mb-6">
-            <div className="text-gray-700 mb-4 font-medium">
-              Please provide a user ID to view agents
-            </div>
-            <div className="text-gray-500 mb-4">
-              Add <code className="bg-gray-100 px-1.5 py-0.5 rounded">?user_id=YOUR_USER_ID</code> to the URL to view agents for a specific user.
-            </div>
-            <div className="text-sm text-gray-500 mt-2">
-              Example: <code className="bg-gray-100 px-1.5 py-0.5 rounded">?user_id=11111111-1111-1111-1111-111111111111</code>
-            </div>
-          </div>
-        )}
-
-        {agents.length === 0 && window.location.search.includes('user_id') && (
-          <div className="text-center p-8 bg-white rounded-lg shadow-sm mb-6">
-            <div className="text-gray-500 mb-4">
-              No agents found for this user ID.
-            </div>
-          </div>
-        )}
-
-        <AgentList 
-          agents={agents} 
-          onEdit={handleEdit} 
-          onDelete={handleDelete}
-          isDeleting={isDeletingAgent || undefined}
-          editableAgentType="custom"
-        />
-
-      </div>
-
+    <div className="min-h-screen bg-white">
       {isDialogOpen && selectedAgent && (
         <Dialog open={isDialogOpen} onOpenChange={handleFormClose}>
           <DialogContent fullPage hideCloseButton>
@@ -357,6 +313,52 @@ function AgentsPageContent() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Hidden elements - keeping them in DOM but not visible */}
+      <div className="hidden">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-end mb-6 gap-2">
+            <Link href={`/chat${window.location.search}`}>
+              <Button 
+                className="h-8 px-3 text-sm flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700"
+              >
+                <MessageSquare size={14} />
+                Chat
+              </Button>
+            </Link>
+          </div>
+
+          {!window.location.search.includes('user_id') && (
+            <div className="text-center p-8 bg-white rounded-lg shadow-sm mb-6">
+              <div className="text-gray-700 mb-4 font-medium">
+                Please provide a user ID to view agents
+              </div>
+              <div className="text-gray-500 mb-4">
+                Add <code className="bg-gray-100 px-1.5 py-0.5 rounded">?user_id=YOUR_USER_ID</code> to the URL to view agents for a specific user.
+              </div>
+              <div className="text-sm text-gray-500 mt-2">
+                Example: <code className="bg-gray-100 px-1.5 py-0.5 rounded">?user_id=11111111-1111-1111-1111-111111111111</code>
+              </div>
+            </div>
+          )}
+
+          {agents.length === 0 && window.location.search.includes('user_id') && (
+            <div className="text-center p-8 bg-white rounded-lg shadow-sm mb-6">
+              <div className="text-gray-500 mb-4">
+                No agents found for this user ID.
+              </div>
+            </div>
+          )}
+
+          <AgentList 
+            agents={agents} 
+            onEdit={handleEdit} 
+            onDelete={handleDelete}
+            isDeleting={isDeletingAgent || undefined}
+            editableAgentType="custom"
+          />
+        </div>
+      </div>
 
       <Dialog open={showUserIdErrorModal} onOpenChange={setShowUserIdErrorModal}>
         <DialogContent className="sm:max-w-md">
