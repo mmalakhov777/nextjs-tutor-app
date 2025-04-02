@@ -108,12 +108,7 @@ export default function Home() {
   return (
     <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center bg-gray-50">
       <div className="bg-white p-8 rounded-lg">
-        <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">
-          Loading...
-        </h1>
-        <div className="flex justify-center">
-          <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
-        </div>
+        <p className="text-gray-600 text-sm">Loading...</p>
       </div>
     </div>
   );
