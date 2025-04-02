@@ -205,6 +205,32 @@ export function ChatInput({
           */}
           
           <div className="flex gap-2">
+            {/* Send button */}
+            <button
+              onClick={() => onSend(value)}
+              disabled={disabled || isRecording || isTranscribing || !value.trim()}
+              style={{
+                display: 'flex',
+                padding: isMobile ? '6px' : '8px',
+                alignItems: 'center',
+                gap: '10px',
+                borderRadius: '8px',
+                background: 'var(--Monochrome-Superlight, #F2F2ED)',
+                border: 'none',
+                cursor: 'pointer',
+                opacity: (disabled || isRecording || isTranscribing || !value.trim()) ? 0.5 : 1
+              }}
+            >
+              {disabled ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              <span style={{ fontSize: '14px', fontWeight: 500 }}>
+                {disabled ? "Processing..." : "Send"}
+              </span>
+            </button>
+            
             {/* Recording button */}
             <button
               onClick={toggleRecording}
@@ -243,32 +269,6 @@ export function ChatInput({
                   Stop
                 </span>
               )}
-            </button>
-            
-            {/* Send button */}
-            <button
-              onClick={() => onSend(value)}
-              disabled={disabled || isRecording || isTranscribing || !value.trim()}
-              style={{
-                display: 'flex',
-                padding: isMobile ? '6px' : '8px',
-                alignItems: 'center',
-                gap: '10px',
-                borderRadius: '8px',
-                background: 'var(--Monochrome-Superlight, #F2F2ED)',
-                border: 'none',
-                cursor: 'pointer',
-                opacity: (disabled || isRecording || isTranscribing || !value.trim()) ? 0.5 : 1
-              }}
-            >
-              {disabled ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-              <span style={{ fontSize: '14px', fontWeight: 500 }}>
-                {disabled ? "Processing..." : "Send"}
-              </span>
             </button>
           </div>
         </div>
