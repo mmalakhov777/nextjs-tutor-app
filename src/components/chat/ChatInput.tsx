@@ -187,6 +187,7 @@ export function ChatInput({
             alignSelf: 'stretch'
           }}
         >
+          {/* Dots button commented out
           <button
             style={{
               display: 'flex',
@@ -201,6 +202,7 @@ export function ChatInput({
           >
             <DotsIcon />
           </button>
+          */}
           
           <div className="flex gap-2">
             {/* Recording button */}
