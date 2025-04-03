@@ -451,6 +451,7 @@ export function Message({ message, onCopy, onDelete, onEdit, annotations, curren
   const [citationStyle, setCitationStyle] = useState<string>("apa");
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isLoadingSpeech, setIsLoadingSpeech] = useState(false);
+  const [shouldFetchMetadata, setShouldFetchMetadata] = useState(false);
   
   // Determine if this message is in a loading/streaming state
   const isStreaming = message.role === 'assistant' && message.content === '';
@@ -572,9 +573,16 @@ export function Message({ message, onCopy, onDelete, onEdit, annotations, curren
     }
   };
 
-  // Add useEffect to fetch metadata for citations when component mounts
+  // Watch for when streaming ends and set shouldFetchMetadata flag
   useEffect(() => {
-    if (annotations && annotations.content) {
+    if (!isStreaming && message.role === 'assistant' && message.content !== '' && annotations) {
+      setShouldFetchMetadata(true);
+    }
+  }, [isStreaming, message.content, message.role, annotations]);
+
+  // Add useEffect to fetch metadata for citations when shouldFetchMetadata is true
+  useEffect(() => {
+    if (shouldFetchMetadata && annotations && annotations.content) {
       const citations = parseCitations(annotations.content);
       // Create a Map to store unique citations by file_id
       const uniqueCitations = new Map();
@@ -588,8 +596,11 @@ export function Message({ message, onCopy, onDelete, onEdit, annotations, curren
       Array.from(uniqueCitations.values()).forEach(citation => {
         fetchFileMetadata(citation.file_id);
       });
+      
+      // Reset the flag to prevent refetching
+      setShouldFetchMetadata(false);
     }
-  }, [annotations, fileMetadata, isLoadingMetadata]);
+  }, [shouldFetchMetadata, annotations, fileMetadata, isLoadingMetadata]);
 
   // Function to fetch file content
   const handleFetchFileContent = async (fileId: string) => {
@@ -1450,31 +1461,7 @@ export function Message({ message, onCopy, onDelete, onEdit, annotations, curren
                   });
                   
                   return Array.from(uniqueCitations.values()).map((citation, index) => {
-                    // Only fetch metadata when actually displaying the card
-                    if (!fileMetadata[citation.file_id] && !isLoadingMetadata[citation.file_id]) {
-                      fetchFileMetadata(citation.file_id);
-                      
-                      // Set a timeout to clear the loading state after 3 seconds to prevent eternal loading
-                      setTimeout(() => {
-                        if (isLoadingMetadata[citation.file_id]) {
-                          setIsLoadingMetadata(prev => ({ 
-                            ...prev, 
-                            [citation.file_id]: false 
-                          }));
-                          
-                          // If we still don't have metadata, set a fallback
-                          if (!fileMetadata[citation.file_id]) {
-                            setFileMetadata(prev => ({ 
-                              ...prev, 
-                              [citation.file_id]: {
-                                file_name: citation.filename || citation.file_id
-                              }
-                            }));
-                          }
-                        }
-                      }, 3000);
-                    }
-                    
+                    // We'll rely on the useEffect to fetch metadata only when streaming ends
                     const metadata = fileMetadata[citation.file_id];
                     const isLoading = isLoadingMetadata[citation.file_id];
                     
