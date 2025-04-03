@@ -451,6 +451,7 @@ export function FileSidebar({
           
           {!defaultVectorStoreId && (
             <div className="mt-2">
+              {/* Commented out the "No vector store available" message
               <div className="p-2 bg-amber-50 border border-amber-200 rounded-md">
                 <p className="text-xs text-amber-700">
                   {isCreatingVectorStore ? (
@@ -469,6 +470,7 @@ export function FileSidebar({
                   )}
                 </p>
               </div>
+              */}
             </div>
           )}
         </div>
