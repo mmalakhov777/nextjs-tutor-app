@@ -111,6 +111,20 @@ interface MessageContentProps {
   messageId?: string;
 }
 
+// Add a global style component at the top of the file to avoid nesting issues
+const GlobalStyles = () => (
+  <style jsx global>{`
+    .preserve-whitespace p, 
+    .whitespace-pre-wrap,
+    .message-content-container p {
+      white-space: pre-wrap !important;
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+  `}</style>
+);
+
 const MessageContent = ({ content, messageId }: MessageContentProps) => {
   // Function to extract URLs from text with their surrounding context
   const extractLinks = (text: string) => {
@@ -241,13 +255,7 @@ const MessageContent = ({ content, messageId }: MessageContentProps) => {
       id={messageId ? `message-${messageId}` : undefined} 
       className="prose prose-sm dark:prose-invert max-w-none message-content-container"
     >
-      <style jsx global>{`
-        .preserve-whitespace p, 
-        .whitespace-pre-wrap,
-        .message-content-container p {
-          white-space: pre-wrap !important;
-        }
-      `}</style>
+      <GlobalStyles />
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[
@@ -356,11 +364,6 @@ const MessageContent = ({ content, messageId }: MessageContentProps) => {
             <span>Links</span>
           </div>
           <div className="flex overflow-x-auto pb-2 hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            <style jsx global>{`
-              .hide-scrollbar::-webkit-scrollbar {
-                display: none;
-              }
-            `}</style>
             <div className="flex gap-3">
               {links.map((link, index) => (
                 <a 
