@@ -108,9 +108,10 @@ const Favicon = ({ domain }: { domain: string }) => {
 
 interface MessageContentProps {
   content: string;
+  messageId?: string;
 }
 
-const MessageContent = ({ content }: MessageContentProps) => {
+const MessageContent = ({ content, messageId }: MessageContentProps) => {
   // Function to extract URLs from text with their surrounding context
   const extractLinks = (text: string) => {
     // Regex to match URLs
@@ -229,8 +230,24 @@ const MessageContent = ({ content }: MessageContentProps) => {
     return [link.url];
   });
   
+  // Properly handle whitespace and paragraphs
+  const formatContent = (content: string) => {
+    // Replace linebreaks with <br> tags for markdown conversion
+    return content.replace(/\n/g, '<br>');
+  };
+  
   return (
-    <div className="prose prose-sm dark:prose-invert max-w-none">
+    <div 
+      id={messageId ? `message-${messageId}` : undefined} 
+      className="prose prose-sm dark:prose-invert max-w-none message-content-container"
+    >
+      <style jsx global>{`
+        .preserve-whitespace p, 
+        .whitespace-pre-wrap,
+        .message-content-container p {
+          white-space: pre-wrap !important;
+        }
+      `}</style>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[
@@ -240,7 +257,21 @@ const MessageContent = ({ content }: MessageContentProps) => {
           [rehypeHighlight, { detect: true, ignoreMissing: true }]
         ]}
         components={{
-          p: ({ children }) => <p className="mb-4 last:mb-0">{children}</p>,
+          // Updated paragraph handling to preserve whitespace
+          p: ({ children }) => {
+            // If children contains links to render as cards, render a normal paragraph
+            if (React.Children.toArray(children).some(child => 
+              typeof child === 'string' && 
+              urlsToRenderAsCards.some(url => child.includes(url))
+            )) {
+              return <p className="mb-4 last:mb-0">{children}</p>;
+            }
+            
+            // Otherwise render with whitespace preservation
+            return (
+              <p className="mb-4 last:mb-0 whitespace-pre-wrap">{children}</p>
+            );
+          },
           h1: ({ children }) => <h1 className="text-2xl font-bold mb-4">{children}</h1>,
           h2: ({ children }) => <h2 className="text-xl font-bold mb-3">{children}</h2>,
           h3: ({ children }) => <h3 className="text-lg font-bold mb-2">{children}</h3>,
@@ -310,6 +341,8 @@ const MessageContent = ({ content }: MessageContentProps) => {
               </a>
             );
           },
+          // Handle line breaks properly
+          br: () => <br />,
         }}
       >
         {content}
@@ -437,7 +470,18 @@ interface MessageProps {
   currentAgent?: string;
 }
 
-export function Message({ message, onCopy, onDelete, onEdit, annotations, currentAgent }: MessageProps) {
+export function Message({ message, onCopy, onDelete, onEdit, annotations: propAnnotations, currentAgent }: MessageProps) {
+  // Add console.log to check if annotations are being received
+  useEffect(() => {
+    if (propAnnotations) {
+      console.log("Message received annotations:", {
+        message_id: message.id,
+        has_annotations: !!propAnnotations,
+        annotation_content: propAnnotations.content ? propAnnotations.content.substring(0, 50) + '...' : 'No content'
+      });
+    }
+  }, [message.id, propAnnotations]);
+
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoadingEnhancedText, setIsLoadingEnhancedText] = useState(false);
   const [enhancedText, setEnhancedText] = useState<string | null>(null);
@@ -452,14 +496,346 @@ export function Message({ message, onCopy, onDelete, onEdit, annotations, curren
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isLoadingSpeech, setIsLoadingSpeech] = useState(false);
   const [shouldFetchMetadata, setShouldFetchMetadata] = useState(false);
+  const [syntheticAnnotations, setSyntheticAnnotations] = useState<any>(null);
   
+  // Use both prop annotations and synthetic annotations
+  const annotations = propAnnotations || syntheticAnnotations;
+  
+  // Function to extract file IDs directly from a message's metadata
+  const extractFileIdsFromMetadata = (msg: MessageType & { metadata?: any }): string[] => {
+    const fileIds: string[] = [];
+    
+    if (!msg.metadata) return fileIds;
+    
+    // Case 1: Direct citations array in metadata
+    if (msg.metadata.citations && Array.isArray(msg.metadata.citations)) {
+      msg.metadata.citations.forEach((citation: any) => {
+        if (citation.file_id && !fileIds.includes(citation.file_id)) {
+          fileIds.push(citation.file_id);
+        }
+      });
+    }
+    
+    // Case 2: Raw content with AnnotationFileCitation format
+    if (typeof msg.content === 'string' && 
+        msg.content.includes('AnnotationFileCitation')) {
+      const matches = msg.content.match(/file_id='([^']+)'/g) || [];
+      
+      matches.forEach(match => {
+        const fileId = match.replace("file_id='", "").replace("'", "");
+        if (fileId && !fileIds.includes(fileId)) {
+          fileIds.push(fileId);
+        }
+      });
+    }
+    
+    // Case 3: Enhanced content with citation markers
+    if (msg.metadata.has_citations && 
+        typeof msg.content === 'string' && 
+        msg.content.includes('(') && 
+        msg.content.includes(')') && 
+        (msg.content.includes('cited in') || msg.content.includes('et al') || 
+         msg.content.includes('citation'))) {
+      
+      // This is a heuristic - if the message looks like it includes citations
+      // and has metadata but no actual file IDs were found, look for them in Works Cited
+      const worksCitedMatch = msg.content.match(/Works Cited:[\s\S]+/);
+      if (worksCitedMatch) {
+        console.log("Found Works Cited section, analyzing...");
+        // This message has a Works Cited section - good indicator of enhanced content
+        setShouldFetchMetadata(true);
+      }
+    }
+    
+    console.log("Extracted file IDs from metadata:", fileIds);
+    return fileIds;
+  };
+  
+  // Use effect to automatically fetch metadata for cited files on refresh
+  useEffect(() => {
+    if (message.role === 'assistant' && message.metadata?.has_citations && !annotations) {
+      const fileIds = extractFileIdsFromMetadata(message);
+      
+      // Fetch metadata for each file ID
+      fileIds.forEach(fileId => {
+        fetchFileMetadata(fileId);
+      });
+      
+      // If we found file IDs, we want to trigger metadata loading
+      if (fileIds.length > 0) {
+        setShouldFetchMetadata(true);
+      }
+    }
+  }, [message.id, message.metadata, message.role, message.content, annotations]);
+  
+  // Create synthetic annotations from metadata if needed
+  useEffect(() => {
+    if (!propAnnotations && 
+        message.role === 'assistant' && 
+        message.metadata?.has_citations && 
+        message.metadata?.citations && 
+        Array.isArray(message.metadata.citations) && 
+        message.metadata.citations.length > 0) {
+      
+      console.log("Creating synthetic annotations from metadata.citations");
+      
+      // Create annotation content in the format expected by parseCitations
+      const citationStrings = message.metadata.citations.map((citation: any, index: number) => {
+        return `AnnotationFileCitation(file_id='${citation.file_id}', index=${index}, type='file_citation', filename='${citation.filename || "document.pdf"}')`;
+      });
+      
+      const annotationContent = `annotations=[ ${citationStrings.join(', ')} ]`;
+      
+      const synthetic = {
+        role: 'tool' as MessageType['role'],
+        content: annotationContent,
+        toolAction: 'annotations' as const,
+        toolName: 'file_citations',
+        timestamp: message.timestamp
+      };
+      
+      setSyntheticAnnotations(synthetic);
+      setShouldFetchMetadata(true);
+    }
+  }, [message.metadata, propAnnotations, message.role, message.timestamp]);
+  
+  // Effect to ensure UI updates when enhancedText changes
+  useEffect(() => {
+    if (enhancedText) {
+      // Force UI refresh when enhancedText is available
+      setHasCitationsIncluded(true);
+      
+      // Log to verify text is available
+      console.log("Enhanced text available:", enhancedText.substring(0, 50) + "...");
+    }
+  }, [enhancedText]);
+  
+  // Function to check if we have access to the annotations
+  const ensureAnnotationsAvailable = async () => {
+    // If we already have annotations (from props or synthetic) or they're not needed, skip
+    if (annotations || !message.metadata?.has_citations) return null;
+    
+    // We have enhanced content but no annotations - need to fetch them
+    if ((message.metadata?.has_citations || message.content.includes('citation')) && message.sessionId && message.id) {
+      try {
+        console.log("Fetching annotations for message:", message.id);
+        
+        const backendUrl = getBackendUrl();
+        // First try to get tool messages with annotations for this specific message
+        const toolResponse = await fetch(
+          `${backendUrl}/api/chat-sessions/${message.sessionId}/messages?role=tool&toolAction=annotations`
+        );
+        
+        if (!toolResponse.ok) {
+          throw new Error(`Failed to fetch annotations: ${toolResponse.status}`);
+        }
+        
+        const toolData = await toolResponse.json();
+        console.log("Annotations tool messages response:", toolData);
+        
+        // Find the annotation that corresponds to this message based on timing
+        let annotationContent = null;
+        
+        if (Array.isArray(toolData) && toolData.length > 0) {
+          // Sort by timestamp to find the tool message closest to our message
+          const sortedToolMessages = [...toolData].sort((a, b) => {
+            const timeA = new Date(a.created_at).getTime();
+            const timeB = new Date(b.created_at).getTime();
+            
+            // Get message creation time
+            const messageTime = message.timestamp?.getTime() || Date.now();
+            
+            // Calculate absolute difference between message time and tool message time
+            return Math.abs(timeA - messageTime) - Math.abs(timeB - messageTime);
+          });
+          
+          // Use the closest tool message
+          const closestToolMessage = sortedToolMessages[0];
+          if (closestToolMessage && closestToolMessage.content) {
+            annotationContent = closestToolMessage.content;
+            console.log("Found annotation content:", annotationContent.substring(0, 50) + "...");
+          }
+        }
+        
+        if (annotationContent) {
+          // Create a synthetic annotations object
+          const fetchedAnnotations = {
+            role: 'tool' as MessageType['role'],
+            toolAction: 'annotations' as const,
+            content: annotationContent,
+            toolName: 'file_citations',
+            timestamp: message.timestamp
+          };
+          
+          // Set the synthetic annotations state
+          setSyntheticAnnotations(fetchedAnnotations);
+          
+          // Trigger metadata fetch
+          setShouldFetchMetadata(true);
+          
+          return fetchedAnnotations;
+        }
+      } catch (error) {
+        console.error("Error fetching annotations:", error);
+      }
+    }
+    
+    return null;
+  };
+
+  // Use effect to ensure annotations are available when message loads
+  useEffect(() => {
+    // Only run this for assistant messages with citations but no annotations
+    if (message.role === 'assistant' && message.metadata?.has_citations && !annotations) {
+      ensureAnnotationsAvailable();
+    }
+  }, [message.id, message.metadata, message.role, annotations]);
+
+  // Add useEffect to load enhanced content on mount if it exists in metadata
+  useEffect(() => {
+    // Check if message has metadata with citation information
+    if (
+      message.role === 'assistant' && 
+      message.metadata && 
+      message.metadata.has_citations && 
+      message.metadata.original_content
+    ) {
+      // If the current content is already enhanced, no need to update
+      if (message.metadata.original_content !== message.content) {
+        // Message already has enhanced content
+        console.log("Found enhanced content, loading it with proper formatting");
+        
+        // Ensure whitespace is preserved by explicitly setting the enhancedText state
+        // rather than relying on the message.content directly
+        let enhancedContent = message.content;
+        
+        // Force text processing by adding an invisible character if this was loaded from a page refresh
+        const isPageReload = window.performance && 
+          (window.performance.navigation?.type === 1 || 
+           window.performance.getEntriesByType('navigation').some(
+             (entry: any) => entry.type === 'reload'
+           ));
+        
+        if (isPageReload) {
+          // Add an invisible zero-width space to force a re-parse on page reload
+          enhancedContent = enhancedContent.trim() + '\u200B';
+          console.log("Added invisible character to force re-rendering on reload");
+        }
+        
+        setEnhancedText(enhancedContent);
+        setHasCitationsIncluded(true);
+        setCitationStyle(message.metadata.citation_style || 'apa');
+        
+        // Add class to force whitespace preservation
+        setTimeout(() => {
+          // Find the parent element containing this message's content
+          const messageElement = document.getElementById(`message-${message.id}`);
+          if (messageElement) {
+            const paragraphs = messageElement.querySelectorAll('p');
+            paragraphs.forEach(p => {
+              p.classList.add('whitespace-pre-wrap');
+            });
+            console.log("Added whitespace-pre-wrap to paragraphs");
+          }
+        }, 100);
+        
+        // If we don't have annotations but the message contains citations, trigger metadata fetch
+        if (!annotations && message.content.includes('citation')) {
+          console.log("Enhanced message has citations but no annotations, will try to extract citation info");
+          setShouldFetchMetadata(true);
+          
+          // Try to extract citation file IDs from the enhanced message content
+          // Look for common citation patterns like (Author YYYY) or [X]
+          const citationRegex = /\(([^)]+)\s+(\d{4})\)|\[(\d+)\]/g;
+          let match;
+          const extractedCitations = new Set<string>();
+          
+          while ((match = citationRegex.exec(message.content)) !== null) {
+            // We found a citation, now look for file IDs in the message metadata
+            if (message.metadata.citations && Array.isArray(message.metadata.citations)) {
+              message.metadata.citations.forEach((citation: any) => {
+                if (citation.file_id && !extractedCitations.has(citation.file_id)) {
+                  extractedCitations.add(citation.file_id);
+                  console.log(`Extracted citation file ID from metadata: ${citation.file_id}`);
+                  fetchFileMetadata(citation.file_id);
+                }
+              });
+            }
+          }
+        }
+      }
+    }
+  }, [message.id, message.metadata, message.content, message.role, annotations]);
+
+  // Use location.reload detection to preserve formatting
+  useEffect(() => {
+    // Check if this is a page reload (not a navigation)
+    const isPageReload = window.performance && 
+      window.performance.navigation && 
+      window.performance.navigation.type === 1;
+    
+    if (isPageReload && 
+        message.role === 'assistant' && 
+        message.metadata?.has_citations && 
+        enhancedText) {
+      console.log("Detected page reload with enhanced content, forcing whitespace preservation");
+      
+      // Force re-render with explicit whitespace preservation
+      setHasCitationsIncluded(true);
+      
+      // Add special class to message container on reload
+      document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+          const container = document.querySelector('.message-content-container');
+          if (container) {
+            container.classList.add('preserve-whitespace');
+          }
+        }, 200);
+      });
+    }
+  }, [message.role, message.metadata, enhancedText]);
+
   // Determine if this message is in a loading/streaming state
   const isStreaming = message.role === 'assistant' && message.content === '';
 
   // Function to parse citations from content
   const parseCitations = (content: string): Citation[] => {
     try {
-      // Handle the specific format from your example
+      // Handle the specific format with annotations= prefix
+      if (content.startsWith('annotations=')) {
+        console.log("Parsing citations from annotations= format");
+        // Strip the annotations= prefix and any surrounding brackets
+        const contentWithoutPrefix = content.replace(/^annotations=\s*\[\s*|\s*\]\s*$/g, '');
+        // Look for AnnotationFileCitation patterns
+        const matches = contentWithoutPrefix.match(/AnnotationFileCitation\(([^)]+)\)/g);
+        
+        if (matches) {
+          console.log(`Found ${matches.length} citations in annotations format`);
+          return matches.map(match => {
+            // Extract the content inside the parentheses
+            const paramsStr = match.slice(match.indexOf('(') + 1, match.lastIndexOf(')'));
+            
+            // Split by comma but handle quoted values
+            const parts = paramsStr.match(/([^,]+='[^']*'|[^,]+=[^,]+)/g) || [];
+            
+            const obj: Record<string, string> = {};
+            parts.forEach(part => {
+              const [key, value] = part.trim().split('=');
+              // Remove quotes and handle special characters
+              obj[key] = value.replace(/^'|'$/g, '').replace(/\\'/g, "'");
+            });
+
+            return {
+              file_id: obj.file_id,
+              index: parseInt(obj.index),
+              type: obj.type,
+              filename: obj.filename
+            };
+          });
+        }
+      }
+      
+      // Handle individual AnnotationFileCitation matches
       if (content.includes('AnnotationFileCitation')) {
         const matches = content.match(/AnnotationFileCitation\(([^)]+)\)/g);
         if (matches) {
@@ -488,18 +864,23 @@ export function Message({ message, onCopy, onDelete, onEdit, annotations, curren
       }
       
       // Try parsing as JSON if not in the above format
-      const contentObj = JSON.parse(content);
-      if (Array.isArray(contentObj.annotations)) {
-        return contentObj.annotations
-          .filter((ann: FileAnnotation) => ann.type === 'file_citation')
-          .map((ann: FileAnnotation) => ({
-            file_id: ann.file_citation.file_id,
-            index: ann.file_citation.index,
-            type: 'file_citation',
-            filename: ann.file_citation.filename
-          }));
+      try {
+        const contentObj = JSON.parse(content);
+        if (Array.isArray(contentObj.annotations)) {
+          return contentObj.annotations
+            .filter((ann: FileAnnotation) => ann.type === 'file_citation')
+            .map((ann: FileAnnotation) => ({
+              file_id: ann.file_citation.file_id,
+              index: ann.file_citation.index,
+              type: 'file_citation',
+              filename: ann.file_citation.filename
+            }));
+        }
+      } catch (jsonError) {
+        // Silent error handling for JSON parsing
       }
     } catch (e) {
+      console.error("Error parsing citations:", e);
       // Silent error handling
     }
     return [];
@@ -582,20 +963,30 @@ export function Message({ message, onCopy, onDelete, onEdit, annotations, curren
 
   // Add useEffect to fetch metadata for citations when shouldFetchMetadata is true
   useEffect(() => {
-    if (shouldFetchMetadata && annotations && annotations.content) {
+    if (shouldFetchMetadata && annotations) {
+      console.log("Fetching metadata for citations in annotations");
       const citations = parseCitations(annotations.content);
-      // Create a Map to store unique citations by file_id
-      const uniqueCitations = new Map();
-      citations.forEach(citation => {
-        if (!uniqueCitations.has(citation.file_id)) {
-          uniqueCitations.set(citation.file_id, citation);
-        }
-      });
       
-      // Fetch metadata for all unique citations
-      Array.from(uniqueCitations.values()).forEach(citation => {
-        fetchFileMetadata(citation.file_id);
-      });
+      // Log the parsed citations for debugging
+      console.log("Parsed citations:", citations);
+      
+      if (citations.length > 0) {
+        // Create a Map to store unique citations by file_id
+        const uniqueCitations = new Map();
+        citations.forEach(citation => {
+          if (!uniqueCitations.has(citation.file_id)) {
+            uniqueCitations.set(citation.file_id, citation);
+          }
+        });
+        
+        // Fetch metadata for all unique citations
+        Array.from(uniqueCitations.values()).forEach(citation => {
+          console.log("Fetching metadata for citation:", citation);
+          fetchFileMetadata(citation.file_id);
+        });
+      } else {
+        console.warn("No citations found in annotations content:", annotations.content.substring(0, 100));
+      }
       
       // Reset the flag to prevent refetching
       setShouldFetchMetadata(false);
@@ -643,6 +1034,9 @@ export function Message({ message, onCopy, onDelete, onEdit, annotations, curren
         setHasCitationsIncluded(false);
       }
       
+      // Preserve original message's paragraphs and formatting
+      const originalParagraphs = message.content.split(/\n\s*\n/);
+      
       // Prepare the request body
       const requestBody = {
         message_content: message.content,
@@ -651,7 +1045,8 @@ export function Message({ message, onCopy, onDelete, onEdit, annotations, curren
           index: citation.index,
           filename: citation.filename
         })),
-        citation_style: style // Add citation style to the request
+        citation_style: style,
+        preserve_formatting: true // Add flag to preserve formatting
       };
       
       // Call the citation API
@@ -670,37 +1065,71 @@ export function Message({ message, onCopy, onDelete, onEdit, annotations, curren
       
       // Get the data from the response
       const data = await response.json();
+      console.log("Citations API Response:", data); // Debug log
       
       if (!data.enhanced_message) {
         throw new Error('No enhanced text received from server');
       }
 
-      // Save the enhanced text to the database
+      // Update the UI immediately
+      const enhancedMessage = data.enhanced_message;
+      
+      // Set enhanced text ensuring whitespace is preserved
+      setEnhancedText(enhancedMessage);
+      setHasCitationsIncluded(true);
+      
+      // Save to database
       if (message.id && message.sessionId) {
-        await fetch(`${backendUrl}/api/chat-sessions/${message.sessionId}/messages/${message.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            content: data.enhanced_message,
-            metadata: {
-              ...message.metadata,
-              citation_style: style
-            }
-          }),
+        try {
+          console.log("Saving enhanced message to database:", {
+            id: message.id,
+            sessionId: message.sessionId
+          });
+          
+          // Create metadata for enhancement tracking
+          const enhancedMetadata = {
+            ...message.metadata || {},
+            citation_style: style,
+            has_citations: true,
+            enhanced_at: new Date().toISOString(),
+            original_content: message.content,
+            citations: citations.map(c => ({
+              file_id: c.file_id,
+              index: c.index,
+              filename: c.filename
+            }))
+          };
+          
+          const updateResponse = await fetch(`${backendUrl}/api/chat-sessions/${message.sessionId}/messages/${message.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              content: enhancedMessage,
+              metadata: enhancedMetadata
+            }),
+          });
+          
+          if (!updateResponse.ok) {
+            throw new Error(`Database update failed with status ${updateResponse.status}`);
+          }
+          
+          const updateResult = await updateResponse.json();
+          console.log("Database update result:", updateResult);
+          
+        } catch (dbError) {
+          console.error("Error saving enhanced message to database:", dbError);
+          // Continue anyway since the UI is already updated
+        }
+      } else {
+        console.warn("Cannot save to database: missing message.id or message.sessionId", { 
+          id: message.id, 
+          sessionId: message.sessionId 
         });
       }
-      
-      // Copy the enhanced text
-      onCopy(data.enhanced_message);
-      
-      // Update the displayed text
-      setEnhancedText(data.enhanced_message);
-      // Mark citations as included
-      setHasCitationsIncluded(true);
     } catch (error) {
-      // Alert user of error
+      console.error("Citation processing error:", error);
       alert('Failed to process citations. Please try again.');
     } finally {
       setIsLoadingEnhancedText(false);
@@ -1101,7 +1530,22 @@ export function Message({ message, onCopy, onDelete, onEdit, annotations, curren
                 <span className="text-sm text-slate-500">Generating response...</span>
               </div>
             ) : (
-              <MessageContent content={enhancedText || message.content} />
+              <>
+                {/* Citation indicator - show only when enhancedText exists */}
+                {enhancedText && (
+                  <div className="mb-3 text-xs flex items-center gap-2">
+                    <Badge 
+                      variant="outline" 
+                      className="bg-blue-50 text-blue-700 border-blue-200 py-1 px-2 rounded-md"
+                    >
+                      <BookOpen className="h-3 w-3 mr-1" />
+                      <span>Citations included</span>
+                    </Badge>
+                    <span className="text-slate-500">• {citationStyle.toUpperCase()} style</span>
+                  </div>
+                )}
+                <MessageContent content={enhancedText || message.content} messageId={message.id} />
+              </>
             )}
             
             {/* Action buttons below message content */}

@@ -35,6 +35,13 @@ interface ExtendedMessage extends MessageType {
     event_type?: string;
     [key: string]: any;
   };
+  annotations?: {
+    content: string;
+    toolName?: string;
+    toolAction?: string;
+  };
+  id?: string;
+  sessionId?: string;
 }
 
 interface ExtendedChatMessagesProps extends Omit<ChatMessagesProps, 'messages'> {
@@ -109,8 +116,8 @@ export function ChatMessages({
         }
       });
       
-      // If we found a close assistant message and it's not too far (max 2 positions away)
-      if (bestAssistantIndex !== -1 && minDistance <= 2) {
+      // If we found a close assistant message and it's not too far (max 3 positions away)
+      if (bestAssistantIndex !== -1 && minDistance <= 3) {
         assistantToAnnotationMap[bestAssistantIndex] = annotationIndex;
         console.log(`Matched annotation at index ${annotationIndex} with assistant message at index ${bestAssistantIndex}`);
       }
@@ -145,9 +152,23 @@ export function ChatMessages({
                 return null;
               }
 
-              // Find annotation for this specific assistant message
+              // First, check if the message already has annotations attached directly
+              // (from our update in home.tsx)
               let annotation = undefined;
-              if (message.role === 'assistant' && messageWithAnnotations[index] !== undefined) {
+              
+              // If message has direct annotations property, use that
+              if (message.annotations) {
+                console.log(`Message has direct annotations property`);
+                annotation = {
+                  role: 'tool' as MessageType['role'],
+                  content: message.annotations.content,
+                  toolAction: 'annotations' as const,
+                  toolName: message.annotations.toolName,
+                  timestamp: message.timestamp
+                };
+              } 
+              // Otherwise fall back to the old method
+              else if (message.role === 'assistant' && messageWithAnnotations[index] !== undefined) {
                 const annotationIndex = messageWithAnnotations[index];
                 annotation = messages[annotationIndex] as ExtendedMessage & { toolAction: 'annotations' };
                 console.log(`Using annotation from index ${annotationIndex} for assistant message at index ${index}`);

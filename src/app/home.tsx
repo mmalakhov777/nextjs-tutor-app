@@ -54,7 +54,7 @@ type FileCitation = {
   raw_content: string;
 };
 
-// Update Message type to include citations
+// Update Message type to include citations and annotations
 type Message = BaseMessage & {
   id?: string;
   agentName?: string;
@@ -65,6 +65,11 @@ type Message = BaseMessage & {
   toolName?: string;
   citations?: FileCitation[];
   sessionId?: string;
+  annotations?: {
+    content: string;
+    toolName?: string;
+    toolAction?: string;
+  };
 };
 
 // Updating or adding the DatabaseMessage type
@@ -75,6 +80,7 @@ interface ExtendedDBMessage {
   timestamp?: string;
   id: string;
   session_id: string;
+  chat_session_id?: string;
   agent_name?: string;
   metadata?: string | Record<string, any>;
   tool_action?: string;
@@ -422,6 +428,26 @@ export default function Home({
       
       console.log('Chat session found:', chatSession);
       
+      // Get vector store info if available
+      const vectorStoreId = chatSession.vector_store_id;
+      console.log('Vector store ID from session:', vectorStoreId);
+      
+      // First, get stored file info if available
+      const storedFileMap = (() => {
+        try {
+          if (vectorStoreId) {
+            const stored = localStorage.getItem(`fileMap_${vectorStoreId}`);
+            if (stored) {
+              return JSON.parse(stored);
+            }
+          }
+          return {};
+        } catch (e) {
+          console.error("Error reading stored file map:", e);
+          return {};
+        }
+      })();
+      
       // Setup messages
       let messagesArray = chatSession.messages || [];
       if (!Array.isArray(messagesArray)) {
@@ -429,26 +455,102 @@ export default function Home({
         messagesArray = [];
       }
       
+      // First, separate annotations from regular messages and build a map
+      const annotationsMap = new Map();
+      const regularMessages: ExtendedDBMessage[] = [];
+      
+      messagesArray.forEach((msg: ExtendedDBMessage) => {
+        // Store annotation messages separately
+        if (msg.role === 'tool' && msg.tool_action === 'annotations') {
+          // If we find an annotations message, store it by its timestamp
+          // We'll link it to the assistant message closest in time
+          annotationsMap.set(new Date(msg.created_at).getTime(), {
+            content: msg.content,
+            toolName: typeof msg.metadata === 'object' && msg.metadata?.tool_name ? msg.metadata.tool_name : 'file_citations',
+            toolAction: 'annotations'
+          });
+        } else {
+          // Keep regular messages
+          regularMessages.push(msg);
+        }
+      });
+      
       // Map backend messages to frontend format and handle field name differences
-      const messages = messagesArray.map((msg: any) => ({
-        id: msg.id,
-        role: msg.role,
-        content: msg.content,
-        name: msg.name || msg.agent_name,
-        sessionId: msg.session_id || msg.chat_session_id, // Handle both formats
-        timestamp: new Date(msg.created_at),
-        agentName: msg.agent_name,
-        metadata: msg.metadata
-      }));
+      const convertedMessages = regularMessages
+        .filter((msg: ExtendedDBMessage) => {
+          // Filter out system messages that are just agent switches
+          if (msg.role === 'system' && (
+            msg.content.startsWith('Switching to') || 
+            msg.content === 'Triage Agent' ||
+            msg.content.includes('Deep Seek') ||
+            (typeof msg.metadata === 'object' && msg.metadata?.event_type === 'agent_switch')
+          )) {
+            return false;
+          }
+          return true;
+        })
+        .map((msg: ExtendedDBMessage, index: number, array: ExtendedDBMessage[]) => {
+          const message: Message = {
+            id: msg.id,
+            role: msg.role as MessageRole,
+            content: msg.content,
+            sessionId: msg.session_id || msg.chat_session_id, // Handle both formats
+            timestamp: new Date(msg.created_at),
+            agentName: msg.agent_name
+          };
+          
+          // Add metadata and enhance it for citations
+          if (msg.metadata && typeof msg.metadata === 'object') {
+            // Enhanced metadata with citation info if possible
+            if (msg.metadata.has_citations && msg.metadata.citations) {
+              // Make sure each citation has filename info for display
+              if (Array.isArray(msg.metadata.citations)) {
+                msg.metadata.citations = msg.metadata.citations.map((citation: any) => {
+                  // Try to add filename from our stored file map if missing
+                  if (!citation.filename && citation.file_id && storedFileMap[citation.file_id]) {
+                    return {
+                      ...citation,
+                      filename: storedFileMap[citation.file_id].name || 'document.pdf'
+                    };
+                  }
+                  return citation;
+                });
+              }
+            }
+            
+            message.metadata = msg.metadata;
+          }
+          
+          // If this is an assistant message, find any annotations that happened right after it
+          if (msg.role === 'assistant' && message.timestamp) {
+            const msgTime = message.timestamp.getTime();
+            
+            // Find the annotation closest in time after this message
+            // Typically within a few seconds
+            let bestMatch: any = null;
+            let smallestDiff = Infinity;
+            
+            annotationsMap.forEach((annotation, annotationTime) => {
+              const timeDiff = annotationTime - msgTime;
+              // Only consider annotations that came after the message, within 30 seconds
+              if (timeDiff > 0 && timeDiff < 30000 && timeDiff < smallestDiff) {
+                smallestDiff = timeDiff;
+                bestMatch = annotation;
+              }
+            });
+            
+            if (bestMatch) {
+              message.annotations = bestMatch;
+            }
+          }
+          
+          return message;
+        });
       
-      console.log('Processed messages:', messages.length, 'messages');
-      
-      // Get vector store info if available
-      const vectorStoreId = chatSession.vector_store_id;
-      console.log('Vector store ID from session:', vectorStoreId);
+      console.log('Processed messages:', convertedMessages.length, 'messages');
       
       // Update state with the loaded conversation
-      chat.setMessages(messages);
+      chat.setMessages(convertedMessages);
       chat.setShowWelcome(false);
       
       if (vectorStoreId) {
@@ -458,6 +560,9 @@ export default function Home({
           fileCount: vectorStoreInfo?.fileCount,
           type: vectorStoreInfo?.type || 'Vector Store'
         });
+        
+        // Ensure we have files data for the citations
+        fetchFilesByVectorStoreId(vectorStoreId);
       } else {
         files.setDefaultVectorStoreId(null);
         files.setUploadedFiles([]);
@@ -507,7 +612,7 @@ export default function Home({
     return process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5002';
   };
 
-  // Update fetchFilesByVectorStoreId to handle refresh state
+  // Update fetchFilesByVectorStoreId to keep metadata about citations
   const fetchFilesByVectorStoreId = async (vectorStoreId: string) => {
     if (!vectorStoreId) {
       return;
@@ -527,8 +632,18 @@ export default function Home({
       const filesData = await filesResponse.json();
       const filesList = Array.isArray(filesData) ? filesData : (filesData.files || []);
       
+      // Create a map of file IDs to file details for citation lookup
+      const fileMap: Record<string, any> = {};
+      
       if (filesList.length > 0) {
         const filesData = filesList.map((file: any) => {
+          // Store file info in map for citation lookup
+          fileMap[file.id] = {
+            id: file.id,
+            name: file.name,
+            type: file.type
+          };
+          
           const uploadedFile = {
             id: file.id,
             name: file.name,
@@ -564,6 +679,11 @@ export default function Home({
         });
         
         files.setUploadedFiles(filesData);
+        
+        // Store file map in localStorage for citation lookups during page refresh
+        if (Object.keys(fileMap).length > 0) {
+          localStorage.setItem(`fileMap_${vectorStoreId}`, JSON.stringify(fileMap));
+        }
       } else {
         files.setUploadedFiles([]);
       }
@@ -655,8 +775,44 @@ export default function Home({
         chat.setMessages([]);
         chat.setShowWelcome(false);
         
+        // First, separate annotations from regular messages and build a map
+        const annotationsMap = new Map();
+        const regularMessages: ExtendedDBMessage[] = [];
+        
+        data.messages.forEach((msg: ExtendedDBMessage) => {
+          // Store annotation messages separately
+          if (msg.role === 'tool' && msg.tool_action === 'annotations') {
+            // If we find an annotations message, store it by its timestamp
+            // We'll link it to the assistant message closest in time
+            annotationsMap.set(new Date(msg.created_at).getTime(), {
+              content: msg.content,
+              toolName: typeof msg.metadata === 'object' && msg.metadata?.tool_name ? msg.metadata.tool_name : 'file_citations',
+              toolAction: 'annotations'
+            });
+          } else {
+            // Keep regular messages
+            regularMessages.push(msg);
+          }
+        });
+        
+        // First, get stored file info if available
+        const storedFileMap = (() => {
+          try {
+            if (vectorStoreId) {
+              const stored = localStorage.getItem(`fileMap_${vectorStoreId}`);
+              if (stored) {
+                return JSON.parse(stored);
+              }
+            }
+            return {};
+          } catch (e) {
+            console.error("Error reading stored file map:", e);
+            return {};
+          }
+        })();
+        
         // Convert database messages to our Message format
-        const convertedMessages = data.messages
+        const convertedMessages = regularMessages
           .filter((msg: ExtendedDBMessage) => {
             // Filter out system messages that are just agent switches
             if (msg.role === 'system' && (
@@ -669,23 +825,59 @@ export default function Home({
             }
             return true;
           })
-          .map((msg: ExtendedDBMessage) => {
+          .map((msg: ExtendedDBMessage, index: number, array: ExtendedDBMessage[]) => {
             const message: Message = {
+              id: msg.id,
               role: msg.role as MessageRole,
               content: msg.content,
-              timestamp: new Date(msg.created_at || msg.timestamp || Date.now()),
-              id: msg.id,
-              sessionId: msg.session_id
+              sessionId: msg.session_id || msg.chat_session_id, // Handle both formats
+              timestamp: new Date(msg.created_at),
+              agentName: msg.agent_name
             };
-            
-            // Add agent name if available
-            if (msg.agent_name) {
-              message.agentName = msg.agent_name;
-            }
             
             // Add metadata
             if (msg.metadata && typeof msg.metadata === 'object') {
+              // Enhanced metadata with citation info if possible
+              if (msg.metadata.has_citations && msg.metadata.citations) {
+                // Make sure each citation has filename info for display
+                if (Array.isArray(msg.metadata.citations)) {
+                  msg.metadata.citations = msg.metadata.citations.map((citation: any) => {
+                    // Try to add filename from our stored file map if missing
+                    if (!citation.filename && citation.file_id && storedFileMap[citation.file_id]) {
+                      return {
+                        ...citation,
+                        filename: storedFileMap[citation.file_id].name || 'document.pdf'
+                      };
+                    }
+                    return citation;
+                  });
+                }
+              }
+              
               message.metadata = msg.metadata;
+            }
+            
+            // If this is an assistant message, find any annotations that happened right after it
+            if (msg.role === 'assistant' && message.timestamp) {
+              const msgTime = message.timestamp.getTime();
+              
+              // Find the annotation closest in time after this message
+              // Typically within a few seconds
+              let bestMatch: any = null;
+              let smallestDiff = Infinity;
+              
+              annotationsMap.forEach((annotation, annotationTime) => {
+                const timeDiff = annotationTime - msgTime;
+                // Only consider annotations that came after the message, within 30 seconds
+                if (timeDiff > 0 && timeDiff < 30000 && timeDiff < smallestDiff) {
+                  smallestDiff = timeDiff;
+                  bestMatch = annotation;
+                }
+              });
+              
+              if (bestMatch) {
+                message.annotations = bestMatch;
+              }
             }
             
             return message;
