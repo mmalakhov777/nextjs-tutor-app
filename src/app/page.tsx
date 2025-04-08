@@ -34,6 +34,9 @@ async function getUserId(): Promise<string | null> {
       console.log("Full MSD object:", window.MSD);
       console.log("MSD available methods:", window.MSD ? Object.keys(window.MSD) : "MSD not available");
       
+      let hasValidToken = false;
+      let msdId = null;
+      
       // Try each method to see what's available and working
       if (window.MSD) {
         // Try getUser
@@ -51,16 +54,26 @@ async function getUserId(): Promise<string | null> {
           try {
             const msdIdResponse = await window.MSD.getMsdId();
             console.log("MSD.getMsdId() result:", msdIdResponse);
+            if (msdIdResponse && msdIdResponse.msdId) {
+              msdId = msdIdResponse.msdId;
+            }
           } catch (e) {
             console.error("Error calling MSD.getMsdId():", e);
           }
         }
         
-        // Try getToken
+        // Try getToken - crucial for checking valid authentication
         if (typeof window.MSD.getToken === 'function') {
           try {
             const tokenResponse = await window.MSD.getToken();
             console.log("MSD.getToken() result:", tokenResponse);
+            // Check if we have a valid token
+            if (tokenResponse && tokenResponse.token) {
+              hasValidToken = true;
+              console.log("User has a valid MSD token - properly authenticated");
+            } else {
+              console.log("No valid token found - user is not properly authenticated");
+            }
           } catch (e) {
             console.error("Error calling MSD.getToken():", e);
           }
@@ -77,46 +90,29 @@ async function getUserId(): Promise<string | null> {
         }
       }
       
-      // Try to get MSD ID if available (this is the preferred approach)
-      if (window.MSD && window.MSD.getMsdId) {
-        console.log("MSD API available, attempting to get MSD ID...");
-        const msdIdResponse = await window.MSD.getMsdId();
-        console.log("MSD getMsdId result:", msdIdResponse);
-        
-        if (msdIdResponse && msdIdResponse.msdId) {
-          console.log("Successfully got MSD ID:", msdIdResponse.msdId);
-          // Store the MSD ID in localStorage for consistency
-          localStorage.setItem('msd_user_id', msdIdResponse.msdId);
-          return msdIdResponse.msdId;
-        } else {
-          console.log("MSD getMsdId returned no valid data");
-        }
-      } else {
-        // Fall back to legacy getUser method
-        if (window.MSD && typeof window.MSD.getUser === 'function') {
-          console.log("Trying legacy MSD.getUser method...");
-          const user = window.MSD.getUser();
-          console.log("MSD getUser result:", user);
-          if (user && user.id) {
-            console.log("Successfully got user ID from MSD.getUser:", user.id);
-            localStorage.setItem('msd_user_id', user.id);
-            return user.id;
-          }
-        }
-        
-        console.log("MSD API or required methods not available");
+      // Check if we have both MSD ID and a valid token - only then consider the user properly authenticated
+      if (msdId && hasValidToken) {
+        console.log("User is properly authenticated with valid token and MSD ID:", msdId);
+        localStorage.setItem('msd_user_id', msdId);
+        return msdId;
       }
       
-      // If still here, we couldn't get a user directly - check localStorage before trying auth
+      // If we have an MSD ID but no token, we need to authenticate
+      if (msdId && !hasValidToken) {
+        console.log("User has MSD ID but no valid token - needs authentication");
+      }
+      
+      // Check localStorage for previously authenticated user
       const storedUserId = localStorage.getItem('msd_user_id');
-      if (storedUserId) {
-        console.log("Using stored user ID from localStorage:", storedUserId);
+      // Only use stored ID if we confirm we have a valid token
+      if (storedUserId && hasValidToken) {
+        console.log("Using stored authenticated user ID from localStorage:", storedUserId);
         return storedUserId;
       }
       
-      // If still no user ID, try the auth dialog if available
+      // If we reach here, we need to authenticate via dialog
       if (window.MSD && window.MSD.openAuthDialog) {
-        console.log("Attempting to open MSD auth dialog...");
+        console.log("User needs authentication - opening auth dialog");
         try {
           await window.MSD.openAuthDialog({
             isClosable: true,
@@ -131,29 +127,44 @@ async function getUserId(): Promise<string | null> {
           // Log the MSD object again to see if anything changed after auth
           console.log("MSD object after auth:", window.MSD);
           
-          // Try again to get MSD ID after auth dialog
+          // Check for token again after auth
+          let hasTokenAfterAuth = false;
+          let msdIdAfterAuth = null;
+          
+          if (window.MSD && typeof window.MSD.getToken === 'function') {
+            try {
+              const tokenResponse = await window.MSD.getToken();
+              console.log("MSD.getToken() after auth result:", tokenResponse);
+              if (tokenResponse && tokenResponse.token) {
+                hasTokenAfterAuth = true;
+                console.log("User now has valid token after authentication");
+              } else {
+                console.log("Still no valid token after authentication");
+              }
+            } catch (e) {
+              console.error("Error getting token after auth:", e);
+            }
+          }
+          
+          // Try to get MSD ID after auth dialog
           if (window.MSD && window.MSD.getMsdId) {
             const msdIdResponse = await window.MSD.getMsdId();
             console.log("MSD getMsdId after auth result:", msdIdResponse);
             if (msdIdResponse && msdIdResponse.msdId) {
-              console.log("Successfully got MSD ID after auth:", msdIdResponse.msdId);
-              localStorage.setItem('msd_user_id', msdIdResponse.msdId);
-              return msdIdResponse.msdId;
+              msdIdAfterAuth = msdIdResponse.msdId;
+              console.log("Got MSD ID after auth:", msdIdAfterAuth);
             }
           }
           
-          // Fall back to legacy method again
-          if (window.MSD && typeof window.MSD.getUser === 'function') {
-            const user = window.MSD.getUser();
-            console.log("MSD getUser after auth result:", user);
-            if (user && user.id) {
-              console.log("Successfully got user ID after auth:", user.id);
-              localStorage.setItem('msd_user_id', user.id);
-              return user.id;
-            }
+          // Only proceed if we have both valid token and MSD ID after auth
+          if (hasTokenAfterAuth && msdIdAfterAuth) {
+            console.log("Successfully authenticated user with valid token and MSD ID");
+            localStorage.setItem('msd_user_id', msdIdAfterAuth);
+            return msdIdAfterAuth;
           }
           
-          console.log("Failed to get user ID after auth dialog");
+          console.log("Authentication was not successful - no valid token obtained");
+          
         } catch (e) {
           console.error("Error during auth dialog:", e);
         }
