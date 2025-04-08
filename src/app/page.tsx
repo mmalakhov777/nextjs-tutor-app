@@ -124,25 +124,71 @@ async function getUserId(): Promise<string | null> {
               
               if (stillNeedsAuth && window.MSD && typeof window.MSD.openAuthDialog === 'function') {
                 await window.MSD.openAuthDialog({
-                  isClosable: false, // Make dialog not closable
+                  isClosable: true, // Allow closing as a fallback
                   type: "alt2",
-                  shouldVerifyAuthRetrieval: true,
+                  shouldVerifyAuthRetrieval: false, // Set to false to prevent dialog from hanging
                   onClose: () => {
-                    console.log("Auth dialog was closed (this should not happen with isClosable:false)");
+                    console.log("Auth dialog was closed");
                   }
                 });
                 console.log("Auth dialog completed");
               
-                // Token check after auth dialog
+                // Comprehensive logging of all user info after authentication
+                console.log("==== USER INFO AFTER AUTHENTICATION ====");
+                
+                // Log MSD object
+                console.log("Full MSD object after auth:", window.MSD);
+                
+                // Check token after auth dialog
                 if (window.MSD && typeof window.MSD.getToken === 'function') {
-                  const tokenResponse = await window.MSD.getToken();
-                  console.log("MSD.getToken() after auth result:", tokenResponse);
-                  if (tokenResponse && tokenResponse.token) {
-                    console.log("User now has valid token after authentication");
-                  } else {
-                    console.log("Still no valid token after authentication");
+                  try {
+                    const tokenResponse = await window.MSD.getToken();
+                    console.log("TOKEN AFTER AUTH:", tokenResponse);
+                    
+                    if (tokenResponse && tokenResponse.token) {
+                      console.log("✅ Authentication successful: Valid token obtained");
+                    } else {
+                      console.log("❌ Authentication incomplete: No valid token");
+                    }
+                  } catch (e) {
+                    console.error("Error getting token after auth:", e);
                   }
                 }
+                
+                // Get MSD ID after auth
+                if (window.MSD && typeof window.MSD.getMsdId === 'function') {
+                  try {
+                    const msdIdResponse = await window.MSD.getMsdId();
+                    console.log("MSD ID AFTER AUTH:", msdIdResponse);
+                  } catch (e) {
+                    console.error("Error getting MSD ID after auth:", e);
+                  }
+                }
+                
+                // Get Visit ID after auth
+                if (window.MSD && typeof window.MSD.getMsdVisitId === 'function') {
+                  try {
+                    const visitIdResponse = await window.MSD.getMsdVisitId();
+                    console.log("VISIT ID AFTER AUTH:", visitIdResponse);
+                  } catch (e) {
+                    console.error("Error getting Visit ID after auth:", e);
+                  }
+                }
+                
+                // Check getUser after auth
+                if (window.MSD && typeof window.MSD.getUser === 'function') {
+                  try {
+                    const user = window.MSD.getUser();
+                    console.log("USER AFTER AUTH:", user);
+                  } catch (e) {
+                    console.error("Error getting user after auth:", e);
+                  }
+                }
+                
+                console.log("========================================");
+                
+                // Wait a bit to ensure everything is processed
+                await new Promise(resolve => setTimeout(resolve, 500));
               }
             } catch (e) {
               console.error("Error in parallel auth process:", e);
