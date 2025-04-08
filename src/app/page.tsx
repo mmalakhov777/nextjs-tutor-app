@@ -30,6 +30,53 @@ async function getUserId(): Promise<string | null> {
   // Check if window is defined (client-side)
   if (typeof window !== "undefined") {
     try {
+      // Log the entire MSD object
+      console.log("Full MSD object:", window.MSD);
+      console.log("MSD available methods:", window.MSD ? Object.keys(window.MSD) : "MSD not available");
+      
+      // Try each method to see what's available and working
+      if (window.MSD) {
+        // Try getUser
+        if (typeof window.MSD.getUser === 'function') {
+          try {
+            const user = window.MSD.getUser();
+            console.log("MSD.getUser() result:", user);
+          } catch (e) {
+            console.error("Error calling MSD.getUser():", e);
+          }
+        }
+        
+        // Try getMsdId
+        if (typeof window.MSD.getMsdId === 'function') {
+          try {
+            const msdIdResponse = await window.MSD.getMsdId();
+            console.log("MSD.getMsdId() result:", msdIdResponse);
+          } catch (e) {
+            console.error("Error calling MSD.getMsdId():", e);
+          }
+        }
+        
+        // Try getToken
+        if (typeof window.MSD.getToken === 'function') {
+          try {
+            const tokenResponse = await window.MSD.getToken();
+            console.log("MSD.getToken() result:", tokenResponse);
+          } catch (e) {
+            console.error("Error calling MSD.getToken():", e);
+          }
+        }
+        
+        // Try getMsdVisitId
+        if (typeof window.MSD.getMsdVisitId === 'function') {
+          try {
+            const visitIdResponse = await window.MSD.getMsdVisitId();
+            console.log("MSD.getMsdVisitId() result:", visitIdResponse);
+          } catch (e) {
+            console.error("Error calling MSD.getMsdVisitId():", e);
+          }
+        }
+      }
+      
       // Try to get MSD ID if available (this is the preferred approach)
       if (window.MSD && window.MSD.getMsdId) {
         console.log("MSD API available, attempting to get MSD ID...");
@@ -81,9 +128,13 @@ async function getUserId(): Promise<string | null> {
           });
           console.log("Auth dialog completed");
           
+          // Log the MSD object again to see if anything changed after auth
+          console.log("MSD object after auth:", window.MSD);
+          
           // Try again to get MSD ID after auth dialog
           if (window.MSD && window.MSD.getMsdId) {
             const msdIdResponse = await window.MSD.getMsdId();
+            console.log("MSD getMsdId after auth result:", msdIdResponse);
             if (msdIdResponse && msdIdResponse.msdId) {
               console.log("Successfully got MSD ID after auth:", msdIdResponse.msdId);
               localStorage.setItem('msd_user_id', msdIdResponse.msdId);
@@ -94,6 +145,7 @@ async function getUserId(): Promise<string | null> {
           // Fall back to legacy method again
           if (window.MSD && typeof window.MSD.getUser === 'function') {
             const user = window.MSD.getUser();
+            console.log("MSD getUser after auth result:", user);
             if (user && user.id) {
               console.log("Successfully got user ID after auth:", user.id);
               localStorage.setItem('msd_user_id', user.id);
