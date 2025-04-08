@@ -134,22 +134,16 @@ async function getUserId(): Promise<string | null> {
                 console.log("Auth dialog completed");
               
                 // Comprehensive logging of all user info after authentication
-                console.log("==== USER INFO AFTER AUTHENTICATION ====");
+                console.log("==== COMPLETE RAW USER INFO AFTER AUTHENTICATION ====");
                 
                 // Log MSD object
-                console.log("Full MSD object after auth:", window.MSD);
+                console.log("MSD OBJECT:", window.MSD);
                 
                 // Check token after auth dialog
                 if (window.MSD && typeof window.MSD.getToken === 'function') {
                   try {
                     const tokenResponse = await window.MSD.getToken();
-                    console.log("TOKEN AFTER AUTH:", tokenResponse);
-                    
-                    if (tokenResponse && tokenResponse.token) {
-                      console.log("✅ Authentication successful: Valid token obtained");
-                    } else {
-                      console.log("❌ Authentication incomplete: No valid token");
-                    }
+                    console.log("RAW TOKEN RESPONSE:", tokenResponse);
                   } catch (e) {
                     console.error("Error getting token after auth:", e);
                   }
@@ -159,7 +153,7 @@ async function getUserId(): Promise<string | null> {
                 if (window.MSD && typeof window.MSD.getMsdId === 'function') {
                   try {
                     const msdIdResponse = await window.MSD.getMsdId();
-                    console.log("MSD ID AFTER AUTH:", msdIdResponse);
+                    console.log("RAW MSD ID RESPONSE:", msdIdResponse);
                   } catch (e) {
                     console.error("Error getting MSD ID after auth:", e);
                   }
@@ -169,7 +163,7 @@ async function getUserId(): Promise<string | null> {
                 if (window.MSD && typeof window.MSD.getMsdVisitId === 'function') {
                   try {
                     const visitIdResponse = await window.MSD.getMsdVisitId();
-                    console.log("VISIT ID AFTER AUTH:", visitIdResponse);
+                    console.log("RAW VISIT ID RESPONSE:", visitIdResponse);
                   } catch (e) {
                     console.error("Error getting Visit ID after auth:", e);
                   }
@@ -179,13 +173,27 @@ async function getUserId(): Promise<string | null> {
                 if (window.MSD && typeof window.MSD.getUser === 'function') {
                   try {
                     const user = window.MSD.getUser();
-                    console.log("USER AFTER AUTH:", user);
+                    console.log("RAW USER RESPONSE:", user);
                   } catch (e) {
                     console.error("Error getting user after auth:", e);
                   }
                 }
                 
-                console.log("========================================");
+                // Log all properties of window.MSD
+                if (window.MSD) {
+                  console.log("ALL MSD PROPERTIES:", Object.getOwnPropertyNames(window.MSD));
+                  // Log each property safely
+                  Object.getOwnPropertyNames(window.MSD).forEach(prop => {
+                    try {
+                      // @ts-ignore - Ignoring TypeScript error for this debug logging
+                      console.log(`Property: ${prop}`, window.MSD[prop]);
+                    } catch (e) {
+                      console.log(`Property: ${prop} (could not access value)`);
+                    }
+                  });
+                }
+                
+                console.log("================================================");
                 
                 // Wait a bit to ensure everything is processed
                 await new Promise(resolve => setTimeout(resolve, 500));
