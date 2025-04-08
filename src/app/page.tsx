@@ -20,58 +20,92 @@ declare global {
 
 // Function to get user ID from MSD
 async function getUserId(): Promise<string | null> {
+  console.log("Starting getUserId process...");
   // Check if window is defined (client-side)
   if (typeof window !== "undefined") {
     // Try to get user ID from MSD if available
     if (window.MSD && typeof window.MSD.getUser === 'function') {
       try {
+        console.log("MSD API available, attempting to get user...");
         // This method might be asynchronous, but we need to handle it in a sync context
         const user = window.MSD.getUser();
+        console.log("MSD getUser result:", user);
         if (user && user.id) {
+          console.log("Successfully got user ID from MSD:", user.id);
+          // Store the MSD user ID in localStorage for consistency
+          localStorage.setItem('msd_user_id', user.id);
           return user.id;
+        } else {
+          console.log("MSD getUser returned no valid user data");
         }
       } catch (e) {
         console.error("Error getting MSD user:", e);
       }
+    } else {
+      console.log("MSD API or getUser method not available");
     }
     
-    // Check for user ID in localStorage as fallback
-    const storedUserId = localStorage.getItem('msd_user_id');
-    if (storedUserId) {
-      return storedUserId;
-    }
-    
-    // If still no user ID, open auth dialog
+    // If we're here, we couldn't get a user from MSD directly
+    // Try the auth flow if available
     if (window.MSD && window.MSD.openAuthDialog) {
       try {
+        console.log("Attempting to open MSD auth dialog...");
         await window.MSD.openAuthDialog({
           isClosable: false,
           initialWindow: 'signup',
           oauth2Redirect: '/chat',
           oauth2OpenInNewTab: false,
         });
+        console.log("Auth dialog completed");
+        
+        // Wait a moment to ensure auth process is fully complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         // After auth dialog, try to get the user again
         if (window.MSD && typeof window.MSD.getUser === 'function') {
+          console.log("Trying to get user ID after auth dialog");
           const user = window.MSD.getUser();
+          console.log("MSD getUser after auth result:", user);
           if (user && user.id) {
+            console.log("Successfully got user ID after auth:", user.id);
+            // Store the MSD user ID in localStorage for consistency
+            localStorage.setItem('msd_user_id', user.id);
             return user.id;
+          } else {
+            console.log("Failed to get user ID after auth dialog");
           }
         }
       } catch (e) {
         console.error("Error opening auth dialog:", e);
       }
+    } else {
+      console.log("MSD auth dialog not available");
     }
+    
+    // Only check localStorage after trying MSD auth
+    // Check for user ID in localStorage as fallback
+    const storedUserId = localStorage.getItem('msd_user_id');
+    if (storedUserId) {
+      console.log("Using stored user ID from localStorage:", storedUserId);
+      return storedUserId;
+    } else {
+      console.log("No user ID found in localStorage");
+    }
+  } else {
+    console.log("Window not defined (server-side rendering)");
   }
   
   // Fall back to generating a random ID if all else fails
+  console.log("Falling back to generating a random user ID");
   const timestamp = Date.now();
   const randomPart = Math.random().toString(36).substring(2, 10);
   const userId = `${timestamp}-${randomPart}`;
+  console.log("Generated random user ID:", userId);
   
   // Store the generated ID in localStorage for future use
   if (typeof window !== "undefined") {
     localStorage.setItem('msd_user_id', userId);
+    console.log("Stored generated user ID in localStorage");
   }
   
   return userId;
@@ -84,8 +118,8 @@ export default function Home() {
     // Create async function to handle the redirect
     const handleRedirect = async () => {
       try {
-        // Wait a moment to ensure MSD is initialized
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Wait longer to ensure MSD is properly initialized
+        await new Promise(resolve => setTimeout(resolve, 800));
         
         // Get user ID from MSD or fallback
         const userId = await getUserId();
