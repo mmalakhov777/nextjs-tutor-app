@@ -49,20 +49,23 @@ async function getUserId(): Promise<string | null> {
           }
         }
         
-        // Try getMsdId
+        // Try getMsdId - get this first to use immediately
         if (typeof window.MSD.getMsdId === 'function') {
           try {
             const msdIdResponse = await window.MSD.getMsdId();
             console.log("MSD.getMsdId() result:", msdIdResponse);
             if (msdIdResponse && msdIdResponse.msdId) {
               msdId = msdIdResponse.msdId;
+              console.log("Got MSD ID immediately:", msdId);
+              // Store the MSD ID in localStorage right away
+              localStorage.setItem('msd_user_id', msdId);
             }
           } catch (e) {
             console.error("Error calling MSD.getMsdId():", e);
           }
         }
         
-        // Try getToken - crucial for checking valid authentication
+        // Try getToken - check if user is already authenticated
         if (typeof window.MSD.getToken === 'function') {
           try {
             const tokenResponse = await window.MSD.getToken();
@@ -90,91 +93,75 @@ async function getUserId(): Promise<string | null> {
         }
       }
       
-      // Check if we have both MSD ID and a valid token - only then consider the user properly authenticated
-      if (msdId && hasValidToken) {
-        console.log("User is properly authenticated with valid token and MSD ID:", msdId);
-        localStorage.setItem('msd_user_id', msdId);
+      // If we have an MSD ID, use it right away for chat session
+      if (msdId) {
+        console.log("Using MSD ID for immediate chat session creation:", msdId);
+        
+        // Start the token check and auth process in parallel if not authenticated
+        if (!hasValidToken && window.MSD && window.MSD.openAuthDialog) {
+          console.log("Starting parallel auth process - will show dialog after 20 seconds");
+          
+          // Start this process in parallel without awaiting
+          (async () => {
+            try {
+              // Wait 20 seconds before showing auth dialog
+              await new Promise(resolve => setTimeout(resolve, 20000));
+              console.log("20-second delay completed, opening auth dialog now");
+              
+              // Check token again before showing auth dialog
+              let stillNeedsAuth = true;
+              if (window.MSD && typeof window.MSD.getToken === 'function') {
+                try {
+                  const tokenCheckResult = await window.MSD.getToken();
+                  if (tokenCheckResult && tokenCheckResult.token) {
+                    console.log("Token check after delay: User now has valid token, no need for auth dialog");
+                    stillNeedsAuth = false;
+                  }
+                } catch (e) {
+                  console.error("Error checking token after delay:", e);
+                }
+              }
+              
+              if (stillNeedsAuth && window.MSD && typeof window.MSD.openAuthDialog === 'function') {
+                await window.MSD.openAuthDialog({
+                  isClosable: false, // Make dialog not closable
+                  type: "alt2",
+                  shouldVerifyAuthRetrieval: true,
+                  onClose: () => {
+                    console.log("Auth dialog was closed (this should not happen with isClosable:false)");
+                  }
+                });
+                console.log("Auth dialog completed");
+              
+                // Token check after auth dialog
+                if (window.MSD && typeof window.MSD.getToken === 'function') {
+                  const tokenResponse = await window.MSD.getToken();
+                  console.log("MSD.getToken() after auth result:", tokenResponse);
+                  if (tokenResponse && tokenResponse.token) {
+                    console.log("User now has valid token after authentication");
+                  } else {
+                    console.log("Still no valid token after authentication");
+                  }
+                }
+              }
+            } catch (e) {
+              console.error("Error in parallel auth process:", e);
+            }
+          })();
+          
+          // Return the MSD ID immediately without waiting for auth to complete
+          return msdId;
+        }
+        
+        // If we already have a token, just return the MSD ID
         return msdId;
       }
       
-      // If we have an MSD ID but no token, we need to authenticate
-      if (msdId && !hasValidToken) {
-        console.log("User has MSD ID but no valid token - needs authentication");
-      }
-      
-      // Check localStorage for previously authenticated user
+      // If no MSD ID, check localStorage
       const storedUserId = localStorage.getItem('msd_user_id');
-      // Only use stored ID if we confirm we have a valid token
-      if (storedUserId && hasValidToken) {
-        console.log("Using stored authenticated user ID from localStorage:", storedUserId);
+      if (storedUserId) {
+        console.log("Using stored user ID from localStorage:", storedUserId);
         return storedUserId;
-      }
-      
-      // If we reach here, we need to authenticate via dialog
-      if (window.MSD && window.MSD.openAuthDialog) {
-        console.log("User needs authentication - waiting 20 seconds before showing auth dialog");
-        
-        // Wait 20 seconds before showing auth dialog
-        await new Promise(resolve => setTimeout(resolve, 20000));
-        
-        console.log("20-second delay completed, opening auth dialog now");
-        try {
-          await window.MSD.openAuthDialog({
-            isClosable: false, // Make dialog not closable
-            type: "alt2",
-            shouldVerifyAuthRetrieval: true,
-            onClose: () => {
-              console.log("Auth dialog was closed (this should not happen with isClosable:false)");
-            }
-          });
-          console.log("Auth dialog completed");
-          
-          // Log the MSD object again to see if anything changed after auth
-          console.log("MSD object after auth:", window.MSD);
-          
-          // Check for token again after auth
-          let hasTokenAfterAuth = false;
-          let msdIdAfterAuth = null;
-          
-          if (window.MSD && typeof window.MSD.getToken === 'function') {
-            try {
-              const tokenResponse = await window.MSD.getToken();
-              console.log("MSD.getToken() after auth result:", tokenResponse);
-              if (tokenResponse && tokenResponse.token) {
-                hasTokenAfterAuth = true;
-                console.log("User now has valid token after authentication");
-              } else {
-                console.log("Still no valid token after authentication");
-              }
-            } catch (e) {
-              console.error("Error getting token after auth:", e);
-            }
-          }
-          
-          // Try to get MSD ID after auth dialog
-          if (window.MSD && window.MSD.getMsdId) {
-            const msdIdResponse = await window.MSD.getMsdId();
-            console.log("MSD getMsdId after auth result:", msdIdResponse);
-            if (msdIdResponse && msdIdResponse.msdId) {
-              msdIdAfterAuth = msdIdResponse.msdId;
-              console.log("Got MSD ID after auth:", msdIdAfterAuth);
-            }
-          }
-          
-          // Only proceed if we have both valid token and MSD ID after auth
-          if (hasTokenAfterAuth && msdIdAfterAuth) {
-            console.log("Successfully authenticated user with valid token and MSD ID");
-            localStorage.setItem('msd_user_id', msdIdAfterAuth);
-            return msdIdAfterAuth;
-          }
-          
-          console.log("Authentication was not successful - no valid token obtained");
-          
-        } catch (e) {
-          console.error("Error during auth dialog:", e);
-        }
-      } else {
-        console.log("MSD auth dialog not available");
       }
     } catch (error) {
       console.error("Error in MSD authentication flow:", error);
