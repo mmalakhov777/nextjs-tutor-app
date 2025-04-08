@@ -50,18 +50,39 @@ async function getUserId(): Promise<string | null> {
     if (window.MSD && window.MSD.openAuthDialog) {
       try {
         console.log("Attempting to open MSD auth dialog...");
-        await window.MSD?.openAuthDialog({
-          isClosable: false,
-          shouldVerifyAuthRetrieval: true,
+        
+        let authCompleted = false;
+        
+        // Set up a timeout to prevent waiting indefinitely
+        const timeoutPromise = new Promise<void>((_, reject) => {
+          setTimeout(() => {
+            if (!authCompleted) {
+              console.log("Auth dialog timeout - proceeding with fallback");
+              reject(new Error("Auth dialog timeout"));
+            }
+          }, 10000); // 10 second timeout
+        });
+        
+        const authPromise = window.MSD.openAuthDialog({
+          isClosable: true, // Allow dialog to be closed
+          shouldVerifyAuthRetrieval: false, // Try setting this to false
           type: "alt2",
           onClose: () => {
-            console.log("Auth dialog was closed");
+            console.log("Auth dialog was closed by user");
+            authCompleted = true;
           }
         });
-        console.log("Auth dialog completed");
+        
+        // Race between auth and timeout
+        try {
+          await Promise.race([authPromise, timeoutPromise]);
+          console.log("Auth dialog completed");
+        } catch (error) {
+          console.log("Auth dialog failed or timed out:", error);
+        }
         
         // Wait a moment to ensure auth process is fully complete
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         // After auth dialog, try to get the user again
         if (window.MSD && typeof window.MSD.getUser === 'function') {
