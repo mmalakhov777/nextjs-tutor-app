@@ -112,14 +112,19 @@ async function getUserId(): Promise<string | null> {
       
       // If we reach here, we need to authenticate via dialog
       if (window.MSD && window.MSD.openAuthDialog) {
-        console.log("User needs authentication - opening auth dialog");
+        console.log("User needs authentication - waiting 20 seconds before showing auth dialog");
+        
+        // Wait 20 seconds before showing auth dialog
+        await new Promise(resolve => setTimeout(resolve, 20000));
+        
+        console.log("20-second delay completed, opening auth dialog now");
         try {
           await window.MSD.openAuthDialog({
-            isClosable: true,
+            isClosable: false, // Make dialog not closable
             type: "alt2",
             shouldVerifyAuthRetrieval: true,
             onClose: () => {
-              console.log("Auth dialog was closed by user");
+              console.log("Auth dialog was closed (this should not happen with isClosable:false)");
             }
           });
           console.log("Auth dialog completed");
