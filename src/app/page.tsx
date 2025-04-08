@@ -123,124 +123,26 @@ async function getUserId(): Promise<string | null> {
               }
               
               if (stillNeedsAuth && window.MSD && typeof window.MSD.openAuthDialog === 'function') {
-                // Define a function that attempts the auth dialog with retry logic
-                const attemptAuthDialog = async (retryCount = 0, maxRetries = 3) => {
-                  try {
-                    console.log(`Authentication attempt ${retryCount + 1}/${maxRetries + 1}...`);
-                    
-                    if (window.MSD && typeof window.MSD.openAuthDialog === 'function') {
-                      await window.MSD.openAuthDialog({
-                        isClosable: true, // Allow closing as a fallback
-                        type: "alt2",
-                        shouldVerifyAuthRetrieval: false, // Set to false to prevent dialog from hanging
-                        onClose: () => {
-                          console.log("Auth dialog was closed");
-                        }
-                      });
-                      console.log("Auth dialog completed");
-                    } else {
-                      console.log("MSD or openAuthDialog not available, cannot proceed with auth attempt");
-                      return false;
-                    }
-                    
-                    // Wait for a moment to let any background processes complete
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    
-                    // Verify if authentication was successful by checking for token
-                    if (window.MSD && typeof window.MSD.getToken === 'function') {
-                      const tokenResponse = await window.MSD.getToken();
-                      if (tokenResponse && tokenResponse.token) {
-                        console.log("Authentication successful - valid token obtained!");
-                        return true;
-                      } else {
-                        console.log("Authentication did not result in a valid token");
-                        return false;
-                      }
-                    }
-                    return false;
-                  } catch (e) {
-                    console.error(`Error during auth attempt ${retryCount + 1}:`, e);
-                    
-                    if (retryCount < maxRetries) {
-                      console.log(`Waiting before retry ${retryCount + 2}...`);
-                      // Wait between retries with exponential backoff
-                      await new Promise(resolve => setTimeout(resolve, 2000 * Math.pow(2, retryCount)));
-                      return attemptAuthDialog(retryCount + 1, maxRetries);
-                    } else {
-                      console.log("Max retries reached, giving up on authentication");
-                      return false;
-                    }
+                await window.MSD.openAuthDialog({
+                  isClosable: false, // Make dialog not closable
+                  type: "alt2",
+                  shouldVerifyAuthRetrieval: true,
+                  onClose: () => {
+                    console.log("Auth dialog was closed (this should not happen with isClosable:false)");
                   }
-                };
-                
-                // Attempt authentication with retries
-                const authSuccess = await attemptAuthDialog();
-                
-                // Log all information regardless of auth success
-                console.log("==== COMPLETE RAW USER INFO AFTER AUTHENTICATION ====");
-                console.log("Authentication successful:", authSuccess);
-                
-                // Log MSD object
-                console.log("MSD OBJECT:", window.MSD);
-                
-                // Check token after auth dialog
+                });
+                console.log("Auth dialog completed");
+              
+                // Token check after auth dialog
                 if (window.MSD && typeof window.MSD.getToken === 'function') {
-                  try {
-                    const tokenResponse = await window.MSD.getToken();
-                    console.log("RAW TOKEN RESPONSE:", tokenResponse);
-                  } catch (e) {
-                    console.error("Error getting token after auth:", e);
+                  const tokenResponse = await window.MSD.getToken();
+                  console.log("MSD.getToken() after auth result:", tokenResponse);
+                  if (tokenResponse && tokenResponse.token) {
+                    console.log("User now has valid token after authentication");
+                  } else {
+                    console.log("Still no valid token after authentication");
                   }
                 }
-                
-                // Get MSD ID after auth
-                if (window.MSD && typeof window.MSD.getMsdId === 'function') {
-                  try {
-                    const msdIdResponse = await window.MSD.getMsdId();
-                    console.log("RAW MSD ID RESPONSE:", msdIdResponse);
-                  } catch (e) {
-                    console.error("Error getting MSD ID after auth:", e);
-                  }
-                }
-                
-                // Get Visit ID after auth
-                if (window.MSD && typeof window.MSD.getMsdVisitId === 'function') {
-                  try {
-                    const visitIdResponse = await window.MSD.getMsdVisitId();
-                    console.log("RAW VISIT ID RESPONSE:", visitIdResponse);
-                  } catch (e) {
-                    console.error("Error getting Visit ID after auth:", e);
-                  }
-                }
-                
-                // Check getUser after auth
-                if (window.MSD && typeof window.MSD.getUser === 'function') {
-                  try {
-                    const user = window.MSD.getUser();
-                    console.log("RAW USER RESPONSE:", user);
-                  } catch (e) {
-                    console.error("Error getting user after auth:", e);
-                  }
-                }
-                
-                // Log all properties of window.MSD
-                if (window.MSD) {
-                  console.log("ALL MSD PROPERTIES:", Object.getOwnPropertyNames(window.MSD));
-                  // Log each property safely
-                  Object.getOwnPropertyNames(window.MSD).forEach(prop => {
-                    try {
-                      // @ts-ignore - Ignoring TypeScript error for this debug logging
-                      console.log(`Property: ${prop}`, window.MSD[prop]);
-                    } catch (e) {
-                      console.log(`Property: ${prop} (could not access value)`);
-                    }
-                  });
-                }
-                
-                console.log("================================================");
-                
-                // Wait a bit to ensure everything is processed
-                await new Promise(resolve => setTimeout(resolve, 500));
               }
             } catch (e) {
               console.error("Error in parallel auth process:", e);
