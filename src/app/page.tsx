@@ -10,9 +10,9 @@ declare global {
       getUser: () => { id: string } | null;
       openAuthDialog?: (options: {
         isClosable?: boolean;
-        initialWindow?: string;
-        oauth2Redirect?: string;
-        oauth2OpenInNewTab?: boolean;
+        shouldVerifyAuthRetrieval?: boolean;
+        type?: string;
+        onClose?: () => void;
       }) => Promise<void>;
     };
   }
@@ -50,11 +50,13 @@ async function getUserId(): Promise<string | null> {
     if (window.MSD && window.MSD.openAuthDialog) {
       try {
         console.log("Attempting to open MSD auth dialog...");
-        await window.MSD.openAuthDialog({
+        await window.MSD?.openAuthDialog({
           isClosable: false,
-          initialWindow: 'signup',
-          oauth2Redirect: '/chat',
-          oauth2OpenInNewTab: false,
+          shouldVerifyAuthRetrieval: true,
+          type: "alt2",
+          onClose: () => {
+            console.log("Auth dialog was closed");
+          }
         });
         console.log("Auth dialog completed");
         
