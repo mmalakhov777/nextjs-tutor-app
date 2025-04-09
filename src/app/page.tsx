@@ -3,27 +3,6 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-// Define MSD types to fix TypeScript errors
-declare global {
-  interface Window {
-    MSD?: {
-      getUser: () => { id: string } | null;
-      getToken: () => Promise<{ token: string }>;
-      getMsdId: () => Promise<{ msdId: string }>;
-      getMsdVisitId: () => Promise<{ msdVisitId: string }>;
-      sendAmpEvent: (event: string, data?: any) => void;
-      historyReplace: (url: string, options?: { preferAppRouter?: boolean }) => void;
-      openAuthDialog: (options: {
-        isClosable?: boolean;
-        shouldVerifyAuthRetrieval?: boolean;
-        type?: string;
-        onClose?: () => void;
-      }) => Promise<void>;
-      historyPush: (url: string, options?: { preferAppRouter?: boolean }) => Promise<void>;
-    };
-  }
-}
-
 // Function to get user ID from MSD
 async function getUserId(): Promise<string | null> {
   console.log("Starting getUserId process...");
@@ -42,17 +21,23 @@ async function getUserId(): Promise<string | null> {
         // Try getUser
         if (typeof window.MSD.getUser === 'function') {
           try {
-            const user = window.MSD.getUser();
-            console.log("MSD.getUser() result:", user);
+            // Use type assertion to avoid TypeScript errors
+            const userResponse = await (window.MSD as any).getUser();
+            console.log("MSD.getUser() result:", userResponse);
+            
+            // If user has an ID in the user object, use it
+            if (userResponse?.user?.id) {
+              return userResponse.user.id;
+            }
           } catch (e) {
             console.error("Error calling MSD.getUser():", e);
           }
         }
         
         // Try getMsdId - get this first to use immediately
-        if (typeof window.MSD.getMsdId === 'function') {
+        if (typeof (window.MSD as any).getMsdId === 'function') {
           try {
-            const msdIdResponse = await window.MSD.getMsdId();
+            const msdIdResponse = await (window.MSD as any).getMsdId();
             console.log("MSD.getMsdId() result:", msdIdResponse);
             if (msdIdResponse && msdIdResponse.msdId) {
               msdId = msdIdResponse.msdId;
@@ -66,9 +51,9 @@ async function getUserId(): Promise<string | null> {
         }
         
         // Try getToken - check if user is already authenticated
-        if (typeof window.MSD.getToken === 'function') {
+        if (typeof (window.MSD as any).getToken === 'function') {
           try {
-            const tokenResponse = await window.MSD.getToken();
+            const tokenResponse = await (window.MSD as any).getToken();
             console.log("MSD.getToken() result:", tokenResponse);
             // Check if we have a valid token
             if (tokenResponse && tokenResponse.token) {
@@ -83,9 +68,9 @@ async function getUserId(): Promise<string | null> {
         }
         
         // Try getMsdVisitId
-        if (typeof window.MSD.getMsdVisitId === 'function') {
+        if (typeof (window.MSD as any).getMsdVisitId === 'function') {
           try {
-            const visitIdResponse = await window.MSD.getMsdVisitId();
+            const visitIdResponse = await (window.MSD as any).getMsdVisitId();
             console.log("MSD.getMsdVisitId() result:", visitIdResponse);
           } catch (e) {
             console.error("Error calling MSD.getMsdVisitId():", e);
@@ -98,7 +83,7 @@ async function getUserId(): Promise<string | null> {
         console.log("Using MSD ID for immediate chat session creation:", msdId);
         
         // Start the token check and auth process in parallel if not authenticated
-        if (!hasValidToken && window.MSD && window.MSD.openAuthDialog) {
+        if (!hasValidToken && window.MSD && typeof (window.MSD as any).openAuthDialog === 'function') {
           console.log("Starting parallel auth process - will show dialog after 20 seconds");
           
           // Start this process in parallel without awaiting
@@ -110,9 +95,9 @@ async function getUserId(): Promise<string | null> {
               
               // Check token again before showing auth dialog
               let stillNeedsAuth = true;
-              if (window.MSD && typeof window.MSD.getToken === 'function') {
+              if (window.MSD && typeof (window.MSD as any).getToken === 'function') {
                 try {
-                  const tokenCheckResult = await window.MSD.getToken();
+                  const tokenCheckResult = await (window.MSD as any).getToken();
                   if (tokenCheckResult && tokenCheckResult.token) {
                     console.log("Token check after delay: User now has valid token, no need for auth dialog");
                     stillNeedsAuth = false;
@@ -122,8 +107,8 @@ async function getUserId(): Promise<string | null> {
                 }
               }
               
-              if (stillNeedsAuth && window.MSD && typeof window.MSD.openAuthDialog === 'function') {
-                await window.MSD.openAuthDialog({
+              if (stillNeedsAuth && window.MSD && typeof (window.MSD as any).openAuthDialog === 'function') {
+                await (window.MSD as any).openAuthDialog({
                   isClosable: false, // Make dialog not closable
                   type: "alt2",
                   shouldVerifyAuthRetrieval: true,
@@ -134,8 +119,8 @@ async function getUserId(): Promise<string | null> {
                 console.log("Auth dialog completed");
               
                 // Token check after auth dialog
-                if (window.MSD && typeof window.MSD.getToken === 'function') {
-                  const tokenResponse = await window.MSD.getToken();
+                if (window.MSD && typeof (window.MSD as any).getToken === 'function') {
+                  const tokenResponse = await (window.MSD as any).getToken();
                   console.log("MSD.getToken() after auth result:", tokenResponse);
                   if (tokenResponse && tokenResponse.token) {
                     console.log("User now has valid token after authentication");
