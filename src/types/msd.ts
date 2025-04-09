@@ -33,6 +33,9 @@ declare global {
     // Debug utilities
     show_limits_as_for_unsubscribed?: () => void;
     restore_subscription_state?: () => void;
+    force_subscribed?: () => void;
+    force_unsubscribed?: () => void;
+    show_subscription_state?: () => void;
   }
 }
 
