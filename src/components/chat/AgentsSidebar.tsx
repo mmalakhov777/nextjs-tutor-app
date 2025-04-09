@@ -12,11 +12,27 @@ import { DeepSeekLogo } from '@/components/icons/DeepSeekLogo';
 import { MistralLogo } from '@/components/icons/MistralLogo';
 import { PerplexityLogo } from '@/components/icons/PerplexityLogo';
 import React from 'react';
-import msd from '@/lib/msd';
 
-// Define debug utilities globally
+// Define MSD global interface type
 declare global {
   interface Window {
+    MSD?: {
+      getUser: () => Promise<{ 
+        user?: { 
+          subscription?: boolean | string;
+          subscription_type?: string;
+          is_subscription_cancelled?: boolean;
+          subscription_valid_until?: string;
+          has_paid?: boolean;
+          [key: string]: any;  // Allow for any other properties
+        } 
+      }>;
+      openSubscriptionDialog: (options: {
+        isClosable: boolean;
+        shouldVerifySubscriptionRetrieval: boolean;
+        type: string;
+      }) => Promise<void>;
+    };
     // Add debug utilities
     show_limits_as_for_unsubscribed?: () => void;
     restore_subscription_state?: () => void;
@@ -107,9 +123,37 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
         setIsCheckingSubscription(true);
         console.log('[MSD] Starting subscription check');
         
-        // Use our MSD utility to check subscription status
-        const userHasSubscription = await msd.checkUserSubscription();
-        setHasSubscription(userHasSubscription);
+        // Use the MSD global object to check subscription status
+        if (typeof window !== 'undefined' && window.MSD) {
+          console.log('[MSD] MSD global object found');
+          
+          try {
+            const user = await window.MSD.getUser();
+            
+            // Extract subscription details for logging
+            const subscriptionInfo = {
+              hasSubscription: !!user?.user?.subscription,
+              subscriptionType: user?.user?.subscription_type || 'none',
+              subscriptionName: user?.user?.subscription || 'none',
+              isSubscriptionCancelled: user?.user?.is_subscription_cancelled || false,
+              subscriptionValidUntil: user?.user?.subscription_valid_until || 'N/A',
+              hasPaid: user?.user?.has_paid || false
+            };
+            
+            console.log('[MSD] User subscription details:', JSON.stringify(subscriptionInfo, null, 2));
+            
+            const userHasSubscription = !!user?.user?.subscription;
+            console.log('[MSD] User has active subscription:', userHasSubscription);
+            
+            setHasSubscription(userHasSubscription);
+          } catch (subscriptionError) {
+            console.error('[MSD] Error getting user data:', subscriptionError);
+            setHasSubscription(false);
+          }
+        } else {
+          console.log('[MSD] MSD global object not available');
+          setHasSubscription(false);
+        }
       } catch (error) {
         console.error('[MSD] Error in subscription check flow:', error);
         setHasSubscription(false);
@@ -127,22 +171,48 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
     try {
       console.log('[MSD] Opening subscription dialog');
       
-      // Use our MSD utility to open the subscription dialog
-      const subscriptionSuccess = await msd.openSubscriptionDialog({
-        isClosable: false,
-        shouldVerifySubscriptionRetrieval: true,
-        type: "alt2"
-      });
-      
-      // If subscription was successful, update state
-      if (subscriptionSuccess) {
-        setHasSubscription(true);
+      if (typeof window !== 'undefined' && window.MSD) {
+        console.log('[MSD] Calling MSD.openSubscriptionDialog');
         
-        // If using debug override, clear it now
-        if (debugOverrideSubscription !== null) {
-          setDebugOverrideSubscription(null);
-          setOriginalSubscriptionState(null);
+        await window.MSD.openSubscriptionDialog({
+          isClosable: false,
+          shouldVerifySubscriptionRetrieval: true,
+          type: "alt2"
+        });
+        
+        console.log('[MSD] Subscription dialog closed, checking updated status');
+        
+        // Check subscription status again after dialog closes
+        try {
+          const user = await window.MSD.getUser();
+          
+          // Extract subscription details for logging
+          const subscriptionInfo = {
+            hasSubscription: !!user?.user?.subscription,
+            subscriptionType: user?.user?.subscription_type || 'none',
+            subscriptionName: user?.user?.subscription || 'none',
+            isSubscriptionCancelled: user?.user?.is_subscription_cancelled || false,
+            subscriptionValidUntil: user?.user?.subscription_valid_until || 'N/A',
+            hasPaid: user?.user?.has_paid || false
+          };
+          
+          console.log('[MSD] Updated subscription details:', JSON.stringify(subscriptionInfo, null, 2));
+          
+          const userHasSubscription = !!user?.user?.subscription;
+          console.log('[MSD] User has active subscription:', userHasSubscription);
+          
+          setHasSubscription(userHasSubscription);
+          
+          // If subscription was successful, clear debug override
+          if (userHasSubscription) {
+            setDebugOverrideSubscription(null);
+            setOriginalSubscriptionState(null);
+          }
+        } catch (updateError) {
+          console.error('[MSD] Error checking updated subscription:', updateError);
         }
+      } else {
+        console.error('[MSD] MSD not available for subscription dialog');
       }
     } catch (error) {
       console.error('[MSD] Error in subscription dialog flow:', error);
@@ -151,8 +221,19 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   
   // Add logging for MSD object on mount
   useEffect(() => {
-    // Log MSD availability when component mounts
-    msd.logMSDAvailability();
+    console.log('[MSD] Component mounted, checking MSD availability');
+    if (typeof window !== 'undefined') {
+      console.log('[MSD] Window object available');
+      console.log('[MSD] MSD object exists:', !!window.MSD);
+      if (window.MSD) {
+        console.log('[MSD] MSD methods available:', {
+          getUser: typeof window.MSD.getUser === 'function',
+          openSubscriptionDialog: typeof window.MSD.openSubscriptionDialog === 'function'
+        });
+      }
+    } else {
+      console.log('[MSD] Window object not available (server-side rendering)');
+    }
   }, []);
   
   // Memoize agent lists to prevent unnecessary recalculations

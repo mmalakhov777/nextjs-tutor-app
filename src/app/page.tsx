@@ -2,7 +2,27 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import '@/types/msd'; // Import global MSD type definitions
+
+// Define MSD types to fix TypeScript errors
+declare global {
+  interface Window {
+    MSD?: {
+      getUser: () => { id: string } | null;
+      getToken: () => Promise<{ token: string }>;
+      getMsdId: () => Promise<{ msdId: string }>;
+      getMsdVisitId: () => Promise<{ msdVisitId: string }>;
+      sendAmpEvent: (event: string, data?: any) => void;
+      historyReplace: (url: string, options?: { preferAppRouter?: boolean }) => void;
+      openAuthDialog: (options: {
+        isClosable?: boolean;
+        shouldVerifyAuthRetrieval?: boolean;
+        type?: string;
+        onClose?: () => void;
+      }) => Promise<void>;
+      historyPush: (url: string, options?: { preferAppRouter?: boolean }) => Promise<void>;
+    };
+  }
+}
 
 // Function to get user ID from MSD
 async function getUserId(): Promise<string | null> {
@@ -24,18 +44,6 @@ async function getUserId(): Promise<string | null> {
           try {
             const user = window.MSD.getUser();
             console.log("MSD.getUser() result:", user);
-            
-            // Add detailed subscription data logging
-            if (user) {
-              console.log("MSD User ID:", user.id);
-              console.log("MSD User object keys:", Object.keys(user));
-              console.log("MSD Subscription data check:");
-              console.log("- subscription property:", user.subscription);
-              console.log("- subscription_type property:", user.subscription_type);
-              console.log("- is_subscription_cancelled:", user.is_subscription_cancelled);
-              console.log("- subscription_valid_until:", user.subscription_valid_until);
-              console.log("- has_paid:", user.has_paid);
-            }
           } catch (e) {
             console.error("Error calling MSD.getUser():", e);
           }
