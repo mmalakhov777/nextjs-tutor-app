@@ -69,19 +69,10 @@ export default function ChatPage() {
 
   return (
     <>
-      {/* @ts-ignore - The Home component likely needs a prop definition update */}
       <Home 
         vectorStoreInfoFromUrl={vectorStoreInfo} 
         onInitializationComplete={handleInitializationComplete}
       />
-      
-      {/* Initializing indicator - only show when initializing and not yet complete */}
-      {isInitializing && !isInitializationComplete && !showErrorModal && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-white border border-slate-200 text-slate-900 px-4 py-2 rounded-md shadow-md z-50 flex items-center gap-2 transition-opacity duration-300 ease-in-out">
-          <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-          <span>Preparing your chat experience...</span>
-        </div>
-      )}
       
       {/* Error Modal for Missing User ID */}
       {showErrorModal && (

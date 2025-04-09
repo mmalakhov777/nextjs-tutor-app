@@ -20,7 +20,6 @@ import { ChatContent } from '@/components/chat/ChatContent';
 import { FileSidebar } from '@/components/chat/FileSidebar';
 import { AgentsSidebar, AgentsSidebarRef } from '@/components/chat/AgentsSidebar';
 import { AnalysisModal } from '@/components/chat/AnalysisModal';
-import { Notification } from '@/components/chat/Notification';
 import { ChatHistoryDropdown } from '@/components/chat/ChatHistoryDropdown';
 import { MobileTabBar } from '@/components/chat/MobileTabBar';
 import { ChatLayout } from '@/components/chat/ChatLayout';
@@ -124,9 +123,6 @@ export default function Home({
   // Vector store info combining from URL and from fetched data
   const [vectorStoreInfo, setVectorStoreInfo] = useState<{ id: string; fileCount?: number; type?: string; } | null>(vectorStoreInfoFromUrl);
 
-  // State for notification
-  const [notification, setNotification] = useState<string | null>(null);
-  
   // New loading states for different operations
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [isLoadingSession, setIsLoadingSession] = useState(false);
@@ -163,7 +159,7 @@ export default function Home({
     if (userIdParam) {
       setUserId(userIdParam);
     } else {
-      setNotification('Error: User ID is required. Please add ?user_id=YOUR_USER_ID to the URL.');
+      console.error('Error: User ID is required. Please add ?user_id=YOUR_USER_ID to the URL.');
     }
     
     if (conversationIdParam) {
@@ -259,12 +255,10 @@ export default function Home({
   const handleCopy = (content: string) => {
     navigator.clipboard.writeText(content)
       .then(() => {
-        setNotification('Copied to clipboard!');
-        setTimeout(() => setNotification(null), 2000);
+        console.log('Copied to clipboard!');
       })
       .catch(() => {
-        setNotification('Failed to copy to clipboard');
-        setTimeout(() => setNotification(null), 2000);
+        console.error('Failed to copy to clipboard');
       });
   };
 
@@ -379,14 +373,11 @@ export default function Home({
       chat.setMessages([]);
       chat.setShowWelcome(true);
       
-      setNotification('New conversation created successfully');
-      setTimeout(() => setNotification(null), 2000);
+      console.log('New conversation created successfully');
       
       return newSession.id;
     } catch (error) {
       console.error('Error creating new session:', error);
-      setNotification('Failed to create new chat session: ' + (error instanceof Error ? error.message : String(error)));
-      setTimeout(() => setNotification(null), 2000);
       return null;
     } finally {
       setIsCreatingSession(false);
@@ -598,8 +589,7 @@ export default function Home({
         document.title = `Chat: ${chatSession.title}`;
       }
       
-      setNotification(`Loaded conversation: ${chatSession.title}`);
-      setTimeout(() => setNotification(null), 2000);
+      console.log(`Loaded conversation: ${chatSession.title}`);
       
       setIsLoadingSession(false);
       
@@ -612,8 +602,6 @@ export default function Home({
       return true;
     } catch (error) {
       console.error('Error loading conversation:', error);
-      setNotification('Failed to load conversation: ' + (error instanceof Error ? error.message : String(error)));
-      setTimeout(() => setNotification(null), 2000);
       
       setIsLoadingSession(false);
       
@@ -708,8 +696,7 @@ export default function Home({
         files.setUploadedFiles([]);
       }
     } catch (e) {
-      setNotification('Failed to load files');
-      setTimeout(() => setNotification(null), 2000);
+      console.error('Failed to load files', e);
       files.setUploadedFiles([]);
     } finally {
       files.setIsRefreshing(false);
@@ -922,14 +909,12 @@ export default function Home({
         document.title = `Chat: ${session.title || 'Untitled'}`;
         
         // Show notification
-        setNotification(`Loaded conversation: ${session.title}`);
-        setTimeout(() => setNotification(null), 2000);
+        console.log(`Loaded conversation: ${session.title}`);
       } else {
         throw new Error('Invalid message data format');
       }
     } catch (error) {
-      setNotification('Failed to load chat history');
-      setTimeout(() => setNotification(null), 2000);
+      console.error('Failed to load chat history', error);
     } finally {
       setIsLoadingSession(false);
     }
@@ -937,13 +922,11 @@ export default function Home({
 
   // Define utility functions with useCallback to maintain stability
   const handleActionSuccess = useCallback((message: string) => {
-    setNotification(message);
-    setTimeout(() => setNotification(null), 2000);
+    console.log(message);
   }, []);
 
   const handleActionError = useCallback((message: string) => {
-    setNotification(message);
-    setTimeout(() => setNotification(null), 3000);
+    console.error(message);
   }, []);
 
   // Optimize handler functions with useCallback to prevent excessive re-renders
@@ -1164,11 +1147,6 @@ export default function Home({
       <AnalysisModal
         modal={analysis.analysisModal}
         onClose={analysis.handleCloseAnalysis}
-      />
-
-      <Notification 
-        message={notification} 
-        onClose={() => setNotification(null)} 
       />
     </>
   );
