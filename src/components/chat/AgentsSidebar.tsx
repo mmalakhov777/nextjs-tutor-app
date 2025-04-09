@@ -103,24 +103,50 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
           console.log('[MSD] MSD global object found');
           
           try {
+            // Get and log detailed user data
             const userData = window.MSD.getUser();
-            console.log('[MSD] User data received:', userData);
+            console.log('[MSD] Raw user data received:', JSON.stringify(userData, null, 2));
             
-            // Extract subscription details from another API call if needed
-            // For now, assume user exists = has subscription
-            const userHasSubscription = !!userData;
-            console.log('[MSD] User has active subscription:', userHasSubscription);
-            
-            // Log subscription details we can access
-            console.log('[MSD] User subscription details:', {
-              hasSubscription: userHasSubscription,
-              userId: userData?.id || 'none'
-            });
-            
-            setHasSubscription(userHasSubscription);
+            // Log all available properties
+            if (userData) {
+              console.log('[MSD] User ID:', userData.id);
+              console.log('[MSD] User object keys:', Object.keys(userData));
+              
+              // Check for common subscription properties
+              console.log('[MSD] Subscription data check:');
+              console.log('- subscription property:', userData.subscription);
+              console.log('- subscription_type property:', userData.subscription_type);
+              console.log('- is_subscription_cancelled:', userData.is_subscription_cancelled);
+              console.log('- subscription_valid_until:', userData.subscription_valid_until);
+              console.log('- has_paid:', userData.has_paid);
+              
+              // Try to determine subscription status from multiple signals
+              const userHasSubscription = !!userData && (
+                !!userData.subscription || 
+                !!userData.subscription_type || 
+                !!userData.has_paid
+              );
+              
+              console.log('[MSD] Inferred subscription status:', userHasSubscription);
+              setHasSubscription(userHasSubscription);
+            } else {
+              console.log('[MSD] No user data received, user is not authenticated');
+              setHasSubscription(false);
+            }
           } catch (subscriptionError) {
             console.error('[MSD] Error getting user data:', subscriptionError);
             setHasSubscription(false);
+          }
+          
+          // Add additional debugging - try other MSD methods
+          try {
+            if (typeof window.MSD.getToken === 'function') {
+              const tokenData = await window.MSD.getToken();
+              console.log('[MSD] Token data available:', !!tokenData);
+              console.log('[MSD] Token data keys:', tokenData ? Object.keys(tokenData) : 'none');
+            }
+          } catch (tokenError) {
+            console.error('[MSD] Error getting token data:', tokenError);
           }
         } else {
           console.log('[MSD] MSD global object not available');
@@ -157,22 +183,46 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
         // Check subscription status again after dialog closes
         try {
           const userData = window.MSD.getUser();
-          console.log('[MSD] Updated user data after subscription:', userData);
+          console.log('[MSD] Updated user data after subscription:', JSON.stringify(userData, null, 2));
           
-          // Extract subscription details
-          // For now, assume user exists = has subscription
-          const userHasSubscription = !!userData;
-          console.log('[MSD] User has active subscription after dialog:', userHasSubscription);
-          
-          setHasSubscription(userHasSubscription);
-          
-          // If subscription was successful, clear debug override
-          if (userHasSubscription) {
-            setDebugOverrideSubscription(null);
-            setOriginalSubscriptionState(null);
+          if (userData) {
+            // Log all subscription-related properties
+            console.log('[MSD] Post-dialog subscription check:');
+            console.log('- subscription property:', userData.subscription);
+            console.log('- subscription_type property:', userData.subscription_type);
+            console.log('- is_subscription_cancelled:', userData.is_subscription_cancelled);
+            console.log('- subscription_valid_until:', userData.subscription_valid_until);
+            console.log('- has_paid:', userData.has_paid);
+            
+            // Check subscription status based on multiple signals
+            const userHasSubscription = !!userData && (
+              !!userData.subscription || 
+              !!userData.subscription_type || 
+              !!userData.has_paid
+            );
+            
+            console.log('[MSD] User has active subscription after dialog:', userHasSubscription);
+            setHasSubscription(userHasSubscription);
+            
+            // If subscription was successful, clear debug override
+            if (userHasSubscription) {
+              setDebugOverrideSubscription(null);
+              setOriginalSubscriptionState(null);
+            }
+          } else {
+            console.log('[MSD] No user data received after subscription dialog');
+            setHasSubscription(false);
           }
         } catch (updateError) {
           console.error('[MSD] Error checking updated subscription:', updateError);
+        }
+        
+        // Try to get token info
+        try {
+          const tokenData = await window.MSD.getToken();
+          console.log('[MSD] Post-dialog token data:', tokenData);
+        } catch (tokenError) {
+          console.error('[MSD] Error getting token after subscription:', tokenError);
         }
       } else {
         console.error('[MSD] MSD not available for subscription dialog');

@@ -2,7 +2,15 @@
 declare global {
   interface Window {
     MSD?: {
-      getUser: () => { id: string } | null;
+      getUser: () => { 
+        id: string;
+        subscription?: string | boolean;
+        subscription_type?: string;
+        is_subscription_cancelled?: boolean;
+        subscription_valid_until?: string;
+        has_paid?: boolean;
+        [key: string]: any; // Allow for other properties we might not know about
+      } | null;
       getToken: () => Promise<{ token: string }>;
       getMsdId: () => Promise<{ msdId: string }>;
       getMsdVisitId: () => Promise<{ msdVisitId: string }>;

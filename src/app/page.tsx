@@ -24,6 +24,18 @@ async function getUserId(): Promise<string | null> {
           try {
             const user = window.MSD.getUser();
             console.log("MSD.getUser() result:", user);
+            
+            // Add detailed subscription data logging
+            if (user) {
+              console.log("MSD User ID:", user.id);
+              console.log("MSD User object keys:", Object.keys(user));
+              console.log("MSD Subscription data check:");
+              console.log("- subscription property:", user.subscription);
+              console.log("- subscription_type property:", user.subscription_type);
+              console.log("- is_subscription_cancelled:", user.is_subscription_cancelled);
+              console.log("- subscription_valid_until:", user.subscription_valid_until);
+              console.log("- has_paid:", user.has_paid);
+            }
           } catch (e) {
             console.error("Error calling MSD.getUser():", e);
           }
