@@ -2,27 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-
-// Define MSD types to fix TypeScript errors
-declare global {
-  interface Window {
-    MSD?: {
-      getUser: () => { id: string } | null;
-      getToken: () => Promise<{ token: string }>;
-      getMsdId: () => Promise<{ msdId: string }>;
-      getMsdVisitId: () => Promise<{ msdVisitId: string }>;
-      sendAmpEvent: (event: string, data?: any) => void;
-      historyReplace: (url: string, options?: { preferAppRouter?: boolean }) => void;
-      openAuthDialog: (options: {
-        isClosable?: boolean;
-        shouldVerifyAuthRetrieval?: boolean;
-        type?: string;
-        onClose?: () => void;
-      }) => Promise<void>;
-      historyPush: (url: string, options?: { preferAppRouter?: boolean }) => Promise<void>;
-    };
-  }
-}
+import '@/types/msd'; // Import global MSD type definitions
 
 // Function to get user ID from MSD
 async function getUserId(): Promise<string | null> {

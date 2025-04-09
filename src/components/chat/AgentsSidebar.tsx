@@ -12,33 +12,7 @@ import { DeepSeekLogo } from '@/components/icons/DeepSeekLogo';
 import { MistralLogo } from '@/components/icons/MistralLogo';
 import { PerplexityLogo } from '@/components/icons/PerplexityLogo';
 import React from 'react';
-
-// Define MSD global interface type
-declare global {
-  interface Window {
-    MSD?: {
-      getUser: () => { id: string } | null;
-      getToken: () => Promise<{ token: string }>;
-      getMsdId: () => Promise<{ msdId: string }>;
-      getMsdVisitId: () => Promise<{ msdVisitId: string }>;
-      sendAmpEvent: (event: string, data?: any) => void;
-      historyReplace: (url: string, options?: { scroll?: boolean }) => void;
-      openAuthDialog: (options: {
-        isClosable: boolean;
-        shouldVerifyAuth: boolean;
-        type: string;
-      }) => Promise<void>;
-      openSubscriptionDialog: (options: {
-        isClosable: boolean;
-        shouldVerifySubscriptionRetrieval: boolean;
-        type: string;
-      }) => Promise<void>;
-    };
-    // Add debug utilities
-    show_limits_as_for_unsubscribed?: () => void;
-    restore_subscription_state?: () => void;
-  }
-}
+import '@/types/msd'; // Import global MSD type definitions
 
 // Update the AgentsSidebarProps interface
 interface ExtendedAgentsSidebarProps extends AgentsSidebarProps {
