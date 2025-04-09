@@ -10,6 +10,7 @@ import {
 import { RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import msd from '@/lib/msd';
 
 // Import our components
 import { Message } from '@/components/chat/Message';

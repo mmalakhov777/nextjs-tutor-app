@@ -12,7 +12,16 @@ import { DeepSeekLogo } from '@/components/icons/DeepSeekLogo';
 import { MistralLogo } from '@/components/icons/MistralLogo';
 import { PerplexityLogo } from '@/components/icons/PerplexityLogo';
 import React from 'react';
-import '@/types/msd'; // Import global MSD type definitions
+import msd from '@/lib/msd';
+
+// Define debug utilities globally
+declare global {
+  interface Window {
+    // Add debug utilities
+    show_limits_as_for_unsubscribed?: () => void;
+    restore_subscription_state?: () => void;
+  }
+}
 
 // Update the AgentsSidebarProps interface
 interface ExtendedAgentsSidebarProps extends AgentsSidebarProps {
@@ -83,49 +92,13 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
         }
       };
       
-      // Add commands to directly set subscription state (for testing only)
-      // Force subscription status to subscribed
-      window.force_subscribed = () => {
-        console.log('[DEBUG] Forcing subscription status to SUBSCRIBED');
-        if (originalSubscriptionState === null) {
-          setOriginalSubscriptionState(hasSubscription);
-        }
-        setDebugOverrideSubscription(true);
-        setNotification('Debug mode: Forcing subscribed state');
-        setTimeout(() => setNotification(null), 3000);
-      };
-      
-      // Force subscription status to unsubscribed
-      window.force_unsubscribed = () => {
-        console.log('[DEBUG] Forcing subscription status to UNSUBSCRIBED');
-        if (originalSubscriptionState === null) {
-          setOriginalSubscriptionState(hasSubscription);
-        }
-        setDebugOverrideSubscription(false);
-        setNotification('Debug mode: Forcing unsubscribed state');
-        setTimeout(() => setNotification(null), 3000);
-      };
-      
-      // Display current subscription state
-      window.show_subscription_state = () => {
-        if (debugOverrideSubscription !== null) {
-          console.log('[DEBUG] OVERRIDDEN subscription state:', debugOverrideSubscription);
-          console.log('[DEBUG] Original subscription state:', originalSubscriptionState);
-        } else {
-          console.log('[DEBUG] Current subscription state:', hasSubscription);
-        }
-      };
-      
       // Cleanup
       return () => {
         window.show_limits_as_for_unsubscribed = undefined;
         window.restore_subscription_state = undefined;
-        window.force_subscribed = undefined;
-        window.force_unsubscribed = undefined;
-        window.show_subscription_state = undefined;
       };
     }
-  }, [hasSubscription, originalSubscriptionState, debugOverrideSubscription]);
+  }, [hasSubscription, originalSubscriptionState]);
   
   // Check subscription status
   useEffect(() => {
@@ -134,69 +107,9 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
         setIsCheckingSubscription(true);
         console.log('[MSD] Starting subscription check');
         
-        // Use the MSD global object to check subscription status
-        if (typeof window !== 'undefined' && window.MSD) {
-          console.log('[MSD] MSD global object found');
-          
-          try {
-            // Get and log detailed user data
-            const userData = window.MSD.getUser();
-            console.log('[MSD] Raw user data received:', JSON.stringify(userData, null, 2));
-            
-            // Check if userData exists but is an empty object (no properties)
-            const isEmptyObject = userData && Object.keys(userData).length === 0;
-            if (isEmptyObject) {
-              console.log('[MSD] userData is an empty object - treating as not authenticated');
-              setHasSubscription(false);
-              setIsCheckingSubscription(false);
-              return;
-            }
-            
-            // Log all available properties
-            if (userData && userData.id) {
-              console.log('[MSD] User ID:', userData.id);
-              console.log('[MSD] User object keys:', Object.keys(userData));
-              
-              // Check for common subscription properties
-              console.log('[MSD] Subscription data check:');
-              console.log('- subscription property:', userData.subscription);
-              console.log('- subscription_type property:', userData.subscription_type);
-              console.log('- is_subscription_cancelled:', userData.is_subscription_cancelled);
-              console.log('- subscription_valid_until:', userData.subscription_valid_until);
-              console.log('- has_paid:', userData.has_paid);
-              
-              // Try to determine subscription status from multiple signals
-              const userHasSubscription = !!userData && (
-                !!userData.subscription || 
-                !!userData.subscription_type || 
-                !!userData.has_paid
-              );
-              
-              console.log('[MSD] Inferred subscription status:', userHasSubscription);
-              setHasSubscription(userHasSubscription);
-            } else {
-              console.log('[MSD] No valid user data received (missing ID), user is not authenticated');
-              setHasSubscription(false);
-            }
-          } catch (subscriptionError) {
-            console.error('[MSD] Error getting user data:', subscriptionError);
-            setHasSubscription(false);
-          }
-          
-          // Add additional debugging - try other MSD methods
-          try {
-            if (typeof window.MSD.getToken === 'function') {
-              const tokenData = await window.MSD.getToken();
-              console.log('[MSD] Token data available:', !!tokenData);
-              console.log('[MSD] Token data keys:', tokenData ? Object.keys(tokenData) : 'none');
-            }
-          } catch (tokenError) {
-            console.error('[MSD] Error getting token data:', tokenError);
-          }
-        } else {
-          console.log('[MSD] MSD global object not available');
-          setHasSubscription(false);
-        }
+        // Use our MSD utility to check subscription status
+        const userHasSubscription = await msd.checkUserSubscription();
+        setHasSubscription(userHasSubscription);
       } catch (error) {
         console.error('[MSD] Error in subscription check flow:', error);
         setHasSubscription(false);
@@ -214,71 +127,22 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
     try {
       console.log('[MSD] Opening subscription dialog');
       
-      if (typeof window !== 'undefined' && window.MSD) {
-        console.log('[MSD] Calling MSD.openSubscriptionDialog');
+      // Use our MSD utility to open the subscription dialog
+      const subscriptionSuccess = await msd.openSubscriptionDialog({
+        isClosable: false,
+        shouldVerifySubscriptionRetrieval: true,
+        type: "alt2"
+      });
+      
+      // If subscription was successful, update state
+      if (subscriptionSuccess) {
+        setHasSubscription(true);
         
-        await window.MSD.openSubscriptionDialog({
-          isClosable: false,
-          shouldVerifySubscriptionRetrieval: true,
-          type: "alt2"
-        });
-        
-        console.log('[MSD] Subscription dialog closed, checking updated status');
-        
-        // Check subscription status again after dialog closes
-        try {
-          const userData = window.MSD.getUser();
-          console.log('[MSD] Updated user data after subscription:', JSON.stringify(userData, null, 2));
-          
-          // Check if userData exists but is an empty object (no properties)
-          const isEmptyObject = userData && Object.keys(userData).length === 0;
-          if (isEmptyObject) {
-            console.log('[MSD] Post-dialog userData is an empty object - treating as not subscribed');
-            setHasSubscription(false);
-            return;
-          }
-          
-          if (userData && userData.id) {
-            // Log all subscription-related properties
-            console.log('[MSD] Post-dialog subscription check:');
-            console.log('- subscription property:', userData.subscription);
-            console.log('- subscription_type property:', userData.subscription_type);
-            console.log('- is_subscription_cancelled:', userData.is_subscription_cancelled);
-            console.log('- subscription_valid_until:', userData.subscription_valid_until);
-            console.log('- has_paid:', userData.has_paid);
-            
-            // Check subscription status based on multiple signals
-            const userHasSubscription = !!userData && (
-              !!userData.subscription || 
-              !!userData.subscription_type || 
-              !!userData.has_paid
-            );
-            
-            console.log('[MSD] User has active subscription after dialog:', userHasSubscription);
-            setHasSubscription(userHasSubscription);
-            
-            // If subscription was successful, clear debug override
-            if (userHasSubscription) {
-              setDebugOverrideSubscription(null);
-              setOriginalSubscriptionState(null);
-            }
-          } else {
-            console.log('[MSD] No valid user data received after subscription dialog (missing ID)');
-            setHasSubscription(false);
-          }
-        } catch (updateError) {
-          console.error('[MSD] Error checking updated subscription:', updateError);
+        // If using debug override, clear it now
+        if (debugOverrideSubscription !== null) {
+          setDebugOverrideSubscription(null);
+          setOriginalSubscriptionState(null);
         }
-        
-        // Try to get token info
-        try {
-          const tokenData = await window.MSD.getToken();
-          console.log('[MSD] Post-dialog token data:', tokenData);
-        } catch (tokenError) {
-          console.error('[MSD] Error getting token after subscription:', tokenError);
-        }
-      } else {
-        console.error('[MSD] MSD not available for subscription dialog');
       }
     } catch (error) {
       console.error('[MSD] Error in subscription dialog flow:', error);
@@ -287,19 +151,8 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   
   // Add logging for MSD object on mount
   useEffect(() => {
-    console.log('[MSD] Component mounted, checking MSD availability');
-    if (typeof window !== 'undefined') {
-      console.log('[MSD] Window object available');
-      console.log('[MSD] MSD object exists:', !!window.MSD);
-      if (window.MSD) {
-        console.log('[MSD] MSD methods available:', {
-          getUser: typeof window.MSD.getUser === 'function',
-          openSubscriptionDialog: typeof window.MSD.openSubscriptionDialog === 'function'
-        });
-      }
-    } else {
-      console.log('[MSD] Window object not available (server-side rendering)');
-    }
+    // Log MSD availability when component mounts
+    msd.logMSDAvailability();
   }, []);
   
   // Memoize agent lists to prevent unnecessary recalculations
@@ -644,209 +497,186 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
     );
   }, [userId, searchParams, getAgentCircleColor, getIconTextColor, getAgentIcon]);
 
-  // Display subscription status to users with button
-  const renderSubscriptionStatus = () => {
-    // Determine effective subscription status (real or debug override)
-    const effectiveSubscriptionStatus = debugOverrideSubscription !== null 
-      ? debugOverrideSubscription 
-      : hasSubscription;
-  
-    // Only show limits for non-subscribers
-    if (!effectiveSubscriptionStatus) {
-      return (
-        <div className="p-4 border-t border-slate-200">
-          {/* Subscription status section */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-medium text-slate-900" style={{ fontSize: '15px' }}>Today limit</h3>
-              <span className="text-sm text-slate-600">
-                {isLoadingMessageCount ? 
-                  <span className="inline-block w-6 h-4 bg-slate-200 animate-pulse rounded"></span> 
-                  : 
-                  `${todayMessageCount}/${MESSAGE_LIMIT}`
-                }
-              </span>
-            </div>
-            
-            {/* Progress bar */}
-            <div className="w-full bg-slate-200 rounded-full h-2">
-              <div 
-                className="bg-blue-500 h-2 rounded-full" 
-                style={{
-                  width: isLoadingMessageCount 
-                    ? '0%' 
-                    : `${Math.min((todayMessageCount / MESSAGE_LIMIT) * 100, 100)}%`
-                }}
-              ></div>
-            </div>
-            
-            {debugOverrideSubscription !== null && (
-              <div className="mt-1">
-                <span className="text-xs text-amber-600 bg-amber-100 px-2 py-1 rounded">
-                  Debug mode: {debugOverrideSubscription ? 'Subscribed' : 'Unsubscribed'}
-                </span>
-              </div>
-            )}
-            
-            {/* Get unlimited button - only show for non-subscribers */}
-            <button
-              onClick={handleGetUnlimited}
-              className="w-full py-3 text-center text-sm font-semibold rounded-md transition-colors"
-              style={{
-                backgroundColor: "#FED770"
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.backgroundColor = "#FEE093";
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.backgroundColor = "#FED770";
-              }}
-            >
-              Get unlimited
-            </button>
-          </div>
-        </div>
-      );
-    }
-    
-    return null;
-  };
-
   return (
-    <div className={`h-full relative ${isMobile ? 'w-full' : 'w-72'} bg-slate-50 border-r border-slate-200 flex-shrink-0 transition-all duration-200 ease-in-out ${showAgentsSidebar ? 'translate-x-0' : '-translate-x-full'}`}>
-      {/* Notification overlay */}
-      {notification && (
-        <div className="absolute top-4 left-0 right-0 flex justify-center z-50 px-4">
-          <div className="bg-slate-800 text-white text-sm px-4 py-2 rounded-md shadow-md">
-            {notification}
-          </div>
-        </div>
-      )}
+    <div className={`${isMobile ? 'w-full' : 'w-64 border-r'} bg-white h-full overflow-y-auto`}>
+      <div 
+        className={`flex justify-between items-center h-[60px] px-4 ${isMobile ? 'hidden' : ''}`}
+        style={{ 
+          borderBottom: '1px solid var(--light)',
+          alignSelf: 'stretch'
+        }}
+      >
+        <h2 className="text-lg font-bold text-foreground">Agents</h2>
+      </div>
       
-      <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
-        {/* Header */}
-        <div className="sticky top-0 bg-slate-50 z-10 border-b border-slate-200 p-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-900">AI Tutors</h2>
-          {isMobile && (
-            <button
-              onClick={onToggleAgentsSidebar}
-              className="p-1 text-slate-500 hover:text-slate-700 transition-colors"
-            >
-              <X size={20} />
-            </button>
-          )}
-        </div>
-        
-        <div className={`${isMobile ? 'p-2' : 'p-3 sm:p-4'} pt-4 sm:pt-6`}>
-          {isLoadingAgents ? (
-            <div className="flex justify-center items-center h-20">
-              <div className="animate-spin h-5 w-5 sm:h-6 sm:w-6 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-            </div>
-          ) : (
-            <div className="space-y-3 sm:space-y-3">
-              {/* AI Agents Card */}
-              <div>
-                <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-                  {/* Main Card Header */}
-                  <div 
-                    className="p-4 cursor-pointer hover:bg-slate-50 transition-colors"
-                    onClick={() => setShowAllAgents(!showAllAgents)}
-                  >
-                    <div className="flex flex-col">
-                      {/* Agent Circles */}
-                      <div className="flex items-center -space-x-3 mb-4">
-                        {defaultAgents.slice(0, 3).map((agent, index) => (
-                          <div 
-                            key={agent.id || index}
-                            className={`w-8 h-8 rounded-full flex items-center justify-center ${getAgentCircleColor(agent.name)} ${getIconTextColor(agent.name)}`}
-                            onClick={(e) => e.stopPropagation()}
+      <div className={`${isMobile ? 'p-2' : 'p-3 sm:p-4'} pt-4 sm:pt-6`}>
+        {isLoadingAgents ? (
+          <div className="flex justify-center items-center h-20">
+            <div className="animate-spin h-5 w-5 sm:h-6 sm:w-6 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+          </div>
+        ) : (
+          <div className="space-y-3 sm:space-y-3">
+            {/* AI Agents Card */}
+            <div>
+              <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+                {/* Main Card Header */}
+                <div 
+                  className="p-4 cursor-pointer hover:bg-slate-50 transition-colors"
+                  onClick={() => setShowAllAgents(!showAllAgents)}
+                >
+                  <div className="flex flex-col">
+                    {/* Agent Circles */}
+                    <div className="flex items-center -space-x-3 mb-4">
+                      {defaultAgents.slice(0, 3).map((agent, index) => (
+                        <div 
+                          key={agent.id || index}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center ${getAgentCircleColor(agent.name)} ${getIconTextColor(agent.name)}`}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ width: '32px', height: '32px' }}
+                        >
+                          {getAgentIcon(agent.name)}
+                        </div>
+                      ))}
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white border border-slate-200 text-slate-800"
+                        style={{ width: '32px', height: '32px' }}
+                      >
+                        <span className="text-sm font-medium">+4</span>
+                      </div>
+                    </div>
+                    
+                    <h3 className="font-bold text-slate-900 mb-2" style={{ fontSize: '16px' }}>How it works</h3>
+                    <p className="text-sm text-slate-600">We automatically select the most suitable AI Agent for your question</p>
+                  </div>
+                </div>
+                
+                {/* Expanded Agent List */}
+                {showAllAgents && (
+                  <div>
+                    {defaultAgents.map((agent, index) => (
+                      <div 
+                        key={agent.id || `agent-${index}`}
+                        className="p-4 border-t border-slate-100"
+                      >
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getAgentCircleColor(agent.name)} ${getIconTextColor(agent.name)}`}
                             style={{ width: '32px', height: '32px' }}
                           >
                             {getAgentIcon(agent.name)}
                           </div>
-                        ))}
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white border border-slate-200 text-slate-800"
-                          style={{ width: '32px', height: '32px' }}
-                        >
-                          <span className="text-sm font-medium">+4</span>
+                          <div className="text-base font-semibold">{agent.name}</div>
                         </div>
+                        <p className="text-sm text-slate-600">{getAgentDescription(agent.name)}</p>
                       </div>
-                      
-                      <h3 className="font-bold text-slate-900 mb-2" style={{ fontSize: '16px' }}>How it works</h3>
-                      <p className="text-sm text-slate-600">We automatically select the most suitable AI Agent for your question</p>
-                    </div>
+                    ))}
                   </div>
-                  
-                  {/* Expanded Agent List */}
-                  {showAllAgents && (
-                    <div>
-                      {defaultAgents.map((agent, index) => (
-                        <div 
-                          key={agent.id || `agent-${index}`}
-                          className="p-4 border-t border-slate-100"
-                        >
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getAgentCircleColor(agent.name)} ${getIconTextColor(agent.name)}`}
-                              style={{ width: '32px', height: '32px' }}
-                            >
-                              {getAgentIcon(agent.name)}
-                            </div>
-                            <div className="text-base font-semibold">{agent.name}</div>
-                          </div>
-                          <p className="text-sm text-slate-600">{getAgentDescription(agent.name)}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                )}
+              </div>
+            </div>
+
+            {/* Custom Agents Section - Only show if there's an active custom agent */}
+            {hasActiveCustomAgent && customAgents.length > 0 && (
+              <div>
+                <div className="space-y-2">
+                  {customAgents.map((agent, index) => renderAgentCard(agent, index))}
                 </div>
               </div>
-
-              {/* Custom Agents Section - Only show if there's an active custom agent */}
-              {hasActiveCustomAgent && customAgents.length > 0 && (
-                <div>
-                  <div className="space-y-2">
-                    {customAgents.map((agent, index) => renderAgentCard(agent, index))}
-                  </div>
+            )}
+            
+            {/* Add New Button - Only show if there's no active custom agent */}
+            {!hasActiveCustomAgent && (
+              <div className="bg-white rounded-lg border border-slate-200 overflow-hidden p-4">
+                <div className="flex flex-col">
+                  <h3 className="font-bold text-slate-900 mb-2" style={{ fontSize: '16px' }}>Create your own agent</h3>
+                  <p className="text-sm text-slate-600 mb-4">Tailor a smart agent to solve your tasks and work the way you do</p>
+                  
+                  <Link href={`/agents?user_id=${userId}${searchParams}`}>
+                    <Button
+                      variant="outline"
+                      className="w-full text-sm hover:text-foreground"
+                      style={{
+                        display: 'flex',
+                        padding: '12px',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '4px',
+                        alignSelf: 'stretch',
+                        borderRadius: '8px',
+                        border: '1px solid var(--Monochrome-Light, #E8E8E5)',
+                        background: 'var(--Monochrome-Superlight, #F2F2ED)'
+                      }}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Create agent
+                    </Button>
+                  </Link>
                 </div>
-              )}
-              
-              {/* Add New Button - Only show if there's no active custom agent */}
-              {!hasActiveCustomAgent && (
-                <div className="bg-white rounded-lg border border-slate-200 overflow-hidden p-4">
-                  <div className="flex flex-col">
-                    <h3 className="font-bold text-slate-900 mb-2" style={{ fontSize: '16px' }}>Create your own agent</h3>
-                    <p className="text-sm text-slate-600 mb-4">Tailor a smart agent to solve your tasks and work the way you do</p>
-                    
-                    <Link href={`/agents?user_id=${userId}${searchParams}`}>
-                      <Button
-                        variant="outline"
-                        className="w-full text-sm hover:text-foreground"
-                        style={{
-                          display: 'flex',
-                          padding: '12px',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          gap: '4px',
-                          alignSelf: 'stretch',
-                          borderRadius: '8px',
-                          border: '1px solid var(--Monochrome-Light, #E8E8E5)',
-                          background: 'var(--Monochrome-Superlight, #F2F2ED)'
+              </div>
+            )}
+            
+            {/* Message Statistics Card - only show for non-subscribers or when debug mode is active */}
+            {(debugOverrideSubscription === false || (!hasSubscription && !isCheckingSubscription)) && (
+              <div className="bg-white rounded-lg border border-slate-200 overflow-hidden p-4">
+                <div className="flex flex-col">
+                  {debugOverrideSubscription === false && (
+                    <div className="px-2 py-1 mb-2 bg-yellow-100 text-yellow-800 text-xs rounded-md">
+                      Debug mode: Simulating unsubscribed user
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-medium text-slate-900" style={{ fontSize: '15px' }}>Today limit</h3>
+                    <span className="text-sm text-slate-600">
+                      {isLoadingMessageCount ? 
+                        <span className="inline-block w-6 h-4 bg-slate-200 animate-pulse rounded"></span> 
+                        : 
+                        `${todayMessageCount}/${MESSAGE_LIMIT}`
+                      }
+                    </span>
+                  </div>
+                  
+                  {/* Progress bar */}
+                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-3">
+                    {isLoadingMessageCount ? (
+                      <div className="h-full w-full bg-slate-200 animate-pulse rounded-full"></div>
+                    ) : (
+                      <div 
+                        className={`h-full rounded-full ${todayMessageCount >= MESSAGE_LIMIT ? 'bg-red-500' : 'bg-slate-700'}`}
+                        style={{ 
+                          width: `${Math.min(100, (todayMessageCount / MESSAGE_LIMIT) * 100)}%`, 
+                          transition: 'width 0.5s ease-in-out'
                         }}
-                      >
-                        <Plus className="h-4 w-4" />
-                        Create agent
-                      </Button>
-                    </Link>
+                      ></div>
+                    )}
                   </div>
+                  
+                  {/* Get unlimited button - only show for non-subscribers */}
+                  <button
+                    onClick={handleGetUnlimited}
+                    className="w-full py-3 text-center text-sm font-semibold rounded-md transition-colors"
+                    style={{
+                      backgroundColor: "#FED770"
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.backgroundColor = "#FEE093";
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = "#FED770";
+                    }}
+                  >
+                    Get unlimited
+                  </button>
                 </div>
-              )}
-              
-              {/* Message Statistics Card - only show for non-subscribers or when debug mode is active */}
-              {renderSubscriptionStatus()}
-            </div>
-          )}
-        </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+      
+      {/* Notification display */}
+      {notification && (
+        <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg">
+          {notification}
+        </div>
+      )}
     </div>
   );
 }));
