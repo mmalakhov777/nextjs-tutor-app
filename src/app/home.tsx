@@ -18,7 +18,7 @@ import { ChatMessages } from '@/components/chat/ChatMessages';
 import { ChatHeader } from '@/components/chat/ChatHeader';
 import { ChatContent } from '@/components/chat/ChatContent';
 import { FileSidebar } from '@/components/chat/FileSidebar';
-import { AgentsSidebar } from '@/components/chat/AgentsSidebar';
+import { AgentsSidebar, AgentsSidebarRef } from '@/components/chat/AgentsSidebar';
 import { AnalysisModal } from '@/components/chat/AnalysisModal';
 import { Notification } from '@/components/chat/Notification';
 import { ChatHistoryDropdown } from '@/components/chat/ChatHistoryDropdown';
@@ -111,6 +111,9 @@ export default function Home({
   const history = useHistory(userId);
   const analysis = useAnalysis();
   const agents = useAgents(userId);
+  
+  // Create a ref for the AgentsSidebar component
+  const agentsSidebarRef = useRef<AgentsSidebarRef>(null);
   
   // State for showing file info
   const [showFileInfo, setShowFileInfo] = useState(false);
@@ -235,6 +238,23 @@ export default function Home({
       });
     }
   }, [userId]);
+
+  // Effect to refresh message count when new messages arrive
+  useEffect(() => {
+    // Check if there are messages and if the most recent one is from an agent (assistant)
+    if (chat.messages.length > 0) {
+      const lastMessage = chat.messages[chat.messages.length - 1];
+      // If the last message is from an assistant, refresh the message count
+      if (lastMessage.role === 'assistant' && !chat.isProcessing) {
+        // Slight delay to ensure the message is fully processed
+        const timeoutId = setTimeout(() => {
+          agentsSidebarRef.current?.refreshMessageCount();
+        }, 500);
+        
+        return () => clearTimeout(timeoutId);
+      }
+    }
+  }, [chat.messages, chat.isProcessing]);
 
   const handleCopy = (content: string) => {
     navigator.clipboard.writeText(content)
@@ -1099,6 +1119,7 @@ export default function Home({
         }
         rightSidebar={
           <AgentsSidebar
+            ref={agentsSidebarRef}
             agents={agents.agents}
             showAgentsSidebar={showAgentsSidebar}
             onToggleAgentsSidebar={() => setShowAgentsSidebar(!showAgentsSidebar)}
