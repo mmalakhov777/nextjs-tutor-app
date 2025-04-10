@@ -175,7 +175,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
         console.log('[MSD] Calling MSD.openSubscriptionDialog');
         
         await window.MSD.openSubscriptionDialog({
-          isClosable: false,
+          isClosable: true,
           shouldVerifySubscriptionRetrieval: true,
           type: "alt2"
         });
