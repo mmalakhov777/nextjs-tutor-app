@@ -9,6 +9,7 @@ interface ChatContentProps {
   isLoadingSession: boolean;
   isCreatingSession: boolean;
   currentAgent?: string;
+  waitingForFirstChunk?: boolean;
   onMessageChange: (message: string) => void;
   onSendMessage: (message: string) => void;
   onCopy: (content: string) => void;
@@ -24,6 +25,7 @@ export function ChatContent({
   isLoadingSession,
   isCreatingSession,
   currentAgent,
+  waitingForFirstChunk = false,
   onMessageChange,
   onSendMessage,
   onCopy,
@@ -41,6 +43,7 @@ export function ChatContent({
           onEdit={onEdit}
           onDelete={onDelete}
           currentAgent={currentAgent}
+          waitingForFirstChunk={waitingForFirstChunk}
         />
       </div>
     </div>

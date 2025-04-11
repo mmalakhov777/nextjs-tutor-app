@@ -3,6 +3,7 @@ import type { ChatMessagesProps } from '@/types/chat';
 import type { Message as MessageType } from '@/types/chat';
 import { Message } from './Message';
 import { WelcomeIcon } from '@/components/icons/WelcomeIcon';
+import { Loader2 } from 'lucide-react';
 
 // Inline WelcomeMessage component since the import is missing
 const WelcomeMessage = ({ size = 'large' }: { size?: 'small' | 'large' }) => {
@@ -29,6 +30,27 @@ const WelcomeMessage = ({ size = 'large' }: { size?: 'small' | 'large' }) => {
   );
 };
 
+// Loading message component that displays while waiting for the first response chunk
+const LoadingMessage = ({ agent = 'Assistant' }: { agent?: string }) => {
+  return (
+    <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 my-2 max-w-3xl">
+      <div className="flex items-center gap-3">
+        <div className="animate-spin">
+          <Loader2 size={20} className="text-blue-500" />
+        </div>
+        <div className="flex flex-col">
+          <p className="text-sm font-medium text-blue-700">
+            {agent} is thinking...
+          </p>
+          <p className="text-xs text-blue-600">
+            Preparing your response. This may take a moment for complex questions.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 interface ExtendedMessage extends MessageType {
   metadata?: {
     agent_name?: string;
@@ -47,6 +69,7 @@ interface ExtendedMessage extends MessageType {
 interface ExtendedChatMessagesProps extends Omit<ChatMessagesProps, 'messages'> {
   messages: ExtendedMessage[];
   currentAgent?: string;
+  waitingForFirstChunk?: boolean;
 }
 
 // Define a type for processed messages
@@ -62,7 +85,8 @@ export function ChatMessages({
   onCopy,
   onEdit,
   onDelete,
-  currentAgent = 'Assistant'
+  currentAgent = 'Assistant',
+  waitingForFirstChunk = false
 }: ExtendedChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -79,7 +103,7 @@ export function ChatMessages({
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+  }, [messages, waitingForFirstChunk]);
 
   // Find annotation messages and associate them with relevant assistant messages
   const messageWithAnnotations = useMemo(() => {
@@ -209,6 +233,13 @@ export function ChatMessages({
                 </div>
               </div>
             ))}
+
+            {/* Show loading message when waiting for first chunk */}
+            {waitingForFirstChunk && (
+              <div className="flex w-full justify-start">
+                <LoadingMessage agent={currentAgent} />
+              </div>
+            )}
 
             <div ref={messagesEndRef} />
           </div>

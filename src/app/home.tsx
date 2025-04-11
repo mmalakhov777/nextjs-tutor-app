@@ -126,6 +126,9 @@ export default function Home({
   // New loading states for different operations
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [isLoadingSession, setIsLoadingSession] = useState(false);
+  
+  // Add waitingForFirstChunk state to show loading message until first response chunk arrives
+  const [waitingForFirstChunk, setWaitingForFirstChunk] = useState(false);
 
   // Add seenAgents state
   const [seenAgents, setSeenAgents] = useState<Set<string>>(new Set(['Triage Agent']));
@@ -167,6 +170,21 @@ export default function Home({
       loadConversationById(conversationIdParam);
     }
   }, []);
+
+  // Monitor when processing starts and when we're waiting for the first chunk
+  useEffect(() => {
+    if (chat.isProcessing) {
+      const lastMessage = chat.messages[chat.messages.length - 1];
+      
+      // If the last message is an empty assistant message, we're waiting for the first chunk
+      if (lastMessage && lastMessage.role === 'assistant' && lastMessage.content === '') {
+        setWaitingForFirstChunk(true);
+      }
+    } else {
+      // Reset waiting state when processing is done
+      setWaitingForFirstChunk(false);
+    }
+  }, [chat.isProcessing, chat.messages]);
 
   // Fix the vectorStoreInfo effect that's causing circular updates
   useEffect(() => {
@@ -1127,6 +1145,7 @@ export default function Home({
             onCopy={handleCopy}
             onEdit={handleMessageEdit}
             onDelete={handleMessageDelete}
+            waitingForFirstChunk={waitingForFirstChunk}
           />
         }
         inputComponent={
