@@ -3,7 +3,7 @@ import type { ChatMessagesProps } from '@/types/chat';
 import type { Message as MessageType } from '@/types/chat';
 import { Message } from './Message';
 import { WelcomeIcon } from '@/components/icons/WelcomeIcon';
-import { RefreshCw } from 'lucide-react';
+import { LoadingIndicator } from './LoadingIndicator';
 
 // Inline WelcomeMessage component since the import is missing
 const WelcomeMessage = ({ size = 'large' }: { size?: 'small' | 'large' }) => {
@@ -26,20 +26,6 @@ const WelcomeMessage = ({ size = 'large' }: { size?: 'small' | 'large' }) => {
       <p className="text-black">
         Ask anything or chat with your files — we'll pick the best AI for the job
       </p>
-    </div>
-  );
-};
-
-// New component for loading indicator
-const LoadingIndicator = () => {
-  return (
-    <div className="flex items-start w-full mb-4">
-      <div className="flex-1 max-w-[85%] bg-slate-100 p-4 rounded-lg">
-        <div className="flex items-center gap-2 text-gray-600">
-          <RefreshCw className="h-4 w-4 animate-spin" />
-          <div>Working on your response...</div>
-        </div>
-      </div>
     </div>
   );
 };
@@ -91,11 +77,12 @@ export function ChatMessages({
 
   // Determine if we should show the loading indicator
   const shouldShowLoading = useMemo(() => {
+    // Always show loading indicator when processing
     if (!isProcessing) return false;
     
-    // Check if there's a recent assistant message that might still be streaming
-    const recentMessages = displayMessages.slice(-3);
-    return !recentMessages.some(msg => msg.role === 'assistant');
+    // Check if the last message was from a user, which means we're waiting for a response
+    const lastMessage = displayMessages[displayMessages.length - 1];
+    return lastMessage && lastMessage.role === 'user';
   }, [isProcessing, displayMessages]);
 
   // Scroll to bottom when messages change or when loading appears
@@ -197,6 +184,30 @@ export function ChatMessages({
     return result;
   }, [displayMessages, messages, messageWithAnnotations]);
 
+  // Custom loading indicator styled for current agent
+  const renderLoadingIndicator = () => {
+    const agentName = currentAgent || 'AI';
+    
+    return (
+      <LoadingIndicator 
+        message={`${agentName} is thinking...`}
+        spinnerColor="#70D6FF"
+        customStyles={{
+          background: "#FFF",
+          border: "1px solid #E8E8E5",
+          borderRadius: "16px",
+          padding: "8px 12px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-start",
+          gap: "8px",
+          alignSelf: "stretch",
+          width: "100%"
+        }}
+      />
+    );
+  };
+
   return (
     <div className="flex-1 overflow-y-auto bg-white px-2 sm:p-4 flex flex-col h-full">
       {shouldShowWelcome && displayMessages.length === 0 ? (
@@ -234,7 +245,7 @@ export function ChatMessages({
               </div>
             ))}
             
-            {shouldShowLoading && <LoadingIndicator />}
+            {shouldShowLoading && renderLoadingIndicator()}
 
             <div ref={messagesEndRef} />
           </div>
