@@ -49,6 +49,12 @@ interface ExtendedChatMessagesProps extends Omit<ChatMessagesProps, 'messages'> 
   currentAgent?: string;
 }
 
+// Define a type for processed messages
+interface ProcessedMessage {
+  message: ExtendedMessage;
+  annotation?: ExtendedMessage & { toolAction: 'annotations' };
+}
+
 export function ChatMessages({
   messages,
   isProcessing,
@@ -61,9 +67,9 @@ export function ChatMessages({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Filter out all system messages from UI display
-  const displayMessages = messages.filter(message => 
+  const displayMessages = useMemo(() => messages.filter(message => 
     message.role !== 'system'  // Remove all system messages from display
-  );
+  ), [messages]);
 
   // Determine if we should show the welcome message
   const shouldShowWelcome = showWelcome || displayMessages.length === 0;
@@ -77,8 +83,6 @@ export function ChatMessages({
 
   // Find annotation messages and associate them with relevant assistant messages
   const messageWithAnnotations = useMemo(() => {
-    console.log('Finding annotation messages...');
-    
     // Identify all annotation messages first
     const annotationIndices: number[] = [];
     messages.forEach((message, index) => {
@@ -88,7 +92,6 @@ export function ChatMessages({
             message.content.includes('annotations=')))) {
         
         annotationIndices.push(index);
-        console.log(`Found annotation at index ${index}`);
       }
     });
     
@@ -119,12 +122,56 @@ export function ChatMessages({
       // If we found a close assistant message and it's not too far (max 3 positions away)
       if (bestAssistantIndex !== -1 && minDistance <= 3) {
         assistantToAnnotationMap[bestAssistantIndex] = annotationIndex;
-        console.log(`Matched annotation at index ${annotationIndex} with assistant message at index ${bestAssistantIndex}`);
       }
     });
     
     return assistantToAnnotationMap;
   }, [messages]);
+
+  // Pre-process messages with their annotations to avoid recalculation during render
+  const processedMessages = useMemo(() => {
+    const result: ProcessedMessage[] = [];
+    
+    for (const message of displayMessages) {
+      // Skip annotation messages
+      if (message.role === 'tool' && 
+          (message.toolAction === 'annotations' || 
+          (typeof message.content === 'string' && 
+            message.content.includes('annotations=')))) {
+        continue;
+      }
+
+      // Get annotation based on existing data or computed map
+      let annotation = undefined;
+      
+      // If message has direct annotations property, use that
+      if (message.annotations) {
+        annotation = {
+          role: 'tool' as MessageType['role'],
+          content: message.annotations.content,
+          toolAction: 'annotations' as const,
+          toolName: message.annotations.toolName,
+          timestamp: message.timestamp
+        };
+      } 
+      // Otherwise fall back to the old method
+      else if (message.role === 'assistant') {
+        const messageIndex = messages.findIndex(m => 
+          m.id === message.id || 
+          (m.timestamp && message.timestamp && m.timestamp.getTime() === message.timestamp.getTime())
+        );
+        
+        if (messageIndex !== -1 && messageWithAnnotations[messageIndex] !== undefined) {
+          const annotationIndex = messageWithAnnotations[messageIndex];
+          annotation = messages[annotationIndex] as ExtendedMessage & { toolAction: 'annotations' };
+        }
+      }
+      
+      result.push({ message, annotation });
+    }
+    
+    return result;
+  }, [displayMessages, messages, messageWithAnnotations]);
 
   return (
     <div className="flex-1 overflow-y-auto bg-white px-2 sm:p-4 flex flex-col h-full">
@@ -143,57 +190,25 @@ export function ChatMessages({
           )}
           
           <div className="space-y-2 flex flex-col">
-            {displayMessages.map((message, index) => {
-              // Skip rendering annotation messages
-              if (message.role === 'tool' && 
-                  (message.toolAction === 'annotations' || 
-                  (typeof message.content === 'string' && 
-                    message.content.includes('annotations=')))) {
-                return null;
-              }
-
-              // First, check if the message already has annotations attached directly
-              // (from our update in home.tsx)
-              let annotation = undefined;
-              
-              // If message has direct annotations property, use that
-              if (message.annotations) {
-                console.log(`Message has direct annotations property`);
-                annotation = {
-                  role: 'tool' as MessageType['role'],
-                  content: message.annotations.content,
-                  toolAction: 'annotations' as const,
-                  toolName: message.annotations.toolName,
-                  timestamp: message.timestamp
-                };
-              } 
-              // Otherwise fall back to the old method
-              else if (message.role === 'assistant' && messageWithAnnotations[index] !== undefined) {
-                const annotationIndex = messageWithAnnotations[index];
-                annotation = messages[annotationIndex] as ExtendedMessage & { toolAction: 'annotations' };
-                console.log(`Using annotation from index ${annotationIndex} for assistant message at index ${index}`);
-              }
-              
-              return (
-                <div 
-                  key={message.id || `${message.role}-${message.timestamp?.getTime() || Date.now()}-${Math.random().toString(36).slice(2)}`}
-                  className={`flex w-full ${
-                    message.role === 'user' ? 'justify-end' : 'justify-start'
-                  }`}
-                >
-                  <div className={message.role === 'assistant' ? 'w-full' : ''}>
-                    <Message 
-                      message={message} 
-                      onCopy={onCopy}
-                      onEdit={onEdit}
-                      onDelete={onDelete}
-                      annotations={annotation}
-                      currentAgent={currentAgent}
-                    />
-                  </div>
+            {processedMessages.map(({ message, annotation }) => (
+              <div 
+                key={message.id || `${message.role}-${message.timestamp?.getTime() || Date.now()}-${Math.random().toString(36).slice(2)}`}
+                className={`flex w-full ${
+                  message.role === 'user' ? 'justify-end' : 'justify-start'
+                }`}
+              >
+                <div className={message.role === 'assistant' ? 'w-full' : ''}>
+                  <Message 
+                    message={message} 
+                    onCopy={onCopy}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    annotations={annotation}
+                    currentAgent={currentAgent}
+                  />
                 </div>
-              );
-            })}
+              </div>
+            ))}
 
             <div ref={messagesEndRef} />
           </div>
