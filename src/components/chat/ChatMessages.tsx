@@ -3,7 +3,7 @@ import type { ChatMessagesProps } from '@/types/chat';
 import type { Message as MessageType } from '@/types/chat';
 import { Message } from './Message';
 import { WelcomeIcon } from '@/components/icons/WelcomeIcon';
-import { Loader2 } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 
 // Inline WelcomeMessage component since the import is missing
 const WelcomeMessage = ({ size = 'large' }: { size?: 'small' | 'large' }) => {
@@ -30,21 +30,14 @@ const WelcomeMessage = ({ size = 'large' }: { size?: 'small' | 'large' }) => {
   );
 };
 
-// Loading message component that displays while waiting for the first response chunk
-const LoadingMessage = ({ agent = 'Assistant' }: { agent?: string }) => {
+// New component for loading indicator
+const LoadingIndicator = () => {
   return (
-    <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 my-2 max-w-3xl">
-      <div className="flex items-center gap-3">
-        <div className="animate-spin">
-          <Loader2 size={20} className="text-blue-500" />
-        </div>
-        <div className="flex flex-col">
-          <p className="text-sm font-medium text-blue-700">
-            {agent} is thinking...
-          </p>
-          <p className="text-xs text-blue-600">
-            Preparing your response. This may take a moment for complex questions.
-          </p>
+    <div className="flex items-start w-full mb-4">
+      <div className="flex-1 max-w-[85%] bg-slate-100 p-4 rounded-lg">
+        <div className="flex items-center gap-2 text-gray-600">
+          <RefreshCw className="h-4 w-4 animate-spin" />
+          <div>Working on your response...</div>
         </div>
       </div>
     </div>
@@ -69,7 +62,6 @@ interface ExtendedMessage extends MessageType {
 interface ExtendedChatMessagesProps extends Omit<ChatMessagesProps, 'messages'> {
   messages: ExtendedMessage[];
   currentAgent?: string;
-  waitingForFirstChunk?: boolean;
 }
 
 // Define a type for processed messages
@@ -85,8 +77,7 @@ export function ChatMessages({
   onCopy,
   onEdit,
   onDelete,
-  currentAgent = 'Assistant',
-  waitingForFirstChunk = false
+  currentAgent = 'Assistant'
 }: ExtendedChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -98,12 +89,21 @@ export function ChatMessages({
   // Determine if we should show the welcome message
   const shouldShowWelcome = showWelcome || displayMessages.length === 0;
 
-  // Scroll to bottom when messages change
+  // Determine if we should show the loading indicator
+  const shouldShowLoading = useMemo(() => {
+    if (!isProcessing) return false;
+    
+    // Check if there's a recent assistant message that might still be streaming
+    const recentMessages = displayMessages.slice(-3);
+    return !recentMessages.some(msg => msg.role === 'assistant');
+  }, [isProcessing, displayMessages]);
+
+  // Scroll to bottom when messages change or when loading appears
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, waitingForFirstChunk]);
+  }, [messages, shouldShowLoading]);
 
   // Find annotation messages and associate them with relevant assistant messages
   const messageWithAnnotations = useMemo(() => {
@@ -233,13 +233,8 @@ export function ChatMessages({
                 </div>
               </div>
             ))}
-
-            {/* Show loading message when waiting for first chunk */}
-            {waitingForFirstChunk && (
-              <div className="flex w-full justify-start">
-                <LoadingMessage agent={currentAgent} />
-              </div>
-            )}
+            
+            {shouldShowLoading && <LoadingIndicator />}
 
             <div ref={messagesEndRef} />
           </div>
