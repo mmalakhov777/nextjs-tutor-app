@@ -166,6 +166,49 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
     checkSubscription();
   }, []);
   
+  // Effect to check message count and trigger subscription dialog when limit is reached
+  useEffect(() => {
+    // If the user has reached their message limit and doesn't have a subscription,
+    // automatically trigger the subscription dialog
+    const shouldTriggerSubscriptionDialog = 
+      !isCheckingSubscription && 
+      !hasSubscription && 
+      todayMessageCount >= MESSAGE_LIMIT && 
+      debugOverrideSubscription !== true;
+      
+    if (shouldTriggerSubscriptionDialog && window.MSD) {
+      console.log('[MSD] Auto-triggering subscription dialog for limit reached');
+      
+      // Use setTimeout to avoid potential state update during render
+      setTimeout(() => {
+        window.MSD?.openSubscriptionDialog({
+          isClosable: false, // Force the user to make a decision
+          shouldVerifySubscriptionRetrieval: true,
+          type: "alt2"
+        }).then(() => {
+          // After dialog closes, check subscription status again
+          if (window.MSD) {
+            window.MSD.getUser().then(user => {
+              const userHasSubscription = !!user?.user?.subscription;
+              console.log('[MSD] Auto-triggered dialog closed, subscription status:', userHasSubscription);
+              setHasSubscription(userHasSubscription);
+              
+              // If subscription was successful, clear debug override
+              if (userHasSubscription) {
+                setDebugOverrideSubscription(null);
+                setOriginalSubscriptionState(null);
+              }
+            }).catch(error => {
+              console.error('[MSD] Error checking updated subscription after auto-trigger:', error);
+            });
+          }
+        }).catch(error => {
+          console.error('[MSD] Error in auto-triggered subscription dialog flow:', error);
+        });
+      }, 500);
+    }
+  }, [todayMessageCount, hasSubscription, isCheckingSubscription, MESSAGE_LIMIT, debugOverrideSubscription]);
+  
   // Handler to open subscription dialog
   const handleGetUnlimited = async () => {
     try {
@@ -175,7 +218,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
         console.log('[MSD] Calling MSD.openSubscriptionDialog');
         
         await window.MSD.openSubscriptionDialog({
-          isClosable: true,
+          isClosable: true, // User initiated, so allow closing
           shouldVerifySubscriptionRetrieval: true,
           type: "alt2"
         });
