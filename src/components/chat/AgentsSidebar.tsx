@@ -237,8 +237,9 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   }, []);
   
   // Memoize agent lists to prevent unnecessary recalculations
-  const defaultAgents = React.useMemo(() => 
-    agents.filter(agent => 
+  const defaultAgents = React.useMemo(() => {
+    // First, get all default agents
+    const allDefaultAgents = agents.filter(agent => 
       agent.name === "Triage Agent" || 
       agent.name === "Grok X" || 
       agent.name === "Mistral Europe" ||
@@ -247,8 +248,37 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
       agent.name === "Perplexity" ||
       agent.name === "Deep Thinker" ||
       agent.name === "General Assistant"
-    ), [agents]
-  );
+    );
+    
+    // Deduplicate Triage Agent and General Assistant
+    // If we have a Triage Agent, replace it with General Assistant for display purposes
+    const hasTriageAgent = allDefaultAgents.some(agent => agent.name === "Triage Agent");
+    const hasGeneralAssistant = allDefaultAgents.some(agent => agent.name === "General Assistant");
+    
+    let processedAgents;
+    
+    if (hasTriageAgent && !hasGeneralAssistant) {
+      // Replace Triage Agent with General Assistant
+      processedAgents = allDefaultAgents.map(agent => {
+        if (agent.name === "Triage Agent") {
+          return { ...agent, name: "General Assistant" };
+        }
+        return agent;
+      });
+    } else if (hasTriageAgent && hasGeneralAssistant) {
+      // Filter out Triage Agent to avoid duplication
+      processedAgents = allDefaultAgents.filter(agent => agent.name !== "Triage Agent");
+    } else {
+      processedAgents = allDefaultAgents;
+    }
+    
+    // Sort to ensure General Assistant comes first, then maintain the order of others
+    return processedAgents.sort((a, b) => {
+      if (a.name === "General Assistant" || a.name === "Triage Agent") return -1;
+      if (b.name === "General Assistant" || b.name === "Triage Agent") return 1;
+      return 0;
+    });
+  }, [agents]);
   
   const customAgents = React.useMemo(() => 
     agents.filter(agent => 
@@ -457,11 +487,21 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
     }
   }, []);
 
+  // Helper function to get display name for agents
+  const getDisplayAgentName = React.useCallback((agentName: string) => {
+    // Always display "General Assistant" instead of "Triage Agent"
+    if (agentName === "Triage Agent") {
+      return "General Assistant";
+    }
+    return agentName;
+  }, []);
+
   // Helper function to get agent description - memoize
   const getAgentDescription = React.useCallback((agentName: string) => {
     switch(agentName) {
       case "Triage Agent":
-        return "Routes and coordinates between specialized agents for optimal responses";
+      case "General Assistant":
+        return "The most suitable and effective model for general questions and answers based on uploaded files";
       case "Grok X":
         return "Great for questions about social media trends, viral content, and the latest news";
       case "Mistral Europe":
@@ -473,8 +513,6 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
       case "Perplexity":
         return "Provides up-to-date information and internet search results";
       case "Deep Thinker":
-        return "Great for questions about social media trends, viral content, and the latest news";
-      case "General Assistant":
         return "Great for questions about social media trends, viral content, and the latest news";
       default:
         return "";
@@ -525,6 +563,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   const renderAgentCard = React.useCallback((agent: any, index: number) => {
     const agentKey = agent.id ? agent.id : `${agent.name}-${index}`;
     const agentUrl = `/agents?user_id=${userId}&agent_id=${agent.id}${searchParams}`;
+    const displayName = getDisplayAgentName(agent.name);
     
     return (
       <Link href={agentUrl} key={agentKey}>
@@ -538,14 +577,14 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
           }}
         >
           <div 
-            className={`flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0 ${getAgentCircleColor(agent.name)} ${getIconTextColor(agent.name)}`}
+            className={`flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0 ${getAgentCircleColor(displayName)} ${getIconTextColor(displayName)}`}
           >
-            {getAgentIcon(agent.name)}
+            {getAgentIcon(displayName)}
           </div>
           <div className="flex flex-col flex-grow min-w-0 overflow-hidden">
             <div className="flex items-center justify-between w-full">
               <span className="text-sm font-medium text-foreground">
-                {agent.name}
+                {displayName}
               </span>
               <Button
                 variant="ghost"
@@ -576,7 +615,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
         </div>
       </Link>
     );
-  }, [userId, searchParams, getAgentCircleColor, getIconTextColor, getAgentIcon]);
+  }, [userId, searchParams, getAgentCircleColor, getIconTextColor, getAgentIcon, getDisplayAgentName]);
 
   return (
     <div className={`${isMobile ? 'w-full' : 'w-64 border-r'} bg-white h-full overflow-y-auto`}>
@@ -608,16 +647,19 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
                   <div className="flex flex-col">
                     {/* Agent Circles */}
                     <div className="flex items-center -space-x-3 mb-4">
-                      {defaultAgents.slice(0, 3).map((agent, index) => (
-                        <div 
-                          key={agent.id || index}
-                          className={`w-8 h-8 rounded-full flex items-center justify-center ${getAgentCircleColor(agent.name)} ${getIconTextColor(agent.name)}`}
-                          onClick={(e) => e.stopPropagation()}
-                          style={{ width: '32px', height: '32px' }}
-                        >
-                          {getAgentIcon(agent.name)}
-                        </div>
-                      ))}
+                      {defaultAgents.slice(0, 3).map((agent, index) => {
+                        const displayName = getDisplayAgentName(agent.name);
+                        return (
+                          <div 
+                            key={agent.id || index}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center ${getAgentCircleColor(displayName)} ${getIconTextColor(displayName)}`}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ width: '32px', height: '32px' }}
+                          >
+                            {getAgentIcon(displayName)}
+                          </div>
+                        );
+                      })}
                       <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white border border-slate-200 text-slate-800"
                         style={{ width: '32px', height: '32px' }}
                       >
@@ -633,22 +675,25 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
                 {/* Expanded Agent List */}
                 {showAllAgents && (
                   <div>
-                    {defaultAgents.map((agent, index) => (
-                      <div 
-                        key={agent.id || `agent-${index}`}
-                        className="p-4 border-t border-slate-100"
-                      >
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getAgentCircleColor(agent.name)} ${getIconTextColor(agent.name)}`}
-                            style={{ width: '32px', height: '32px' }}
-                          >
-                            {getAgentIcon(agent.name)}
+                    {defaultAgents.map((agent, index) => {
+                      const displayName = getDisplayAgentName(agent.name);
+                      return (
+                        <div 
+                          key={agent.id || `agent-${index}`}
+                          className="p-4 border-t border-slate-100"
+                        >
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getAgentCircleColor(displayName)} ${getIconTextColor(displayName)}`}
+                              style={{ width: '32px', height: '32px' }}
+                            >
+                              {getAgentIcon(displayName)}
+                            </div>
+                            <div className="text-base font-semibold">{displayName}</div>
                           </div>
-                          <div className="text-base font-semibold">{agent.name}</div>
+                          <p className="text-sm text-slate-600">{getAgentDescription(displayName)}</p>
                         </div>
-                        <p className="text-sm text-slate-600">{getAgentDescription(agent.name)}</p>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

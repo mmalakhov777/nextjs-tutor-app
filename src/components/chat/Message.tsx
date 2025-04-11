@@ -501,6 +501,26 @@ export function Message({ message, onCopy, onDelete, onEdit, annotations: propAn
   const [shouldFetchMetadata, setShouldFetchMetadata] = useState(false);
   const [syntheticAnnotations, setSyntheticAnnotations] = useState<any>(null);
   
+  // Add new state for tooltip visibility
+  const [isTooltipVisible, setIsTooltipVisible] = useState(false);
+  
+  // New ref for handling clicks outside the tooltip
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  
+  // Close tooltip when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (tooltipRef.current && !tooltipRef.current.contains(event.target as Node)) {
+        setIsTooltipVisible(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+  
   // Use both prop annotations and synthetic annotations
   const annotations = propAnnotations || syntheticAnnotations;
   
@@ -1280,6 +1300,38 @@ export function Message({ message, onCopy, onDelete, onEdit, annotations: propAn
     }
   };
 
+  // Helper function to get agent description
+  const getAgentDescription = (agentName: string) => {
+    switch(agentName) {
+      case "Triage Agent":
+      case "General Assistant":
+        return "The most suitable and effective model for general questions and answers based on uploaded files";
+      case "Grok X":
+        return "Great for questions about social media trends, viral content, and the latest news";
+      case "Mistral Europe":
+        return "Specializes in European languages, culture, and regional topics";
+      case "Claude Creative":
+        return "Great for questions about social media trends, viral content, and the latest news";
+      case "Deep Seek":
+        return "Expert in Chinese culture, language, and current affairs";
+      case "Perplexity":
+        return "Provides up-to-date information and internet search results";
+      case "Deep Thinker":
+        return "Great for questions about social media trends, viral content, and the latest news";
+      default:
+        return "";
+    }
+  };
+
+  // Helper function to get display name for agents
+  const getDisplayAgentName = (agentName: string) => {
+    // Always display "General Assistant" instead of "Triage Agent"
+    if (agentName === "Triage Agent") {
+      return "General Assistant";
+    }
+    return agentName;
+  };
+
   // Render system message for agent transitions differently
   if (message.role === 'system' && message.agentName) {
     return (
@@ -1738,30 +1790,75 @@ export function Message({ message, onCopy, onDelete, onEdit, annotations: propAn
                 {/* Other buttons - remain on the right side */}
                 <div className="flex items-center gap-2">
                   {message.role === 'assistant' && (
-                    <div 
-                      className={`flex items-center justify-center w-6 h-6 rounded-full ${getAgentCircleColor(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant')} ${getIconTextColor(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant')}`}
-                      title={(() => {
-                        // For empty content (loading state)
-                        if (message.content === '') {
-                          return currentAgent || 'Assistant';
-                        }
-                        
-                        // For messages with content, prioritize metadata agent name
-                        return message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant';
-                      })()}
-                    >
-                      {(() => {
-                        // For empty content (loading state)
-                        if (message.content === '') {
-                          return getAgentIcon(currentAgent || 'Assistant');
-                        }
-                        
-                        // For messages with content, prioritize metadata agent name
-                        const displayName = message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant';
-                        return getAgentIcon(displayName);
-                      })()}
-                      {isStreaming && (
-                        <Loader2 className="h-3 w-3 animate-spin absolute top-0 right-0 -mt-1 -mr-1" />
+                    <div className="relative" ref={tooltipRef}>
+                      <div 
+                        className={`flex items-center justify-center w-6 h-6 rounded-full ${getAgentCircleColor(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant')} ${getIconTextColor(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant')} cursor-pointer`}
+                        onClick={() => setIsTooltipVisible(!isTooltipVisible)}
+                      >
+                        {(() => {
+                          // For empty content (loading state)
+                          if (message.content === '') {
+                            return getAgentIcon(getDisplayAgentName(currentAgent || 'Assistant'));
+                          }
+                          
+                          // For messages with content, prioritize metadata agent name
+                          const displayName = getDisplayAgentName(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant');
+                          return getAgentIcon(displayName);
+                        })()}
+                        {isStreaming && (
+                          <Loader2 className="h-3 w-3 animate-spin absolute top-0 right-0 -mt-1 -mr-1" />
+                        )}
+                      </div>
+                      
+                      {/* Tooltip - now showing on click instead of hover */}
+                      {isTooltipVisible && (
+                        <div className="absolute bottom-full left-0 mb-2 transition-opacity duration-200" style={{ zIndex: 5 }}>
+                          <div className="relative">
+                            {/* Arrow */}
+                            <div className="w-2 h-2 bg-[#232323] transform rotate-45 absolute -bottom-1 left-3" style={{ zIndex: 6 }}></div>
+                            
+                            {/* Tooltip content */}
+                            <div 
+                              style={{
+                                display: "flex",
+                                width: "210px",
+                                padding: "4px",
+                                flexDirection: "column",
+                                alignItems: "flex-start",
+                                borderRadius: "12px",
+                                background: "var(--Monochrome-Black, #232323)",
+                                boxShadow: "0px 0px 20px 0px rgba(203, 203, 203, 0.20)",
+                                position: "relative"
+                              }}
+                            >
+                              <div 
+                                className="font-semibold p-2 w-full"
+                                style={{
+                                  color: "var(--Monochrome-White, #FFF)",
+                                  fontSize: "12px",
+                                  fontStyle: "normal",
+                                  fontWeight: "400",
+                                  lineHeight: "16px"
+                                }}
+                              >
+                                {getDisplayAgentName(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant')}
+                              </div>
+                              <div 
+                                className="p-2 pt-0 w-full"
+                                style={{
+                                  color: "var(--Monochrome-White, #FFF)",
+                                  opacity: 0.7,
+                                  fontSize: "12px",
+                                  fontStyle: "normal",
+                                  fontWeight: "400",
+                                  lineHeight: "16px"
+                                }}
+                              >
+                                {getAgentDescription(getDisplayAgentName(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant'))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       )}
                     </div>
                   )}

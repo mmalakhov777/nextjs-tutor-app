@@ -148,7 +148,7 @@ export function ChatInput({
   }, []);
 
   return (
-    <div className="bg-transparent w-full">
+    <div className="bg-transparent w-full relative z-[200]">
       <div 
         style={{
           display: 'flex',
