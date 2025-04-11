@@ -32,6 +32,7 @@ declare global {
         shouldVerifySubscriptionRetrieval: boolean;
         type: string;
       }) => Promise<void>;
+      sendAmpEvent?: (eventName: string, eventProperties?: Record<string, any>) => void;
     };
     // Add debug utilities
     show_limits_as_for_unsubscribed?: () => void;
@@ -178,6 +179,12 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
       
     if (shouldTriggerSubscriptionDialog && window.MSD) {
       console.log('[MSD] Auto-triggering subscription dialog for limit reached');
+      
+      // Send amplitude event for limit reached
+      if (window.MSD?.sendAmpEvent) {
+        console.log('[MSD] Sending limit_reached amplitude event');
+        window.MSD.sendAmpEvent("limit_reached");
+      }
       
       // Use setTimeout to avoid potential state update during render
       setTimeout(() => {
