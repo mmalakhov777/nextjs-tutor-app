@@ -174,7 +174,7 @@ export function ChatInput({
             disabled ? "Please wait..." : 
             isRecording ? "Recording..." : 
             isTranscribing ? "Transcribing..." :
-            "Ask anything, use @ to tag sources"
+            "Ask anything"
           }
           rows={1}
           className="w-full resize-none min-h-[44px] border-none shadow-none focus-visible:ring-0 p-0 mb-2"

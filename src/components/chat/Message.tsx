@@ -38,7 +38,7 @@ const getBackendUrl = () => {
 };
 
 // Favicon component that displays a website's favicon
-const Favicon = ({ domain }: { domain: string }) => {
+const Favicon = React.memo(({ domain }: { domain: string }) => {
   const [faviconSrc, setFaviconSrc] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const [attemptedSources, setAttemptedSources] = useState<string[]>([]);
@@ -106,7 +106,7 @@ const Favicon = ({ domain }: { domain: string }) => {
       )}
     </div>
   );
-};
+}, (prevProps, nextProps) => prevProps.domain === nextProps.domain);
 
 interface MessageContentProps {
   content: string;
@@ -176,6 +176,20 @@ const GlobalStyles = () => (
     .message-content-container p + p {
       margin-top: 1em;
     }
+    /* Make all links bold and black */
+    .message-content-container a {
+      font-weight: bold !important;
+      color: #000 !important;
+      text-decoration: none !important;
+    }
+    /* Add hover effect for links */
+    .message-content-container a:hover {
+      text-decoration: underline !important;
+    }
+    /* Dark mode support */
+    .dark .message-content-container a {
+      color: #fff !important;
+    }
   `}</style>
 );
 
@@ -184,17 +198,13 @@ interface LinkState {
   message?: string;
 }
 
-const MessageContent = ({ content, messageId, onLinkSubmit }: MessageContentProps) => {
+const MessageContent = React.memo(({ content, messageId, onLinkSubmit }: MessageContentProps) => {
   // Function to extract URLs from text with their surrounding context
-  const extractLinks = (text: string) => {
-    // Regex to match URLs
+  const extractLinks = React.useMemo(() => {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const urls = content.match(urlRegex) || [];
     
-    // Find all URLs in the text
-    const urls = text.match(urlRegex) || [];
-    
-    // If no URLs, return the original content
-    if (urls.length === 0) return { text, links: [] };
+    if (urls.length === 0) return { text: content, links: [] };
     
     // Extract URLs with context
     const links = urls.map(url => {
@@ -215,7 +225,7 @@ const MessageContent = ({ content, messageId, onLinkSubmit }: MessageContentProp
       }
       
       // Get the sentence containing the URL or nearby context
-      const sentences = text.split(/(?<=[.!?])\s+/);
+      const sentences = content.split(/(?<=[.!?])\s+/);
       const sentenceWithUrl = sentences.find(s => s.includes(cleanUrl)) || '';
       
       // Try to extract a title-like text before the URL
@@ -277,10 +287,10 @@ const MessageContent = ({ content, messageId, onLinkSubmit }: MessageContentProp
       index === self.findIndex(l => l.url === link.url)
     );
     
-    return { text, links: uniqueLinks };
-  };
+    return { text: content, links: uniqueLinks };
+  }, [content]);
   
-  const { text, links } = extractLinks(content);
+  const { text, links } = extractLinks;
   const [linkStates, setLinkStates] = useState<Record<string, LinkState>>({});
   const [addedTooltipVisible, setAddedTooltipVisible] = useState<Record<string, boolean>>({}); // State for added tooltips
   const addedTooltipRefs = useRef<Record<string, HTMLDivElement | null>>({}); // Refs for added tooltips
@@ -377,24 +387,29 @@ const MessageContent = ({ content, messageId, onLinkSubmit }: MessageContentProp
           ul: ({ children }) => <ul className="list-disc pl-6 mb-4 space-y-1">{children}</ul>,
           ol: ({ children }) => <ol className="list-decimal pl-6 mb-4 space-y-1">{children}</ol>,
           li: ({ children }) => <li className="pl-1">{children}</li>,
-          code: ({ children, className, ...props }: any) => {
-            const match = /language-(\w+)/.exec(className || '');
-            const isInline = !match;
-            return isInline ? (
-              <code className="px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-slate-800 text-sm" {...props}>
-                {children}
-              </code>
-            ) : (
-              <pre className={cn(
-                'p-4 rounded-lg bg-slate-900 overflow-x-auto',
-                match && match[1] ? `language-${match[1]}` : ''
-              )}>
+          pre: ({ children }) => (
+            <pre className="text-sm p-4 rounded bg-secondary overflow-auto mb-4">
+              {children}
+            </pre>
+          ),
+          code: ({ node, className, children, ...props }) => {
+            // If has language class, it's a code block (already handled by pre)
+            if (className?.startsWith('language-')) {
+              return (
                 <code className={className} {...props}>
                   {children}
                 </code>
-              </pre>
+              );
+            }
+            
+            // It's an inline code element
+            return (
+              <code className="px-1 py-0.5 text-sm bg-muted rounded" {...props}>
+                {children}
+              </code>
             );
           },
+          // Improved table with proper overflow handling
           table: ({ children }) => (
             <div className="overflow-x-auto mb-4">
               <table className="min-w-full divide-y divide-gray-200">
@@ -423,9 +438,15 @@ const MessageContent = ({ content, messageId, onLinkSubmit }: MessageContentProp
               processedHref = href;
             }
             
-            // Regular link rendering - always render this way now
+            // Regular link rendering - now with bold black text styling
             return (
-              <a href={processedHref} target="_blank" rel="noopener noreferrer" {...props}>
+              <a 
+                href={processedHref} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="font-bold text-black dark:text-white hover:underline" 
+                {...props}
+              >
                 {children}
               </a>
             );
@@ -448,7 +469,7 @@ const MessageContent = ({ content, messageId, onLinkSubmit }: MessageContentProp
                 const isAddedTooltipCurrentlyVisible = addedTooltipVisible[link.url] || false;
                 
                 return (
-                  <div key={index} className="relative group">
+                  <div key={`link-card-${link.url}`} className="relative group">
                     <a 
                       href={link.url} 
                       target="_blank" 
@@ -470,7 +491,7 @@ const MessageContent = ({ content, messageId, onLinkSubmit }: MessageContentProp
                           maxWidth: '160px'
                         }}
                       >
-                        <Favicon domain={link.domain} />
+                        <Favicon domain={link.domain} key={`favicon-${link.domain}`} />
                         <div className="flex flex-col flex-grow min-w-0 overflow-hidden">
                           <div className="flex items-start w-full">
                             <span className="truncate text-sm font-medium text-foreground">
@@ -584,7 +605,15 @@ const MessageContent = ({ content, messageId, onLinkSubmit }: MessageContentProp
       )}
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Only re-render if these props change
+  return (
+    prevProps.content === nextProps.content &&
+    prevProps.messageId === nextProps.messageId &&
+    // For onLinkSubmit, we only care if it goes from being defined to undefined or vice versa
+    (!!prevProps.onLinkSubmit === !!nextProps.onLinkSubmit)
+  );
+});
 
 // Add new interface for citations
 interface Citation {
