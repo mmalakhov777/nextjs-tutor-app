@@ -193,7 +193,7 @@ export function ChatInput({
             onClick={() => setFeedbackModalOpen(true)}
             style={{
               display: 'flex',
-              padding: isMobile ? '6px' : '8px',
+              padding: isMobile ? '6px 0' : '8px 0',
               alignItems: 'center',
               gap: '10px',
               borderRadius: '8px',
@@ -208,7 +208,7 @@ export function ChatInput({
             }}
             className="hover:opacity-100"
           >
-            Give feedback
+            Have feedback?
           </button>
           
           <div className="flex gap-2">

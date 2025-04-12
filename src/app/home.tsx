@@ -1372,6 +1372,7 @@ content: HIDDEN_CONTENT
             userId={userId}
             onAgentsUpdate={(updatedAgents) => agents.setAgents(updatedAgents)}
             onTabChange={handleAgentsSidebarTabChange}
+            currentConversationId={chat.currentConversationId || undefined}
           />
         }
         content={

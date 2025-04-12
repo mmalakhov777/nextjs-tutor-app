@@ -165,6 +165,8 @@ export interface AgentsSidebarProps {
   } | null;
   userId?: string | null;
   onAgentsUpdate?: (agents: AgentOrTool[]) => void;
+  onTabChange?: (tab: 'agents' | 'notes') => void;
+  currentConversationId?: string;
 }
 
 export interface AnalysisModalProps {

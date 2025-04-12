@@ -490,7 +490,7 @@ export function FileSidebar({
             onClick={() => onRefreshFiles?.()}
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-8 w-8 hidden"
             disabled={isRefreshing}
             title="Refresh files"
           >

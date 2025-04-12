@@ -55,6 +55,7 @@ declare global {
 interface ExtendedAgentsSidebarProps extends AgentsSidebarProps {
   onAgentsUpdate?: (updatedAgents: any[]) => void;
   onTabChange?: (tab: 'agents' | 'notes') => void;
+  currentConversationId?: string; // Add the current conversation ID
 }
 
 // Define a ref type for the component
@@ -209,7 +210,8 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   vectorStoreInfo = null,
   userId,
   onAgentsUpdate,
-  onTabChange
+  onTabChange,
+  currentConversationId
 }, ref) {
   const [searchParams, setSearchParams] = useState('');
   const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
@@ -227,6 +229,9 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   const [isCheckingSubscription, setIsCheckingSubscription] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<'agents' | 'notes'>('agents');
   const [noteContent, setNoteContent] = useState<string>('');
+  const [isSavingNotes, setIsSavingNotes] = useState<boolean>(false);
+  const [isLoadingNotes, setIsLoadingNotes] = useState<boolean>(false);
+  const [lastSavedNoteContent, setLastSavedNoteContent] = useState<string>('');
   
   // Debug state to override subscription status
   const [debugOverrideSubscription, setDebugOverrideSubscription] = useState<boolean | null>(null);
@@ -234,6 +239,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   
   // Constants
   const MESSAGE_LIMIT = 10;
+  const NOTES_AUTOSAVE_DELAY = 2000; // Autosave delay in milliseconds
   
   // Set up debug commands in window object for testing
   useEffect(() => {
@@ -791,7 +797,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-transparent"
                 onClick={(e) => {
                   e.preventDefault(); // Prevent navigation when clicking settings
                   window.location.href = agentUrl;
@@ -819,23 +825,151 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
     );
   }, [userId, searchParams, getAgentCircleColor, getIconTextColor, getAgentIcon, getDisplayAgentName]);
 
-  // Load saved notes from localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedNotes = localStorage.getItem('quickNotes');
-      if (savedNotes) {
-        setNoteContent(savedNotes);
+  // New function to fetch notes for the current session
+  const fetchNotes = useCallback(async () => {
+    if (!userId || !currentConversationId) return;
+    
+    setIsLoadingNotes(true);
+    
+    try {
+      console.log(`[Notes] Fetching notes for session ${currentConversationId}`);
+      const backendUrl = getBackendUrl();
+      const response = await fetch(`${backendUrl}/api/notes?session_id=${encodeURIComponent(currentConversationId)}&user_id=${encodeURIComponent(userId)}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch notes: ${response.status}`);
       }
+      
+      const data = await response.json();
+      
+      if (data && data.content) {
+        console.log(`[Notes] Successfully loaded notes for session ${currentConversationId}`);
+        setNoteContent(data.content);
+        setLastSavedNoteContent(data.content);
+      } else {
+        // If no notes exist for this session, set empty content
+        setNoteContent('');
+        setLastSavedNoteContent('');
+      }
+    } catch (error) {
+      console.error('[Notes] Error fetching notes:', error);
+      
+      // Load from localStorage as fallback
+      if (typeof window !== 'undefined') {
+        const savedNotes = localStorage.getItem(`notes_${currentConversationId}`);
+        if (savedNotes) {
+          console.log(`[Notes] Loaded notes from localStorage for session ${currentConversationId}`);
+          setNoteContent(savedNotes);
+          setLastSavedNoteContent(savedNotes);
+        } else {
+          setNoteContent('');
+          setLastSavedNoteContent('');
+        }
+      }
+    } finally {
+      setIsLoadingNotes(false);
     }
-  }, []);
+  }, [userId, currentConversationId]);
 
-  // Save notes to localStorage whenever they change
+  // New function to save notes to backend
+  const saveNotes = useCallback(async (content: string) => {
+    if (!userId || !currentConversationId) return;
+    
+    // Don't save if content hasn't changed
+    if (content === lastSavedNoteContent) {
+      return;
+    }
+    
+    setIsSavingNotes(true);
+    
+    try {
+      console.log(`[Notes] Saving notes for session ${currentConversationId}`);
+      const backendUrl = getBackendUrl();
+      
+      const response = await fetch(`${backendUrl}/api/notes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          session_id: currentConversationId,
+          content: content
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to save notes: ${response.status}`);
+      }
+      
+      console.log(`[Notes] Successfully saved notes for session ${currentConversationId}`);
+      setLastSavedNoteContent(content);
+      
+      // Also save to localStorage as backup
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`notes_${currentConversationId}`, content);
+      }
+    } catch (error) {
+      console.error('[Notes] Error saving notes:', error);
+      
+      // Save to localStorage as fallback
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`notes_${currentConversationId}`, content);
+      }
+    } finally {
+      setIsSavingNotes(false);
+    }
+  }, [userId, currentConversationId, lastSavedNoteContent]);
+
+  // Effect to handle autosaving notes with debounce
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('quickNotes', noteContent);
+    if (!noteContent || !currentConversationId) return;
+    
+    const timer = setTimeout(() => {
+      saveNotes(noteContent);
+    }, NOTES_AUTOSAVE_DELAY);
+    
+    return () => clearTimeout(timer);
+  }, [noteContent, currentConversationId, saveNotes]);
+  
+  // Effect to fetch notes when conversation ID changes
+  useEffect(() => {
+    if (currentConversationId) {
+      fetchNotes();
     }
-  }, [noteContent]);
+  }, [currentConversationId, fetchNotes]);
+  
+  // Effect to fetch notes on component initialization
+  useEffect(() => {
+    if (userId && currentConversationId) {
+      fetchNotes();
+    }
+  }, [userId, fetchNotes]);
+  
+  // Check if notes have changed before unloading
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (noteContent !== lastSavedNoteContent) {
+        // Save notes synchronously before unload
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(`notes_${currentConversationId}`, noteContent);
+        }
+        
+        // Show confirmation dialog
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [noteContent, lastSavedNoteContent, currentConversationId]);
 
+  // Handle note content updates
   const handleNoteUpdate = useCallback((html: string) => {
     setNoteContent(html);
   }, []);
@@ -886,6 +1020,21 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
             Notes
           </button>
         </div>
+        
+        {/* Add save indicator for notes */}
+        {activeTab === 'notes' && (
+          <div className="flex items-center">
+            {isLoadingNotes && (
+              <span className="text-xs text-gray-500 mr-2">Loading...</span>
+            )}
+            {isSavingNotes && (
+              <span className="text-xs text-gray-500 mr-2">Saving...</span>
+            )}
+            {!isLoadingNotes && !isSavingNotes && noteContent !== lastSavedNoteContent && (
+              <span className="text-xs text-amber-500 mr-2">Unsaved</span>
+            )}
+          </div>
+        )}
       </div>
       
       {activeTab === 'agents' ? (
@@ -1058,10 +1207,16 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
         </div>
       ) : (
         <div className="overflow-y-auto h-full flex flex-col">
-          <TiptapEditor 
-            content={noteContent} 
-            onUpdate={handleNoteUpdate} 
-          />
+          {isLoadingNotes ? (
+            <div className="flex justify-center items-center h-full">
+              <div className="animate-spin h-5 w-5 sm:h-6 sm:w-6 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+            </div>
+          ) : (
+            <TiptapEditor 
+              content={noteContent} 
+              onUpdate={handleNoteUpdate} 
+            />
+          )}
         </div>
       )}
       
