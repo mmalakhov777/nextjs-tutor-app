@@ -1060,6 +1060,46 @@ export default function Home({
     }
   }, [vectorStoreInfoFromUrl]);
 
+  // Update chat title with first user message
+  useEffect(() => {
+    // Only proceed if we have a valid conversation ID
+    if (!chat.currentConversationId || !userId) return;
+    
+    // Look for the first user message
+    const firstUserMessage = chat.messages.find(msg => msg.role === 'user');
+    
+    // If we found a user message and the conversation exists in history
+    if (firstUserMessage) {
+      const currentConversation = history.chatHistory.find(
+        session => session.id === chat.currentConversationId
+      );
+      
+      // Only update if the current title is "New Chat" and we have a user message with content
+      if (
+        currentConversation && 
+        currentConversation.title === 'New Chat' && 
+        typeof firstUserMessage.content === 'string' && 
+        firstUserMessage.content.trim() !== ''
+      ) {
+        // Get first 50 chars of message for the title (or less if message is shorter)
+        let newTitle = firstUserMessage.content.trim();
+        
+        // Skip if it's a FILE_QUICK_ACTION message
+        if (newTitle.includes('<FILE_QUICK_ACTION>')) return;
+        
+        // Limit title length
+        if (newTitle.length > 50) {
+          newTitle = newTitle.substring(0, 47) + '...';
+        }
+        
+        // Update the title via API
+        handleEditSessionTitle(chat.currentConversationId, newTitle);
+      }
+    }
+    // We only want to run this effect when messages change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chat.messages, chat.currentConversationId, userId]);
+
   // Quick actions should be sent directly from FileSidebar
   const handleFileQuickAction = useCallback((fileInfo: UploadedFile, action: string, content: string) => {
     // Create a special message for display in UI

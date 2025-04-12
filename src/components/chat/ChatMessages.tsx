@@ -195,7 +195,7 @@ export function ChatMessages({
     return (
       <LoadingIndicator 
         message={`${agentName} is thinking...`}
-        spinnerColor="#70D6FF"
+        spinnerColor="#70D6FF" 
         customStyles={{
           background: "#FFF",
           border: "1px solid #E8E8E5",
