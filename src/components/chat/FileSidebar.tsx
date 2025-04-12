@@ -861,14 +861,31 @@ export function FileSidebar({
                   <div className="flex flex-col items-end gap-2">
                     {/* Delete button */}
                     <Button
-                      onClick={() => onFileDeleted?.(file.id)}
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent opening the modal
+                        setIsDeletingFile(file.id);
+                        const result = onFileDeleted?.(file.id);
+                        // Check if the result is a Promise-like object
+                        if (result && typeof (result as any).then === 'function') {
+                          (result as Promise<any>).finally(() => {
+                            setIsDeletingFile(null);
+                          });
+                        } else {
+                          // If not a promise, reset state after a small delay
+                          setTimeout(() => setIsDeletingFile(null), 500);
+                        }
+                      }}
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-transparent"
                       aria-label="Delete file"
                       disabled={isDeletingFile === file.id}
                     >
-                      <DeleteIcon className="h-4 w-4 text-muted-foreground" />
+                      {isDeletingFile === file.id ? (
+                        <RefreshCw className="h-4 w-4 text-muted-foreground animate-spin" />
+                      ) : (
+                        <DeleteIcon className="h-4 w-4 text-muted-foreground group-hover:text-[#232323]" />
+                      )}
                     </Button>
                   </div>
                 </div>
