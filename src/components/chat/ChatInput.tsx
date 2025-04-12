@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { blobToBase64 } from '@/utils/audioUtils';
 import { speechToText } from '@/services/audioService';
 import { toast } from 'react-hot-toast';
+import { FeedbackModal } from './FeedbackModal';
 
 export function ChatInput({
   value,
@@ -21,6 +22,7 @@ export function ChatInput({
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [recordingError, setRecordingError] = useState<string | null>(null);
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   
   // MediaRecorder references
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -188,6 +190,7 @@ export function ChatInput({
           }}
         >
           <button
+            onClick={() => setFeedbackModalOpen(true)}
             style={{
               display: 'flex',
               padding: isMobile ? '6px' : '8px',
@@ -197,11 +200,13 @@ export function ChatInput({
               background: 'transparent',
               border: 'none',
               cursor: 'pointer',
-              opacity: 0.2,
+              opacity: 0.6,
               fontSize: '12px',
               fontWeight: 400,
-              color: 'var(--Monochrome-Normal, #9B9B9B)'
+              color: 'var(--Monochrome-Normal, #9B9B9B)',
+              transition: 'opacity 0.2s ease'
             }}
+            className="hover:opacity-100"
           >
             Give feedback
           </button>
@@ -275,6 +280,12 @@ export function ChatInput({
           </div>
         </div>
       </div>
+      
+      {/* Feedback Modal */}
+      <FeedbackModal
+        isOpen={feedbackModalOpen}
+        onOpenChange={setFeedbackModalOpen}
+      />
     </div>
   );
 } 
