@@ -1,10 +1,10 @@
-import { Users, X, Info, Plus, Settings, Wrench, Shield, UserCircle, Brain, Globe, Sparkles, Search, BookOpen, Code, Lightbulb, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
+import { Users, X, Info, Plus, Settings, Wrench, Shield, UserCircle, Brain, Globe, Sparkles, Search, BookOpen, Code, Lightbulb, ChevronDown, ChevronUp, MessageSquare, FileText, Bold, Italic, List, Heading, Underline, ListOrdered } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { AgentsSidebarProps } from '@/types/chat';
 import Link from 'next/link';
-import { useEffect, useState, memo, useImperativeHandle, forwardRef } from 'react';
+import { useEffect, useState, memo, useImperativeHandle, forwardRef, useCallback } from 'react';
 import { GrokXLogo } from '@/components/icons/GrokXLogo';
 import { TriageAgentLogo } from '@/components/icons/TriageAgentLogo';
 import { ClaudeCreativeLogo } from '@/components/icons/ClaudeCreativeLogo';
@@ -12,6 +12,17 @@ import { DeepSeekLogo } from '@/components/icons/DeepSeekLogo';
 import { MistralLogo } from '@/components/icons/MistralLogo';
 import { PerplexityLogo } from '@/components/icons/PerplexityLogo';
 import React from 'react';
+import { Textarea } from '@/components/ui/textarea';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import BoldExtension from '@tiptap/extension-bold';
+import ItalicExtension from '@tiptap/extension-italic';
+import UnderlineExtension from '@tiptap/extension-underline';
+import HeadingExtension from '@tiptap/extension-heading';
+import BulletListExtension from '@tiptap/extension-bullet-list';
+import OrderedListExtension from '@tiptap/extension-ordered-list';
+import LinkExtension from '@tiptap/extension-link';
+import { Link as LucideLink } from 'lucide-react';
 
 // Define MSD global interface type
 declare global {
@@ -43,12 +54,150 @@ declare global {
 // Update the AgentsSidebarProps interface
 interface ExtendedAgentsSidebarProps extends AgentsSidebarProps {
   onAgentsUpdate?: (updatedAgents: any[]) => void;
+  onTabChange?: (tab: 'agents' | 'notes') => void;
 }
 
 // Define a ref type for the component
 export interface AgentsSidebarRef {
   refreshMessageCount: () => Promise<void>;
 }
+
+// Create a minimalist Tiptap editor component
+const TiptapEditor = ({ content, onUpdate }: { content: string, onUpdate: (html: string) => void }) => {
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      BoldExtension,
+      ItalicExtension,
+      UnderlineExtension,
+      HeadingExtension.configure({
+        levels: [1, 2, 3],
+      }),
+      BulletListExtension,
+      OrderedListExtension,
+      LinkExtension.configure({
+        openOnClick: false,
+      }),
+    ],
+    content,
+    onUpdate: ({ editor }) => {
+      onUpdate(editor.getHTML());
+    },
+  });
+
+  // Toggle link dialog - define this hook before any conditional returns
+  const setLink = useCallback(() => {
+    if (!editor) return;
+    
+    const previousUrl = editor.getAttributes('link').href;
+    const url = window.prompt('URL', previousUrl);
+
+    // cancelled
+    if (url === null) {
+      return;
+    }
+
+    // empty
+    if (url === '') {
+      editor.chain().focus().extendMarkRange('link').unsetLink().run();
+      return;
+    }
+
+    // update link
+    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+  }, [editor]);
+
+  if (!editor) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="border-b border-gray-200 flex items-center gap-1 px-2 py-1">
+        <button
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          className={`p-1 rounded ${editor.isActive('bold') ? 'bg-gray-100' : ''} hover:bg-gray-50`}
+          title="Bold"
+        >
+          <Bold className="h-4 w-4" />
+        </button>
+        <button
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          className={`p-1 rounded ${editor.isActive('italic') ? 'bg-gray-100' : ''} hover:bg-gray-50`}
+          title="Italic"
+        >
+          <Italic className="h-4 w-4" />
+        </button>
+        <button
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          className={`p-1 rounded ${editor.isActive('underline') ? 'bg-gray-100' : ''} hover:bg-gray-50`}
+          title="Underline"
+        >
+          <Underline className="h-4 w-4" />
+        </button>
+        <div className="w-px h-4 bg-gray-300 mx-1" />
+        <button
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+          className={`p-1 rounded ${editor.isActive('heading', { level: 1 }) ? 'bg-gray-100' : ''} hover:bg-gray-50`}
+          title="Heading 1"
+        >
+          <Heading className="h-4 w-4" />
+        </button>
+        <div className="w-px h-4 bg-gray-300 mx-1" />
+        <button
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          className={`p-1 rounded ${editor.isActive('bulletList') ? 'bg-gray-100' : ''} hover:bg-gray-50`}
+          title="Bullet List"
+        >
+          <List className="h-4 w-4" />
+        </button>
+        <button
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          className={`p-1 rounded ${editor.isActive('orderedList') ? 'bg-gray-100' : ''} hover:bg-gray-50`}
+          title="Numbered List"
+        >
+          <ListOrdered className="h-4 w-4" />
+        </button>
+        <div className="w-px h-4 bg-gray-300 mx-1" />
+        <button
+          onClick={setLink}
+          className={`p-1 rounded ${editor.isActive('link') ? 'bg-gray-100' : ''} hover:bg-gray-50`}
+          title="Link"
+        >
+          <LucideLink className="h-4 w-4" />
+        </button>
+      </div>
+      <div 
+        className="flex-grow w-full h-full cursor-text"
+        onClick={() => editor.chain().focus().run()}
+      >
+        <EditorContent 
+          editor={editor} 
+          className="w-full h-full overflow-y-auto"
+          style={{
+            height: 'calc(100vh - 100px)',
+            padding: '16px',
+            outline: 'none',
+          }}
+        />
+      </div>
+      <style dangerouslySetInnerHTML={{ __html: `
+        .ProseMirror {
+          min-height: calc(100vh - 100px);
+          height: 100%;
+          outline: none !important;
+          box-shadow: none !important;
+          border: none !important;
+        }
+        .ProseMirror:focus {
+          outline: none !important;
+          box-shadow: none !important;
+          border: none !important;
+        }
+      `}} />
+    </div>
+  );
+};
 
 // Use React.memo to prevent unnecessary re-renders
 const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarProps>(function AgentsSidebar({
@@ -59,7 +208,8 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   onToggleAgentOrTool,
   vectorStoreInfo = null,
   userId,
-  onAgentsUpdate
+  onAgentsUpdate,
+  onTabChange
 }, ref) {
   const [searchParams, setSearchParams] = useState('');
   const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
@@ -75,6 +225,8 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   const [isLoadingMessageCount, setIsLoadingMessageCount] = useState<boolean>(false);
   const [hasSubscription, setHasSubscription] = useState<boolean>(false);
   const [isCheckingSubscription, setIsCheckingSubscription] = useState<boolean>(true);
+  const [activeTab, setActiveTab] = useState<'agents' | 'notes'>('agents');
+  const [noteContent, setNoteContent] = useState<string>('');
   
   // Debug state to override subscription status
   const [debugOverrideSubscription, setDebugOverrideSubscription] = useState<boolean | null>(null);
@@ -667,185 +819,251 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
     );
   }, [userId, searchParams, getAgentCircleColor, getIconTextColor, getAgentIcon, getDisplayAgentName]);
 
+  // Load saved notes from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedNotes = localStorage.getItem('quickNotes');
+      if (savedNotes) {
+        setNoteContent(savedNotes);
+      }
+    }
+  }, []);
+
+  // Save notes to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('quickNotes', noteContent);
+    }
+  }, [noteContent]);
+
+  const handleNoteUpdate = useCallback((html: string) => {
+    setNoteContent(html);
+  }, []);
+
+  // Update the activeTab setter to also call the onTabChange prop
+  const handleTabChange = (tab: 'agents' | 'notes') => {
+    setActiveTab(tab);
+    if (onTabChange) {
+      onTabChange(tab);
+    }
+  };
+
   return (
-    <div className={`${isMobile ? 'w-full' : 'w-64 border-r'} bg-white h-full overflow-y-auto`}>
+    <div className={`${isMobile ? 'w-full' : activeTab === 'notes' ? 'w-96 border-r' : 'w-64 border-r'} bg-white h-full flex flex-col transition-all duration-300 ease-in-out`}>
       <div 
-        className={`flex justify-between items-center h-[60px] px-4 ${isMobile ? 'hidden' : ''}`}
+        className={`sticky top-0 z-10 flex justify-between items-center h-[60px] px-4 ${isMobile ? 'hidden' : ''} bg-white`}
         style={{ 
           borderBottom: '1px solid var(--light)',
-          alignSelf: 'stretch'
+          alignSelf: 'stretch',
+          minHeight: '60px'
         }}
       >
-        <h2 className="text-lg font-bold text-foreground">Agents</h2>
+        <div className="flex w-full gap-4">
+          <button 
+            onClick={() => handleTabChange('agents')} 
+            style={{
+              color: activeTab === 'agents' ? 'var(--Monochrome-Black, #232323)' : 'var(--Monochrome-Deep, #6C6C6C)',
+              textAlign: 'center',
+              fontSize: '20px',
+              fontStyle: 'normal',
+              fontWeight: 500,
+              lineHeight: '28px'
+            }}
+          >
+            Agents
+          </button>
+          <button 
+            onClick={() => handleTabChange('notes')} 
+            style={{
+              color: activeTab === 'notes' ? 'var(--Monochrome-Black, #232323)' : 'var(--Monochrome-Deep, #6C6C6C)',
+              textAlign: 'center',
+              fontSize: '20px',
+              fontStyle: 'normal',
+              fontWeight: 500,
+              lineHeight: '28px'
+            }}
+          >
+            Notes
+          </button>
+        </div>
       </div>
       
-      <div className={`${isMobile ? 'p-2' : 'p-3 sm:p-4'} pt-4 sm:pt-6`}>
-        {isLoadingAgents ? (
-          <div className="flex justify-center items-center h-20">
-            <div className="animate-spin h-5 w-5 sm:h-6 sm:w-6 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-          </div>
-        ) : (
-          <div className="space-y-3 sm:space-y-3">
-            {/* AI Agents Card */}
-            <div>
-              <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-                {/* Main Card Header */}
-                <div 
-                  className="p-4 cursor-pointer hover:bg-slate-50 transition-colors"
-                  onClick={() => setShowAllAgents(!showAllAgents)}
-                >
-                  <div className="flex flex-col">
-                    {/* Agent Circles */}
-                    <div className="flex items-center -space-x-3 mb-4">
-                      {defaultAgents.slice(0, 3).map((agent, index) => {
-                        const displayName = getDisplayAgentName(agent.name);
-                        return (
-                          <div 
-                            key={agent.id || index}
-                            className={`w-8 h-8 rounded-full flex items-center justify-center ${getAgentCircleColor(displayName)} ${getIconTextColor(displayName)}`}
-                            onClick={(e) => e.stopPropagation()}
-                            style={{ width: '32px', height: '32px' }}
-                          >
-                            {getAgentIcon(displayName)}
-                          </div>
-                        );
-                      })}
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white border border-slate-200 text-slate-800"
-                        style={{ width: '32px', height: '32px' }}
-                      >
-                        <span className="text-sm font-medium">+4</span>
-                      </div>
-                    </div>
-                    
-                    <h3 className="font-bold text-slate-900 mb-2" style={{ fontSize: '16px' }}>How it works</h3>
-                    <p className="text-sm text-slate-600">We automatically select the most suitable AI Agent for your question</p>
-                  </div>
-                </div>
-                
-                {/* Expanded Agent List */}
-                {showAllAgents && (
-                  <div>
-                    {defaultAgents.map((agent, index) => {
-                      const displayName = getDisplayAgentName(agent.name);
-                      return (
-                        <div 
-                          key={agent.id || `agent-${index}`}
-                          className="p-4 border-t border-slate-100"
-                        >
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getAgentCircleColor(displayName)} ${getIconTextColor(displayName)}`}
+      {activeTab === 'agents' ? (
+        <div className={`${isMobile ? 'p-2' : 'p-3 sm:p-4'} pt-4 sm:pt-6 overflow-y-auto`}>
+          {isLoadingAgents ? (
+            <div className="flex justify-center items-center h-20">
+              <div className="animate-spin h-5 w-5 sm:h-6 sm:w-6 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+            </div>
+          ) : (
+            <div className="space-y-3 sm:space-y-3">
+              {/* AI Agents Card */}
+              <div>
+                <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+                  {/* Main Card Header */}
+                  <div 
+                    className="p-4 cursor-pointer hover:bg-slate-50 transition-colors"
+                    onClick={() => setShowAllAgents(!showAllAgents)}
+                  >
+                    <div className="flex flex-col">
+                      {/* Agent Circles */}
+                      <div className="flex items-center -space-x-3 mb-4">
+                        {defaultAgents.slice(0, 3).map((agent, index) => {
+                          const displayName = getDisplayAgentName(agent.name);
+                          return (
+                            <div 
+                              key={agent.id || index}
+                              className={`w-8 h-8 rounded-full flex items-center justify-center ${getAgentCircleColor(displayName)} ${getIconTextColor(displayName)}`}
+                              onClick={(e) => e.stopPropagation()}
                               style={{ width: '32px', height: '32px' }}
                             >
                               {getAgentIcon(displayName)}
                             </div>
-                            <div className="text-base font-semibold">{displayName}</div>
-                          </div>
-                          <p className="text-sm text-slate-600">{getAgentDescription(displayName)}</p>
+                          );
+                        })}
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white border border-slate-200 text-slate-800"
+                          style={{ width: '32px', height: '32px' }}
+                        >
+                          <span className="text-sm font-medium">+4</span>
                         </div>
-                      );
-                    })}
+                      </div>
+                      
+                      <h3 className="font-bold text-slate-900 mb-2" style={{ fontSize: '16px' }}>How it works</h3>
+                      <p className="text-sm text-slate-600">We automatically select the most suitable AI Agent for your question</p>
+                    </div>
                   </div>
-                )}
-              </div>
-            </div>
-
-            {/* Custom Agents Section - Only show if there's an active custom agent */}
-            {hasActiveCustomAgent && customAgents.length > 0 && (
-              <div>
-                <div className="space-y-2">
-                  {customAgents.map((agent, index) => renderAgentCard(agent, index))}
-                </div>
-              </div>
-            )}
-            
-            {/* Add New Button - Only show if there's no active custom agent */}
-            {!hasActiveCustomAgent && (
-              <div className="bg-white rounded-lg border border-slate-200 overflow-hidden p-4">
-                <div className="flex flex-col">
-                  <h3 className="font-bold text-slate-900 mb-2" style={{ fontSize: '16px' }}>Create your own agent</h3>
-                  <p className="text-sm text-slate-600 mb-4">Tailor a smart agent to solve your tasks and work the way you do</p>
                   
-                  <Link href={`/agents?user_id=${userId}${searchParams}`}>
-                    <Button
-                      variant="outline"
-                      className="w-full text-sm hover:text-foreground"
-                      style={{
-                        display: 'flex',
-                        padding: '12px',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        gap: '4px',
-                        alignSelf: 'stretch',
-                        borderRadius: '8px',
-                        border: '1px solid var(--Monochrome-Light, #E8E8E5)',
-                        background: 'var(--Monochrome-Superlight, #F2F2ED)'
-                      }}
-                    >
-                      <Plus className="h-4 w-4" />
-                      Create agent
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            )}
-            
-            {/* Message Statistics Card - only show for non-subscribers or when debug mode is active */}
-            {(debugOverrideSubscription === false || (!hasSubscription && !isCheckingSubscription)) && (
-              <div className="bg-white rounded-lg border border-slate-200 overflow-hidden p-4">
-                <div className="flex flex-col">
-                  {debugOverrideSubscription === false && (
-                    <div className="px-2 py-1 mb-2 bg-yellow-100 text-yellow-800 text-xs rounded-md">
-                      Debug mode: Simulating unsubscribed user
+                  {/* Expanded Agent List */}
+                  {showAllAgents && (
+                    <div>
+                      {defaultAgents.map((agent, index) => {
+                        const displayName = getDisplayAgentName(agent.name);
+                        return (
+                          <div 
+                            key={agent.id || `agent-${index}`}
+                            className="p-4 border-t border-slate-100"
+                          >
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getAgentCircleColor(displayName)} ${getIconTextColor(displayName)}`}
+                                style={{ width: '32px', height: '32px' }}
+                              >
+                                {getAgentIcon(displayName)}
+                              </div>
+                              <div className="text-base font-semibold">{displayName}</div>
+                            </div>
+                            <p className="text-sm text-slate-600">{getAgentDescription(displayName)}</p>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-medium text-slate-900" style={{ fontSize: '15px' }}>Today limit</h3>
-                    <span className="text-sm text-slate-600">
-                      {isLoadingMessageCount ? 
-                        <span className="inline-block w-6 h-4 bg-slate-200 animate-pulse rounded"></span> 
-                        : 
-                        `${todayMessageCount}/${MESSAGE_LIMIT}`
-                      }
-                    </span>
-                  </div>
-                  
-                  {/* Progress bar */}
-                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-3">
-                    {isLoadingMessageCount ? (
-                      <div className="h-full w-full bg-slate-200 animate-pulse rounded-full"></div>
-                    ) : (
-                      <div 
-                        className={`h-full rounded-full ${todayMessageCount >= MESSAGE_LIMIT ? 'bg-red-500' : 'bg-slate-700'}`}
-                        style={{ 
-                          width: `${Math.min(100, (todayMessageCount / MESSAGE_LIMIT) * 100)}%`, 
-                          transition: 'width 0.5s ease-in-out'
-                        }}
-                      ></div>
-                    )}
-                  </div>
-                  
-                  {/* Get unlimited button - only show for non-subscribers */}
-                  <button
-                    onClick={handleGetUnlimited}
-                    className="w-full py-3 text-center text-sm font-semibold rounded-md transition-colors"
-                    style={{
-                      backgroundColor: "#FED770"
-                    }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor = "#FEE093";
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.backgroundColor = "#FED770";
-                    }}
-                  >
-                    Get unlimited
-                  </button>
                 </div>
               </div>
-            )}
-          </div>
-        )}
-      </div>
+
+              {/* Custom Agents Section - Only show if there's an active custom agent */}
+              {hasActiveCustomAgent && customAgents.length > 0 && (
+                <div>
+                  <div className="space-y-2">
+                    {customAgents.map((agent, index) => renderAgentCard(agent, index))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Add New Button - Only show if there's no active custom agent */}
+              {!hasActiveCustomAgent && (
+                <div className="bg-white rounded-lg border border-slate-200 overflow-hidden p-4">
+                  <div className="flex flex-col">
+                    <h3 className="font-bold text-slate-900 mb-2" style={{ fontSize: '16px' }}>Create your own agent</h3>
+                    <p className="text-sm text-slate-600 mb-4">Tailor a smart agent to solve your tasks and work the way you do</p>
+                    
+                    <Link href={`/agents?user_id=${userId}${searchParams}`}>
+                      <Button
+                        variant="outline"
+                        className="w-full text-sm hover:text-foreground"
+                        style={{
+                          display: 'flex',
+                          padding: '12px',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          gap: '4px',
+                          alignSelf: 'stretch',
+                          borderRadius: '8px',
+                          border: '1px solid var(--Monochrome-Light, #E8E8E5)',
+                          background: 'var(--Monochrome-Superlight, #F2F2ED)'
+                        }}
+                      >
+                        <Plus className="h-4 w-4" />
+                        Create agent
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              )}
+              
+              {/* Message Statistics Card - only show for non-subscribers or when debug mode is active */}
+              {(debugOverrideSubscription === false || (!hasSubscription && !isCheckingSubscription)) && (
+                <div className="bg-white rounded-lg border border-slate-200 overflow-hidden p-4">
+                  <div className="flex flex-col">
+                    {debugOverrideSubscription === false && (
+                      <div className="px-2 py-1 mb-2 bg-yellow-100 text-yellow-800 text-xs rounded-md">
+                        Debug mode: Simulating unsubscribed user
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-medium text-slate-900" style={{ fontSize: '15px' }}>Today limit</h3>
+                      <span className="text-sm text-slate-600">
+                        {isLoadingMessageCount ? 
+                          <span className="inline-block w-6 h-4 bg-slate-200 animate-pulse rounded"></span> 
+                          : 
+                          `${todayMessageCount}/${MESSAGE_LIMIT}`
+                        }
+                      </span>
+                    </div>
+                    
+                    {/* Progress bar */}
+                    <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-3">
+                      {isLoadingMessageCount ? (
+                        <div className="h-full w-full bg-slate-200 animate-pulse rounded-full"></div>
+                      ) : (
+                        <div 
+                          className={`h-full rounded-full ${todayMessageCount >= MESSAGE_LIMIT ? 'bg-red-500' : 'bg-slate-700'}`}
+                          style={{ 
+                            width: `${Math.min(100, (todayMessageCount / MESSAGE_LIMIT) * 100)}%`, 
+                            transition: 'width 0.5s ease-in-out'
+                          }}
+                        ></div>
+                      )}
+                    </div>
+                    
+                    {/* Get unlimited button - only show for non-subscribers */}
+                    <button
+                      onClick={handleGetUnlimited}
+                      className="w-full py-3 text-center text-sm font-semibold rounded-md transition-colors"
+                      style={{
+                        backgroundColor: "#FED770"
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.backgroundColor = "#FEE093";
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.backgroundColor = "#FED770";
+                      }}
+                    >
+                      Get unlimited
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="overflow-y-auto h-full flex flex-col">
+          <TiptapEditor 
+            content={noteContent} 
+            onUpdate={handleNoteUpdate} 
+          />
+        </div>
+      )}
       
       {/* Notification display */}
       {notification && (

@@ -1,11 +1,12 @@
 import { FiRefreshCw, FiPlusCircle, FiEdit2, FiTrash2 } from 'react-icons/fi';
-import { RefreshCw, PlusCircle, ChevronDown } from 'lucide-react';
+import { RefreshCw, ChevronDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChatHistoryDropdown } from '@/components/chat/ChatHistoryDropdown';
 import type { ChatSession, HandleHistorySelectFn } from '@/types/chat';
 import { useRef, useEffect } from 'react';
 import { LoadingSpinner } from '@/components/icons/LoadingSpinner';
+import { NewChatIcon } from '@/components/icons/NewChatIcon';
 
 interface ChatHeaderProps {
   currentAgent?: string;
@@ -239,7 +240,7 @@ export function ChatHeader({
             </>
           ) : (
             <>
-              <PlusCircle className="h-3 w-3" />
+              <NewChatIcon className="h-3 w-3" />
               <span className="hidden sm:inline">New Chat</span>
               <span className="sm:hidden">New</span>
             </>

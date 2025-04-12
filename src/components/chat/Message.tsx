@@ -179,6 +179,11 @@ const GlobalStyles = () => (
   `}</style>
 );
 
+interface LinkState {
+  status: 'idle' | 'loading' | 'added' | 'error';
+  message?: string;
+}
+
 const MessageContent = ({ content, messageId, onLinkSubmit }: MessageContentProps) => {
   // Function to extract URLs from text with their surrounding context
   const extractLinks = (text: string) => {
@@ -276,27 +281,51 @@ const MessageContent = ({ content, messageId, onLinkSubmit }: MessageContentProp
   };
   
   const { text, links } = extractLinks(content);
-  
-  // Identify URLs in the content that should be rendered as cards
-  // Include both original and processed URLs to handle both cases
-  const urlsToRenderAsCards = links.flatMap(link => {
-    // Check if the URL was modified (has utm_source=mystylus.com)
+  const [linkStates, setLinkStates] = useState<Record<string, LinkState>>({});
+  const [addedTooltipVisible, setAddedTooltipVisible] = useState<Record<string, boolean>>({}); // State for added tooltips
+  const addedTooltipRefs = useRef<Record<string, HTMLDivElement | null>>({}); // Refs for added tooltips
+
+  // Close added tooltip when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      Object.keys(addedTooltipRefs.current).forEach(url => {
+        if (addedTooltipRefs.current[url] && !addedTooltipRefs.current[url]!.contains(event.target as Node)) {
+          setAddedTooltipVisible(prev => ({ ...prev, [url]: false }));
+        }
+      });
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Function to handle link submission with loading state
+  const handleLinkSubmitWithLoading = async (url: string) => {
+    setLinkStates(prev => ({ ...prev, [url]: { status: 'loading' } }));
     try {
-      const urlObj = new URL(link.url);
-      const hasUtmSourceMystylus = urlObj.searchParams.has('utm_source') && 
-                                  urlObj.searchParams.get('utm_source') === 'mystylus.com';
-      
-      // If it has mystylus.com, we need to also check for the original openai version
-      if (hasUtmSourceMystylus) {
-        const originalUrlObj = new URL(link.url);
-        originalUrlObj.searchParams.set('utm_source', 'openai');
-        return [link.url, originalUrlObj.toString()];
-      }
-    } catch (e) {}
-    
-    // Default case, just return the processed URL
-    return [link.url];
-  });
+      await onLinkSubmit!(url); // Use non-null assertion as it's checked before calling
+      setLinkStates(prev => ({ ...prev, [url]: { status: 'added', message: 'Link added successfully' } }));
+      // Show success notification
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm';
+      notification.textContent = 'Link added successfully';
+      document.body.appendChild(notification);
+      setTimeout(() => notification.remove(), 2000);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add link';
+      setLinkStates(prev => ({ ...prev, [url]: { status: 'error', message: errorMessage } }));
+      // Show error notification
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm';
+      notification.textContent = errorMessage;
+      document.body.appendChild(notification);
+      setTimeout(() => notification.remove(), 2000);
+      // Optionally reset to idle after a delay on error
+      // setTimeout(() => setLinkStates(prev => ({ ...prev, [url]: { status: 'idle' } })), 3000);
+    }
+  };
   
   // Function to preserve multiple spaces and proper formatting
   const preserveWhitespace = (content: string) => {
@@ -313,6 +342,11 @@ const MessageContent = ({ content, messageId, onLinkSubmit }: MessageContentProp
     
     // Replace single linebreaks with <br> tags for markdown conversion
     return processedContent.replace(/\n/g, '<br/>');
+  };
+  
+  // Function to toggle added tooltip visibility
+  const toggleAddedTooltip = (url: string) => {
+    setAddedTooltipVisible(prev => ({ ...prev, [url]: !prev[url] }));
   };
   
   return (
@@ -332,15 +366,7 @@ const MessageContent = ({ content, messageId, onLinkSubmit }: MessageContentProp
         components={{
           // Updated paragraph handling to preserve whitespace
           p: ({ children }) => {
-            // If children contains links to render as cards, render a normal paragraph
-            if (React.Children.toArray(children).some(child => 
-              typeof child === 'string' && 
-              urlsToRenderAsCards.some(url => child.includes(url))
-            )) {
-              return <p className="mb-4 last:mb-0">{children}</p>;
-            }
-            
-            // Otherwise render with whitespace preservation
+            // Always render with whitespace preservation now
             return (
               <p className="mb-4 last:mb-0 whitespace-pre-wrap break-words preserve-breaks">{children}</p>
             );
@@ -397,17 +423,7 @@ const MessageContent = ({ content, messageId, onLinkSubmit }: MessageContentProp
               processedHref = href;
             }
             
-            // If this is a URL we want to render as a card, just render a simple link
-            // We'll render the card separately outside the markdown content
-            if (urlsToRenderAsCards.includes(href)) {
-              return (
-                <a href={processedHref} target="_blank" rel="noopener noreferrer" {...props}>
-                  {children}
-                </a>
-              );
-            }
-            
-            // Regular link rendering
+            // Regular link rendering - always render this way now
             return (
               <a href={processedHref} target="_blank" rel="noopener noreferrer" {...props}>
                 {children}
@@ -423,78 +439,145 @@ const MessageContent = ({ content, messageId, onLinkSubmit }: MessageContentProp
       
       {/* Display all links as cards outside the markdown content */}
       {links.length > 0 && (
-        <div className="my-3">
+        <div className="my-3 relative">
+          {/* Restore horizontal scrolling but ensure tooltips are visible */}
           <div className="flex overflow-x-auto pb-2 hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <div className="flex gap-3">
-              {links.map((link, index) => (
-                <div key={index} className="relative group">
-                  <a 
-                    href={link.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="no-underline block flex-shrink-0"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.open(link.url, '_blank', 'noopener,noreferrer');
-                    }}
-                  >
-                    <div 
-                      className="flex p-3 items-start gap-3 relative"
-                      style={{
-                        borderRadius: '16px',
-                        border: '1px solid var(--superlight)',
-                        background: 'var(--ultralight)',
-                        width: '160px',
-                        minWidth: '160px',
-                        maxWidth: '160px'
+              {links.map((link, index) => {
+                const currentState = linkStates[link.url] || { status: 'idle' };
+                const isAddedTooltipCurrentlyVisible = addedTooltipVisible[link.url] || false;
+                
+                return (
+                  <div key={index} className="relative group">
+                    <a 
+                      href={link.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="no-underline block flex-shrink-0"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        window.open(link.url, '_blank', 'noopener,noreferrer');
                       }}
                     >
-                      <Favicon domain={link.domain} />
-                      <div className="flex flex-col flex-grow min-w-0 overflow-hidden">
-                        <div className="flex items-start w-full">
-                          <span className="truncate text-sm font-medium text-foreground">
-                            {link.domain || 'link'}
-                          </span>
-                        </div>
-                        
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          <span className="text-xs text-muted-foreground">
-                            webpage
-                          </span>
+                      <div 
+                        className="flex p-3 items-start gap-3 relative"
+                        style={{
+                          borderRadius: '16px',
+                          border: '1px solid var(--superlight)',
+                          background: 'var(--ultralight)',
+                          width: '160px',
+                          minWidth: '160px',
+                          maxWidth: '160px'
+                        }}
+                      >
+                        <Favicon domain={link.domain} />
+                        <div className="flex flex-col flex-grow min-w-0 overflow-hidden">
+                          <div className="flex items-start w-full">
+                            <span className="truncate text-sm font-medium text-foreground">
+                              {link.domain || 'link'}
+                            </span>
+                          </div>
+                          
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            <span className="text-xs text-muted-foreground">
+                              webpage
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </a>
-                  {onLinkSubmit && (
-                    <Button
-                      onClick={async () => {
-                        try {
-                          await onLinkSubmit(link.url);
-                          // Show success notification
-                          const notification = document.createElement('div');
-                          notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm';
-                          notification.textContent = 'Link added successfully';
-                          document.body.appendChild(notification);
-                          setTimeout(() => notification.remove(), 2000);
-                        } catch (error) {
-                          // Show error notification
-                          const notification = document.createElement('div');
-                          notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm';
-                          notification.textContent = error instanceof Error ? error.message : 'Failed to add link';
-                          document.body.appendChild(notification);
-                          setTimeout(() => notification.remove(), 2000);
+                    </a>
+                    {onLinkSubmit && currentState.status !== 'added' && ( // Don't show button if already added
+                      <Button
+                        onClick={() => handleLinkSubmitWithLoading(link.url)}
+                        variant="ghost"
+                        size="icon"
+                        className={cn(
+                          "absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white",
+                          currentState.status === 'loading' && "opacity-100 cursor-not-allowed",
+                          currentState.status === 'error' && "opacity-100"
+                        )}
+                        title={
+                          currentState.status === 'loading' ? "Adding..." :
+                          currentState.status === 'error' ? `Error: ${currentState.message}` :
+                          "Add to files"
                         }
-                      }}
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white"
-                      title="Add to files"
-                    >
-                      <Plus className="h-3 w-3 text-blue-500" />
-                    </Button>
-                  )}
-                </div>
-              ))}
+                        disabled={currentState.status === 'loading'}
+                      >
+                        {currentState.status === 'loading' && <Loader2 className="h-3 w-3 text-blue-500 animate-spin" />}
+                        {currentState.status === 'error' && <AlertCircle className="h-3 w-3 text-red-500" />}
+                        {currentState.status === 'idle' && <Plus className="h-3 w-3 text-blue-500" />}
+                      </Button>
+                    )}
+                    {/* Show checkmark if added - make it clickable */}
+                    {currentState.status === 'added' && (
+                      <div 
+                        ref={(el) => { addedTooltipRefs.current[link.url] = el; }}
+                        className="absolute top-1 right-1 cursor-pointer"
+                        onClick={() => toggleAddedTooltip(link.url)}
+                      >
+                        <div className="h-6 w-6 flex items-center justify-center rounded-full bg-green-100 hover:bg-green-200 transition-colors">
+                          <Check className="h-3 w-3 text-green-600" />
+                        </div>
+                        {/* Added Tooltip with fixed positioning */}
+                        {isAddedTooltipCurrentlyVisible && (
+                          <div 
+                            className="fixed transform -translate-x-1/2 transition-opacity duration-200" 
+                            style={{ 
+                              zIndex: 9999,
+                              width: '200px',
+                              // Position will be calculated and set by useEffect
+                              left: '50%',
+                              bottom: '30px' // Default fallback
+                            }}
+                            ref={(el) => {
+                              if (el && addedTooltipRefs.current[link.url]) {
+                                // Calculate position relative to the checkmark icon
+                                const rect = addedTooltipRefs.current[link.url]!.getBoundingClientRect();
+                                el.style.left = `${rect.left + rect.width/2}px`;
+                                el.style.bottom = `${window.innerHeight - rect.top + 10}px`;
+                              }
+                            }}
+                          >
+                            <div className="relative">
+                              {/* Arrow */}
+                              <div className="w-2 h-2 bg-[#232323] transform rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2" style={{ zIndex: 101 }}></div>
+
+                              {/* Tooltip content */}
+                              <div
+                                style={{
+                                  zIndex: 100, // Ensure tooltip is above other elements
+                                  display: "flex",
+                                  padding: "8px 12px",
+                                  flexDirection: "column",
+                                  alignItems: "center",
+                                  borderRadius: "12px",
+                                  background: "var(--Monochrome-Black, #232323)",
+                                  boxShadow: "0px 0px 20px 0px rgba(203, 203, 203, 0.20)",
+                                  position: "relative",
+                                  textAlign: "center"
+                                }}
+                              >
+                                <div
+                                  className="w-full"
+                                  style={{
+                                    color: "var(--Monochrome-White, #FFF)",
+                                    fontSize: "12px",
+                                    fontStyle: "normal",
+                                    fontWeight: "400",
+                                    lineHeight: "16px"
+                                  }}
+                                >
+                                  File added to chat context. Manage in File Sidebar.
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -1981,7 +2064,7 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
                   <MessageContent 
                     content={enhancedText || message.content} 
                     messageId={message.id} 
-                    onLinkSubmit={onLinkSubmit}
+                    onLinkSubmit={onLinkSubmit} // Pass the handler down
                   />
                 </div>
               </>
@@ -2174,18 +2257,15 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
                 {/* Other buttons - remain on the right side */}
                 <div className="flex items-center gap-2">
                   {message.role === 'assistant' && (
-                    <div className="relative" ref={tooltipRef}>
-                      <div 
+                    <div className="relative" ref={tooltipRef}> {/* Use agent tooltip ref here */}
+                      <div
                         className={`flex items-center justify-center w-6 h-6 rounded-full ${getAgentCircleColor(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant')} ${getIconTextColor(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant')} cursor-pointer`}
-                        onClick={() => setIsTooltipVisible(!isTooltipVisible)}
+                        onClick={() => setIsTooltipVisible(!isTooltipVisible)} // Toggle agent tooltip
                       >
                         {(() => {
-                          // For empty content (loading state)
                           if (message.content === '') {
                             return getAgentIcon(getDisplayAgentName(currentAgent || 'Assistant'));
                           }
-                          
-                          // For messages with content, prioritize metadata agent name
                           const displayName = getDisplayAgentName(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant');
                           return getAgentIcon(displayName);
                         })()}
@@ -2193,16 +2273,16 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
                           <Loader2 className="h-3 w-3 animate-spin absolute top-0 right-0 -mt-1 -mr-1" />
                         )}
                       </div>
-                      
-                      {/* Tooltip - now showing on click instead of hover */}
+
+                      {/* Agent Tooltip - Restored Content */}
                       {isTooltipVisible && (
                         <div className="absolute bottom-full left-0 mb-2 transition-opacity duration-200" style={{ zIndex: 5 }}>
                           <div className="relative">
                             {/* Arrow */}
                             <div className="w-2 h-2 bg-[#232323] transform rotate-45 absolute -bottom-1 left-3" style={{ zIndex: 6 }}></div>
-                            
+      
                             {/* Tooltip content */}
-                            <div 
+                            <div
                               style={{
                                 display: "flex",
                                 width: "210px",
@@ -2215,7 +2295,7 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
                                 position: "relative"
                               }}
                             >
-                              <div 
+                              <div
                                 className="font-semibold p-2 w-full"
                                 style={{
                                   color: "var(--Monochrome-White, #FFF)",
@@ -2227,7 +2307,7 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
                               >
                                 {getDisplayAgentName(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant')}
                               </div>
-                              <div 
+                              <div
                                 className="p-2 pt-0 w-full"
                                 style={{
                                   color: "var(--Monochrome-White, #FFF)",
@@ -2246,7 +2326,6 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
                       )}
                     </div>
                   )}
-
                   {/* TTS button (only for assistant messages) - moved to here */}
                   {message.role === 'assistant' && !message.toolAction && (
                     <Button

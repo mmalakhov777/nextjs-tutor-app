@@ -135,6 +135,9 @@ export default function Home({
   const [isMobile, setIsMobile] = useState(false);
   const [activeTab, setActiveTab] = useState<'chat' | 'files' | 'agents'>('chat');
   
+  // Add state to track active sidebar tab
+  const [agentsSidebarTab, setAgentsSidebarTab] = useState<'agents' | 'notes'>('agents');
+
   // Detect mobile screen size
   useEffect(() => {
     const checkIfMobile = () => {
@@ -1308,6 +1311,11 @@ content: HIDDEN_CONTENT
     });
   }, [chat, userId]);
 
+  // Handler to track sidebar tab changes
+  const handleAgentsSidebarTabChange = (tab: 'agents' | 'notes') => {
+    setAgentsSidebarTab(tab);
+  };
+
   return (
     <>
       <ChatLayout
@@ -1363,6 +1371,7 @@ content: HIDDEN_CONTENT
             vectorStoreInfo={vectorStoreInfo}
             userId={userId}
             onAgentsUpdate={(updatedAgents) => agents.setAgents(updatedAgents)}
+            onTabChange={handleAgentsSidebarTabChange}
           />
         }
         content={
@@ -1403,6 +1412,7 @@ content: HIDDEN_CONTENT
         isLoading={isLoadingSession || isCreatingSession}
         loadingMessage={isCreatingSession ? 'Creating new conversation...' : 'Loading conversation...'}
         onTabChange={setActiveTab}
+        rightSidebarWide={agentsSidebarTab === 'notes'}
       />
 
       <AnalysisModal
