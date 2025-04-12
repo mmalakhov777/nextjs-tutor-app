@@ -2,16 +2,64 @@ import { useRef, useState, useEffect } from 'react';
 import { 
   Upload, FileText, Info, Copy, 
   Maximize2, CheckCircle2, Clock, AlertTriangle,
-  RefreshCw, ChevronDown, ChevronRight, BookOpen
+  RefreshCw, ChevronDown, ChevronRight, BookOpen,
+  Link, ExternalLink, FileIcon, Image, Code, Database, 
+  FileJson, FileType, FileCode, Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { DeleteIcon } from '@/components/icons';
-import type { FileSidebarProps, UploadedFile, DocumentMetadata } from '@/types/chat';
+import type { FileSidebarProps, UploadedFile } from '@/types/chat';
+import { WebPageIcon } from './WebPageIcon';
+import { FileDetailModal } from './FileDetailModal';
 
 // Add a helper function to get the backend URL at the top of the file
 const getBackendUrl = () => {
   return process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5002';
+};
+
+// Helper to get the appropriate icon for a file extension
+const getFileIcon = (fileName: string, file: UploadedFile) => {
+  // If it's a link or has webpage type, use the webpage icon
+  if (file.source === 'link' || 
+      file.doc_type?.toLowerCase() === 'webpage' || 
+      file.doc_type?.toLowerCase() === 'webpage') {
+    return <WebPageIcon file={file} />;
+  }
+  
+  const extension = fileName.split('.').pop()?.toLowerCase() || '';
+  
+  switch (extension) {
+    case 'pdf':
+      return <FileText className="h-3 w-3 text-red-500" />;
+    case 'doc':
+    case 'docx':
+    case 'txt':
+      return <FileText className="h-3 w-3 text-blue-500" />;
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+    case 'gif':
+    case 'webp':
+      return <Image className="h-3 w-3 text-purple-500" />;
+    case 'json':
+    case 'jsonl':
+      return <FileJson className="h-3 w-3 text-yellow-600" />;
+    case 'csv':
+      return <Database className="h-3 w-3 text-green-600" />;
+    case 'js':
+    case 'ts':
+    case 'py':
+    case 'java':
+    case 'c':
+    case 'cpp':
+    case 'html':
+    case 'css':
+    case 'xml':
+      return <FileCode className="h-3 w-3 text-emerald-600" />;
+    default:
+      return <FileIcon className="h-3 w-3 text-gray-500" />;
+  }
 };
 
 export function FileSidebar({
@@ -22,11 +70,14 @@ export function FileSidebar({
   currentConversationId,
   defaultVectorStoreId,
   onFileUpload,
+  onLinkSubmit,
   onToggleFileInfo,
   onFileDeleted,
   onVectorStoreCreated,
   onRefreshFiles,
-  isRefreshing = false
+  isRefreshing = false,
+  onSendMessage,
+  onFileQuickAction
 }: FileSidebarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropAreaRef = useRef<HTMLDivElement>(null);
@@ -38,6 +89,9 @@ export function FileSidebar({
   const [isMobile, setIsMobile] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
+  const [isLinkMode, setIsLinkMode] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [selectedFile, setSelectedFile] = useState<UploadedFile | null>(null);
 
   // Detect mobile screen size
   useEffect(() => {
@@ -103,7 +157,7 @@ export function FileSidebar({
     };
 
     const dropArea = dropAreaRef.current;
-    if (dropArea) {
+    if (dropArea && !isLinkMode) {
       dropArea.addEventListener('dragover', handleDragOver);
       dropArea.addEventListener('dragenter', handleDragEnter);
       dropArea.addEventListener('dragleave', handleDragLeave);
@@ -118,7 +172,7 @@ export function FileSidebar({
         dropArea.removeEventListener('drop', handleDrop);
       }
     };
-  }, [isDragging]);
+  }, [isDragging, isLinkMode]);
 
   // Set up console command to show session info
   useEffect(() => {
@@ -138,41 +192,10 @@ export function FileSidebar({
     };
   }, []);
 
-  const onCopyId = async (text: string) => {
-    if (!text) return;
-    await navigator.clipboard.writeText(text);
-  };
-  
-  const handleDeleteFile = async (fileId: string) => {
-    // Show confirmation dialog
-    const confirmed = window.confirm('Are you sure you want to delete this file? This action cannot be undone.');
-    
-    if (!confirmed) {
-      return;
-    }
-    
-    try {
-      const backendUrl = getBackendUrl();
-      const response = await fetch(`${backendUrl}/api/files/${fileId}`, {
-        method: 'DELETE',
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to delete file: ${response.status}`);
-      }
-      
-      // Call the parent's onFileDeleted handler
-      if (onFileDeleted) {
-        onFileDeleted(fileId);
-      }
-      
-      setNotification('File deleted successfully');
-      setTimeout(() => setNotification(null), 2000);
-    } catch (error) {
-      console.error('Error deleting file:', error);
-      setNotification('Error deleting file');
-      setTimeout(() => setNotification(null), 2000);
-    }
+  const onCopyId = (id: string) => {
+    navigator.clipboard.writeText(id);
+    setNotification('ID copied to clipboard');
+    setTimeout(() => setNotification(null), 2000);
   };
   
   const handleCreateVectorStore = async () => {
@@ -223,32 +246,6 @@ export function FileSidebar({
     }
   };
 
-  const FileStatusBadge = ({ status }: { status?: string }) => {
-    if (!status || status === 'completed') {
-      return (
-        <div className="flex items-center text-green-600 text-xs gap-1">
-          <CheckCircle2 className="h-3 w-3" />
-          <span>Ready</span>
-        </div>
-      );
-    } else if (status === 'pending' || status === 'processing') {
-      return (
-        <div className="flex items-center text-amber-600 text-xs gap-1">
-          <Clock className="h-3 w-3" />
-          <span>Processing</span>
-        </div>
-      );
-    } else if (status === 'error') {
-      return (
-        <div className="flex items-center text-red-600 text-xs gap-1">
-          <AlertTriangle className="h-3 w-3" />
-          <span>Error</span>
-        </div>
-      );
-    }
-    return null;
-  };
-
   const handleFileButtonClick = () => {
     if (!fileInputRef.current) {
       return;
@@ -288,6 +285,48 @@ export function FileSidebar({
     }
   };
 
+  const handleLinkSubmit = async () => {
+    if (!linkUrl || !defaultVectorStoreId || !onLinkSubmit) {
+      setNotification(defaultVectorStoreId ? 'No URL entered' : 'No vector store available');
+      setTimeout(() => setNotification(null), 2000);
+      return;
+    }
+
+    try {
+      // Validate URL
+      new URL(linkUrl); // This will throw an error if the URL is invalid
+      
+      await onLinkSubmit(linkUrl);
+      
+      // Show success notification
+      setNotification('Link submitted successfully');
+      setTimeout(() => setNotification(null), 2000);
+      
+      // Clear the input
+      setLinkUrl('');
+      
+      if (onRefreshFiles) {
+        // Refresh files after a brief delay
+        setTimeout(() => {
+          onRefreshFiles();
+        }, 2000);
+      }
+    } catch (error) {
+      if (error instanceof TypeError) {
+        setNotification('Please enter a valid URL');
+      } else {
+        console.error('Error submitting link:', error);
+        setNotification(error instanceof Error ? `Error: ${error.message}` : 'Error submitting link');
+      }
+      setTimeout(() => setNotification(null), 2000);
+    }
+  };
+
+  const toggleMode = () => {
+    setIsLinkMode(!isLinkMode);
+    setLinkUrl('');
+  };
+
   const getDocumentMetadata = (file: UploadedFile) => {
     return {
       title: file.doc_title,
@@ -298,6 +337,32 @@ export function FileSidebar({
       total_pages: file.total_pages,
       processed_at: file.processed_at
     };
+  };
+  
+  const FileStatusBadge = ({ status }: { status?: string }) => {
+    if (!status || status === 'completed') {
+      return (
+        <div className="flex items-center text-green-600 text-xs gap-1">
+          <CheckCircle2 className="h-3 w-3" />
+          <span>Ready</span>
+        </div>
+      );
+    } else if (status === 'pending' || status === 'processing') {
+      return (
+        <div className="flex items-center text-amber-600 text-xs gap-1">
+          <Clock className="h-3 w-3" />
+          <span>Processing</span>
+        </div>
+      );
+    } else if (status === 'error') {
+      return (
+        <div className="flex items-center text-red-600 text-xs gap-1">
+          <AlertTriangle className="h-3 w-3" />
+          <span>Error</span>
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
@@ -354,7 +419,7 @@ export function FileSidebar({
                 <div>
                   <div className="font-medium text-slate-600">Vector Store ID:</div>
                   <div className="flex items-center justify-between gap-1">
-                    <code className="bg-slate-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-emerald-600 font-mono text-[10px] sm:text-xs max-w-[150px] truncate">
+                    <code className="bg-slate-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-blue-700 font-mono text-[10px] sm:text-xs max-w-[150px] truncate">
                       {defaultVectorStoreId || "None"}
                     </code>
                     {defaultVectorStoreId && (
@@ -375,105 +440,185 @@ export function FileSidebar({
           </Card>
         )}
         
+        {!defaultVectorStoreId && userId && currentConversationId && (
+          <div className="mb-4 sm:mb-5">
+            <Button
+              onClick={handleCreateVectorStore}
+              disabled={isCreatingVectorStore}
+              className="w-full"
+            >
+              {isCreatingVectorStore ? 'Creating...' : 'Create Vector Store'}
+            </Button>
+          </div>
+        )}
+
         <div className="mb-4 sm:mb-6">
-          <input 
-            type="file"
-            onChange={(e) => {
-              if (e.target.files?.[0]) {
-                handleFileUpload(e.target.files[0]);
-              }
-            }}
-            className="hidden"
-            id="file-upload"
-            accept=".txt,.md,.csv,.json,.jsonl,.html,.xml,.py,.js,.java,.c,.cpp,.pdf,.jpg,.jpeg,.png,.gif,.webp"
-            ref={fileInputRef}
-          />
-          
           <div 
-            ref={dropAreaRef}
             className={`
-              relative overflow-hidden rounded-[16px] p-8
+              relative overflow-hidden rounded-[16px] p-6
               flex flex-col items-center justify-center text-center
               transition-all duration-300 ease-in-out
-              ${!defaultVectorStoreId 
-                ? 'cursor-not-allowed opacity-60' 
-                : isDragging 
-                  ? 'shadow-[0px_0px_20px_0px_rgba(35,35,35,0.20)]' 
-                  : 'hover:shadow-[0px_0px_20px_0px_rgba(35,35,35,0.10)]'}
+              ${!defaultVectorStoreId ? 'cursor-not-allowed opacity-60' : ''}
             `}
             style={{ 
               border: '1px dashed var(--normal)',
               background: 'var(--ultralight)'
             }}
-            onClick={defaultVectorStoreId ? handleFileButtonClick : undefined}
-          >            
-            <h3 className="text-base font-medium text-foreground mb-2">
-              {isUploadingFile ? 'Uploading file...' : 'Drop your file here'}
-            </h3>
-            
-            <p className="text-sm text-muted-foreground mb-3">
-              {isUploadingFile 
-                ? `Processing ${isUploadingFile ? '...' : ''}`
-                : 'or browse from your computer'}
-            </p>
-            
-            {!isUploadingFile && (
+          >
+            {/* Toggle between file upload and link input */}
+            <div className="flex w-full mb-4 border-b border-light">
               <button 
-                className="
-                  w-full flex justify-center items-center gap-1 py-3 px-4
-                  rounded-[8px] border border-light
-                  text-foreground text-sm font-medium
-                  transition-colors duration-200 ease-in-out
-                  disabled:opacity-70 disabled:cursor-not-allowed
-                "
-                style={{ background: 'var(--superlight)' }}
-                disabled={!defaultVectorStoreId}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleFileButtonClick();
-                }}
+                className={`flex-1 py-2 px-1 text-sm font-medium flex items-center justify-center gap-1 transition-colors
+                  ${isLinkMode 
+                    ? 'text-muted-foreground hover:text-foreground' 
+                    : 'text-foreground border-b-2 border-primary'}
+                `}
+                onClick={() => setIsLinkMode(false)}
+                disabled={!defaultVectorStoreId || isUploadingFile}
               >
-                <Upload className="h-4 w-4" strokeWidth={2} />
-                <span>Select File</span>
+                <Upload className="h-4 w-4" />
+                <span>File</span>
               </button>
-            )}
-            
-            {isUploadingFile && (
-              <div className="w-full max-w-[240px] bg-muted rounded-full h-1.5 mt-3 overflow-hidden">
-                <div className="h-full bg-primary rounded-full animate-progress"></div>
-              </div>
-            )}
-            
-            <div className="mt-4 text-xs text-muted-foreground/70">
-              PDF, TXT, CSV, JSON, and code files supported
+              <button 
+                className={`flex-1 py-2 px-1 text-sm font-medium flex items-center justify-center gap-1 transition-colors
+                  ${isLinkMode 
+                    ? 'text-foreground border-b-2 border-primary' 
+                    : 'text-muted-foreground hover:text-foreground'}
+                `}
+                onClick={() => setIsLinkMode(true)}
+                disabled={!defaultVectorStoreId || isUploadingFile}
+              >
+                <Link className="h-4 w-4" />
+                <span>Link</span>
+              </button>
             </div>
-          </div>
-          
-          {!defaultVectorStoreId && (
-            <div className="mt-2">
-              {/* Commented out the "No vector store available" message
-              <div className="p-2 bg-amber-50 border border-amber-200 rounded-md">
-                <p className="text-xs text-amber-700">
-                  {isCreatingVectorStore ? (
-                    "Creating vector store..."
-                  ) : (
-                    <>
-                      No vector store available.{" "}
-                      <button
-                        onClick={handleCreateVectorStore}
-                        className="text-blue-600 hover:underline"
-                        disabled={isCreatingVectorStore || !userId}
-                      >
-                        Create one
-                      </button>
-                    </>
-                  )}
+
+            {isLinkMode ? (
+              <>
+                <h3 className="text-base font-medium text-foreground mb-2">
+                  {isUploadingFile ? 'Processing link...' : 'Add a link'}
+                </h3>
+                
+                <p className="text-sm text-muted-foreground mb-3">
+                  {isUploadingFile 
+                    ? `Processing ${isUploadingFile ? '...' : ''}`
+                    : 'Enter a URL to analyze'}
                 </p>
-              </div>
-              */}
-            </div>
-          )}
+                
+                {!isUploadingFile && (
+                  <>
+                    <div className="w-full mb-2">
+                      <input
+                        type="url"
+                        value={linkUrl}
+                        onChange={(e) => setLinkUrl(e.target.value)}
+                        placeholder="https://example.com"
+                        className="w-full p-2 text-sm border border-light rounded-md"
+                        disabled={!defaultVectorStoreId}
+                      />
+                    </div>
+                    <button 
+                      className="
+                        w-full flex justify-center items-center gap-1 py-3 px-4
+                        rounded-[8px] border border-light
+                        text-foreground text-sm font-medium
+                        transition-colors duration-200 ease-in-out
+                        disabled:opacity-70 disabled:cursor-not-allowed
+                      "
+                      style={{ background: 'var(--superlight)' }}
+                      disabled={!defaultVectorStoreId || !linkUrl}
+                      onClick={handleLinkSubmit}
+                    >
+                      <Link className="h-4 w-4" strokeWidth={2} />
+                      <span>Submit Link</span>
+                    </button>
+                  </>
+                )}
+                
+                {isUploadingFile && (
+                  <div className="w-full max-w-[240px] bg-muted rounded-full h-1.5 mt-3 overflow-hidden">
+                    <div className="h-full bg-primary rounded-full animate-progress"></div>
+                  </div>
+                )}
+                
+                <div className="mt-4 text-xs text-muted-foreground/70">
+                  webpages will be processed as text content
+                </div>
+              </>
+            ) : (
+              <>
+                <input 
+                  type="file"
+                  onChange={(e) => {
+                    if (e.target.files?.[0]) {
+                      handleFileUpload(e.target.files[0]);
+                    }
+                  }}
+                  className="hidden"
+                  id="file-upload"
+                  accept=".txt,.md,.csv,.json,.jsonl,.html,.xml,.py,.js,.java,.c,.cpp,.pdf,.jpg,.jpeg,.png,.gif,.webp"
+                  ref={fileInputRef}
+                />
+                
+                <div 
+                  ref={dropAreaRef}
+                  className={`
+                    w-full flex flex-col items-center justify-center text-center
+                    ${isDragging ? 'opacity-70' : ''}
+                  `}
+                  onClick={defaultVectorStoreId ? handleFileButtonClick : undefined}
+                >            
+                  <h3 className="text-base font-medium text-foreground mb-2">
+                    {isUploadingFile ? 'Uploading file...' : 'Drop your file here'}
+                  </h3>
+                  
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {isUploadingFile 
+                      ? `Processing ${isUploadingFile ? '...' : ''}`
+                      : 'or browse from your computer'}
+                  </p>
+                  
+                  {!isUploadingFile && (
+                    <button 
+                      className="
+                        w-full flex justify-center items-center gap-1 py-3 px-4
+                        rounded-[8px] border border-light
+                        text-foreground text-sm font-medium
+                        transition-colors duration-200 ease-in-out
+                        disabled:opacity-70 disabled:cursor-not-allowed
+                      "
+                      style={{ background: 'var(--superlight)' }}
+                      disabled={!defaultVectorStoreId}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFileButtonClick();
+                      }}
+                    >
+                      <Upload className="h-4 w-4" strokeWidth={2} />
+                      <span>Select File</span>
+                    </button>
+                  )}
+                  
+                  {isUploadingFile && (
+                    <div className="w-full max-w-[240px] bg-muted rounded-full h-1.5 mt-3 overflow-hidden">
+                      <div className="h-full bg-primary rounded-full animate-progress"></div>
+                    </div>
+                  )}
+                  
+                  <div className="mt-4 text-xs text-muted-foreground/70">
+                    PDF, TXT, CSV, JSON, and code files supported
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
+        
+        {notification && (
+          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm">
+            {notification}
+          </div>
+        )}
         
         {uploadedFiles.length > 0 && (
           <div className="mt-3 sm:mt-4">
@@ -484,12 +629,13 @@ export function FileSidebar({
               {uploadedFiles.map((file) => (
                 <div 
                   key={file.id}
-                  className="flex w-full max-w-full p-4 items-start gap-3 relative group"
+                  className="flex w-full max-w-full p-4 items-start gap-3 relative group cursor-pointer hover:bg-gray-50"
                   style={{
                     borderRadius: '16px',
                     border: '1px solid var(--superlight)',
                     background: 'var(--ultralight)'
                   }}
+                  onClick={() => setSelectedFile(file)}
                 >
                   <div className="flex flex-col flex-grow min-w-0 overflow-hidden">
                     <div className="flex items-start w-full">
@@ -526,10 +672,16 @@ export function FileSidebar({
                     
                     {/* File type and status on the same line */}
                     <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
-                      {/* File format */}
-                      {file.name && (
-                        <span>
-                          {file.name.split('.').pop()?.toUpperCase() || 'FILE'}
+                      {/* File format with link icon for URLs */}
+                      {file.source === 'link' ? (
+                        <span className="flex items-center gap-1">
+                          <WebPageIcon file={file} />
+                          Website
+                        </span>
+                      ) : file.name && (
+                        <span className="flex items-center gap-1">
+                          {getFileIcon(file.name, file)}
+                          {file.name.split('.').pop()?.toUpperCase().substring(0, 4) || 'FILE'}
                         </span>
                       )}
                       
@@ -541,7 +693,9 @@ export function FileSidebar({
                       {/* Document type */}
                       {file.doc_type && file.doc_type !== "Unknown" && (
                         <span>
-                          {file.doc_type}
+                          {file.doc_type.toLowerCase() === 'webpage' || file.doc_type.toLowerCase() === 'webpage' 
+                            ? "WEB" 
+                            : file.doc_type.substring(0, 3).toUpperCase()}
                         </span>
                       )}
                       
@@ -564,43 +718,52 @@ export function FileSidebar({
                           {file.status === 'error' ? 'Error' : 'Processing'}
                         </span>
                       )}
+                      
+                      {/* Show URL for link files */}
+                      {file.source === 'link' && file.url && (
+                        <a 
+                          href={file.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="ml-auto text-blue-500 hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          View source
+                        </a>
+                      )}
                     </div>
-
-                    {file.status && file.status !== 'completed' && (
-                      <div className="mt-1 text-[10px] text-amber-600 bg-amber-50 p-1.5 rounded">
-                        This file is still being processed and may not be available for search yet.
-                      </div>
-                    )}
                   </div>
                   
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteFile(file.id);
-                    }}
-                    variant="ghost"
-                    size="icon"
-                    className="flex items-center gap-2.5 p-2 absolute right-2 top-2 h-auto w-auto invisible group-hover:visible"
-                    style={{
-                      borderRadius: '8px',
-                      border: '1px solid var(--light)',
-                      background: 'var(--white)'
-                    }}
-                    title="Delete file"
-                    disabled={isDeletingFile === file.id}
-                  >
-                    {isDeletingFile === file.id ? (
-                      <div className="animate-spin h-3.5 w-3.5 border-2 border-destructive border-t-transparent rounded-full"></div>
-                    ) : (
-                      <DeleteIcon className="h-4 w-4 text-black" />
-                    )}
-                  </Button>
+                  {/* Right side actions */}
+                  <div className="flex flex-col items-end gap-2">
+                    {/* Delete button */}
+                    <Button
+                      onClick={() => onFileDeleted?.(file.id)}
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label="Delete file"
+                      disabled={isDeletingFile === file.id}
+                    >
+                      <DeleteIcon className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         )}
       </div>
+      
+      {/* Render the file detail modal when a file is selected */}
+      {selectedFile && (
+        <FileDetailModal 
+          file={selectedFile} 
+          onClose={() => setSelectedFile(null)} 
+          onSendMessage={onSendMessage}
+          onFileQuickAction={onFileQuickAction}
+        />
+      )}
     </div>
   );
 } 

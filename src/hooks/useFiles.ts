@@ -10,6 +10,7 @@ export function useFiles(userId: string | null, currentConversationId: string | 
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [defaultVectorStoreId, setDefaultVectorStoreId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<UploadedFile | null>(null);
 
   // Handle file upload
   const handleFileUpload = async (file: File) => {
@@ -49,6 +50,7 @@ export function useFiles(userId: string | null, currentConversationId: string | 
         format: file.type?.split('/')[1] || file.name?.split('.').pop() || 'unknown',
         vectorStoreId: defaultVectorStoreId || '',
         status: fileData.status || 'completed',
+        source: 'upload',
         doc_title: fileData.document?.title || '',
         doc_authors: fileData.document?.authors || [],
         doc_publication_year: fileData.document?.publication_year || '',
@@ -67,6 +69,80 @@ export function useFiles(userId: string | null, currentConversationId: string | 
     } catch (error) {
       console.error('Error uploading file:', error);
       return false;
+    } finally {
+      setIsUploadingFile(false);
+    }
+  };
+
+  // Handle link submission
+  const handleLinkSubmit = async (url: string) => {
+    if (!url) {
+      throw new Error('URL is required');
+    }
+    
+    if (!currentConversationId || !userId) {
+      throw new Error('No active conversation or user ID');
+    }
+
+    if (!defaultVectorStoreId) {
+      throw new Error('No vector store available. Please create one first.');
+    }
+    
+    setIsUploadingFile(true);
+    
+    try {
+      // Real backend implementation
+      const backendUrl = getBackendUrl();
+      const response = await fetch(`${backendUrl}/api/links`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url,
+          vector_store_id: defaultVectorStoreId,
+          user_id: userId,
+          chat_session_id: currentConversationId
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`Failed to process link: ${response.status}${errorData ? ` - ${errorData}` : ''}`);
+      }
+      
+      const linkData = await response.json();
+      
+      // Create a file-like object from the response
+      const newFile: UploadedFile = {
+        id: linkData.id,
+        name: linkData.name || new URL(url).hostname,
+        size: linkData.size || 0,
+        type: linkData.type || 'text/html',
+        uploadDate: new Date(),
+        format: linkData.format || 'html',
+        vectorStoreId: defaultVectorStoreId,
+        status: linkData.status || 'processing',
+        source: 'link',
+        url: url,
+        doc_title: linkData.document?.title || new URL(url).hostname,
+        doc_authors: linkData.document?.authors || [],
+        doc_publication_year: linkData.document?.publication_year || new Date().getFullYear(),
+        doc_type: linkData.document?.type || 'webpage',
+        doc_summary: linkData.document?.summary || '',
+        total_pages: linkData.document?.total_pages || 0,
+        processed_at: linkData.processed_at || '',
+        metadata: linkData.metadata || {
+          vector_store_file_status: linkData.status || 'processing'
+        }
+      };
+      
+      setUploadedFiles(prev => [newFile, ...prev]);
+      
+      return true;
+    } catch (error) {
+      console.error('Error processing link:', error);
+      throw error;
     } finally {
       setIsUploadingFile(false);
     }
@@ -182,15 +258,18 @@ export function useFiles(userId: string | null, currentConversationId: string | 
     isUploadingFile,
     defaultVectorStoreId,
     isRefreshing,
+    selectedFile,
 
     // State setters
     setUploadedFiles,
     setIsUploadingFile,
     setDefaultVectorStoreId,
     setIsRefreshing,
+    setSelectedFile,
 
     // Handlers
     handleFileUpload,
+    handleLinkSubmit,
     handleFileDeleted,
     handleRefreshFiles,
     fetchFilesByVectorStoreId

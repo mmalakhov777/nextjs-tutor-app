@@ -24,6 +24,7 @@ import { ChatHistoryDropdown } from '@/components/chat/ChatHistoryDropdown';
 import { MobileTabBar } from '@/components/chat/MobileTabBar';
 import { ChatLayout } from '@/components/chat/ChatLayout';
 import { LoadingOverlay } from '@/components/ui/LoadingOverlay';
+import { FileDetailModal } from '@/components/chat/FileDetailModal';
 
 // Import our hooks
 import { useChat } from '@/hooks/useChat';
@@ -1059,6 +1060,214 @@ export default function Home({
     }
   }, [vectorStoreInfoFromUrl]);
 
+  // Quick actions should be sent directly from FileSidebar
+  const handleFileQuickAction = useCallback((fileInfo: UploadedFile, action: string, content: string) => {
+    // Create a special message for display in UI
+    const displayMessage: Message = {
+      role: 'user',
+      content: `<FILE_QUICK_ACTION>
+filename: ${fileInfo.name || "document"}
+file_id: ${fileInfo.id}
+action: ${action}
+content: HIDDEN_CONTENT
+</FILE_QUICK_ACTION>`,
+      timestamp: new Date()
+    };
+    
+    // Add the display message to the UI
+    chat.setMessages(prev => [...prev, displayMessage]);
+    
+    // Create the backend-friendly message format
+    const backendMessage = `Text content: ${content}, user query: ${action}. (do not use file search tool while answering)`;
+    
+    // Set state for processing
+    chat.setCurrentMessage('');
+    chat.setIsProcessing(true);
+    chat.setShowWelcome(false);
+    
+    // Use chat API endpoint directly
+    const endpoint = '/api/proxy/chat';
+    
+    const requestBody = {
+      question: backendMessage,
+      userId: userId || 'anonymous',
+      conversationId: chat.currentConversationId,
+      history: chat.messages
+        .filter(msg => 
+          // Filter out any previous FILE_QUICK_ACTION messages since they might interfere
+          msg.role !== 'error' && 
+          msg.role !== 'system' &&
+          (typeof msg.content !== 'string' || !msg.content.includes('<FILE_QUICK_ACTION>'))
+        )
+        .map(msg => ({ 
+          role: msg.role, 
+          content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content) 
+        }))
+    };
+    
+    console.log('Sending file quick action request to:', endpoint);
+    
+    // Instead of doing our own fetch, let's leverage the reader setup from useChat
+    fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody)
+    })
+    .then(async response => {
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+      
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let currentResponse = '';
+      let responseAdded = false;
+      
+      // Add placeholder message for streaming
+      let assistantMessageAdded = false;
+      
+      while (reader) {
+        try {
+          const { value, done } = await reader.read();
+          if (done) break;
+          
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n\n');
+          buffer = lines.pop() || '';
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                console.log('Stream Event (Quick Action):', { 
+                  type: data.type, 
+                  content: data.content && data.content.length > 50 ? 
+                    data.content.substring(0, 50) + '...' : data.content 
+                });
+                
+                switch (data.type) {
+                  case 'message':
+                    currentResponse = data.content;
+                    
+                    if (!assistantMessageAdded) {
+                      // First create the assistant message
+                      chat.setMessages(prev => {
+                        return [...prev, { 
+                          role: 'assistant', 
+                          content: currentResponse,
+                          timestamp: new Date(),
+                          citations: [],
+                          agentName: data.agent_name || chat.currentAgent
+                        }];
+                      });
+                      assistantMessageAdded = true;
+                      responseAdded = true;
+                    } else {
+                      // Then update it as more content comes in
+                      chat.setMessages(prev => {
+                        const newMessages = [...prev];
+                        const lastMessage = newMessages[newMessages.length - 1];
+                        if (lastMessage && lastMessage.role === 'assistant') {
+                          lastMessage.content = currentResponse;
+                        }
+                        return newMessages;
+                      });
+                    }
+                    break;
+                    
+                  case 'token':
+                    currentResponse += data.content;
+                    
+                    if (!assistantMessageAdded) {
+                      // First create the assistant message
+                      chat.setMessages(prev => {
+                        return [...prev, { 
+                          role: 'assistant', 
+                          content: currentResponse,
+                          timestamp: new Date(),
+                          citations: [],
+                          agentName: chat.currentAgent
+                        }];
+                      });
+                      assistantMessageAdded = true;
+                      responseAdded = true;
+                    } else {
+                      // Then update it as more content comes in
+                      chat.setMessages(prev => {
+                        const newMessages = [...prev];
+                        const lastMessage = newMessages[newMessages.length - 1];
+                        if (lastMessage && lastMessage.role === 'assistant') {
+                          lastMessage.content = currentResponse;
+                        }
+                        return newMessages;
+                      });
+                    }
+                    break;
+                    
+                  case 'file_citation':
+                    chat.setMessages(prev => {
+                      const newMessages = [...prev];
+                      const lastMessage = newMessages[newMessages.length - 1];
+                      if (lastMessage && lastMessage.role === 'assistant') {
+                        if (!lastMessage.citations) {
+                          lastMessage.citations = [];
+                        }
+                        lastMessage.citations.push({
+                          file_id: data.raw_citation.file_id,
+                          index: data.raw_citation.index,
+                          type: 'file_citation',
+                          filename: data.raw_citation.filename,
+                          raw_content: data.content
+                        });
+                      }
+                      return newMessages;
+                    });
+                    break;
+                    
+                  case 'annotations':
+                    chat.setMessages(prev => [...prev, {
+                      role: 'tool',
+                      content: data.content,
+                      timestamp: new Date(),
+                      toolAction: 'annotations',
+                      toolName: data.toolName
+                    }]);
+                    break;
+                    
+                  case 'error':
+                    chat.setMessages(prev => [...prev, { 
+                      role: 'error', 
+                      content: data.content,
+                      timestamp: new Date()
+                    }]);
+                    break;
+                }
+              } catch (e) {
+                console.error('Error processing message:', e);
+              }
+            }
+          }
+        } catch (readError) {
+          console.error('Error reading from stream:', readError);
+          break;
+        }
+      }
+      
+      // Make sure processing state is cleared
+      chat.setIsProcessing(false);
+    })
+    .catch(error => {
+      console.error('Error sending file quick action:', error);
+      chat.setMessages(prev => [...prev, { 
+        role: 'error', 
+        content: 'Connection error. Please try again.',
+        timestamp: new Date()
+      }]);
+      chat.setIsProcessing(false);
+    });
+  }, [chat, userId]);
+
   return (
     <>
       <ChatLayout
@@ -1092,12 +1301,15 @@ export default function Home({
             currentConversationId={chat.currentConversationId}
             defaultVectorStoreId={files.defaultVectorStoreId}
             onFileUpload={files.handleFileUpload}
+            onLinkSubmit={files.handleLinkSubmit}
             onShowAnalysis={handleShowAnalysis}
             onToggleFileInfo={() => setShowFileInfo(!showFileInfo)}
             onFileDeleted={files.handleFileDeleted}
             onVectorStoreCreated={files.setDefaultVectorStoreId}
             onRefreshFiles={files.handleRefreshFiles}
             isRefreshing={files.isRefreshing}
+            onSendMessage={chat.handleSendMessage}
+            onFileQuickAction={handleFileQuickAction}
           />
         }
         rightSidebar={
@@ -1127,6 +1339,15 @@ export default function Home({
             onCopy={handleCopy}
             onEdit={handleMessageEdit}
             onDelete={handleMessageDelete}
+            onLinkSubmit={async (url: string) => {
+              await files.handleLinkSubmit(url);
+              return;
+            }}
+            onFileSelect={(file) => {
+              // This handles file selection from Message component
+              // Use the same approach as when selecting from the FileSidebar
+              files.setSelectedFile(file);
+            }}
           />
         }
         inputComponent={
@@ -1148,6 +1369,16 @@ export default function Home({
         modal={analysis.analysisModal}
         onClose={analysis.handleCloseAnalysis}
       />
+
+      {/* Render the FileDetailModal when a file is selected */}
+      {files.selectedFile && (
+        <FileDetailModal 
+          file={files.selectedFile} 
+          onClose={() => files.setSelectedFile(null)}
+          onSendMessage={chat.handleSendMessage}
+          onFileQuickAction={handleFileQuickAction}
+        />
+      )}
     </>
   );
 }

@@ -66,6 +66,9 @@ export interface UploadedFile {
   format?: string;
   vectorStoreId?: string;
   status?: string;
+  source?: 'upload' | 'link';  // Indicates whether this is from a file upload or a link
+  url?: string;  // URL if this is a link
+  file_content?: string;  // The text content of the file
   
   // Document metadata
   doc_title?: string | null;
@@ -113,12 +116,15 @@ export interface FileSidebarProps {
   userId?: string | null;
   currentConversationId?: string | null;
   onFileUpload: (file: File) => void;
+  onLinkSubmit?: (url: string) => void;
   onShowAnalysis: (file: UploadedFile) => void;
   onToggleFileInfo: () => void;
   onFileDeleted?: (fileId: string) => void;
   onVectorStoreCreated: (id: string) => void;
   onRefreshFiles?: () => void;
   isRefreshing?: boolean;
+  onSendMessage?: (message: string) => void;
+  onFileQuickAction?: (fileInfo: UploadedFile, action: string, content: string) => void;
 }
 
 export interface ChatHeaderProps {
@@ -135,6 +141,8 @@ export interface ChatMessagesProps {
   onCopy: (content: string) => void;
   onEdit?: (message: Message) => void;
   onDelete?: (message: Message) => void;
+  onLinkSubmit?: (url: string) => Promise<void>;
+  currentAgent?: string;
 }
 
 export interface ChatInputProps {

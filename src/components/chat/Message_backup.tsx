@@ -30,7 +30,6 @@ import { DeepSeekLogo } from '@/components/icons/DeepSeekLogo';
 import { MistralLogo } from '@/components/icons/MistralLogo';
 import { PerplexityLogo } from '@/components/icons/PerplexityLogo';
 import { FileDetailModal } from './FileDetailModal';
-import { UploadedFile } from '@/types/chat';
 
 // Add a helper function to get the backend URL at the top of the file
 const getBackendUrl = () => {
@@ -490,7 +489,6 @@ interface MessageProps {
   onDelete?: (message: MessageType) => void;
   onEdit?: (message: MessageType) => void;
   onLinkSubmit?: (url: string) => Promise<void>;
-  onFileSelect?: (file: UploadedFile) => void;
   annotations?: MessageType & {
     toolAction: 'annotations';
     toolName?: string;
@@ -498,7 +496,7 @@ interface MessageProps {
   currentAgent?: string;
 }
 
-export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFileSelect, annotations: propAnnotations, currentAgent }: MessageProps) {
+export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, annotations: propAnnotations, currentAgent }: MessageProps) {
   // Add console.log to check if annotations are being received
   useEffect(() => {
     if (propAnnotations) {
@@ -525,127 +523,13 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
   const [isLoadingSpeech, setIsLoadingSpeech] = useState(false);
   const [shouldFetchMetadata, setShouldFetchMetadata] = useState(false);
   const [syntheticAnnotations, setSyntheticAnnotations] = useState<any>(null);
-  const [notification, setNotification] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<any | null>(null);
   
   // Add new state for tooltip visibility
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
   
   // New ref for handling clicks outside the tooltip
   const tooltipRef = useRef<HTMLDivElement>(null);
-  
-  // Render the file detail modal when a file is selected
-  const [selectedFile, setSelectedFile] = useState<UploadedFile | null>(null);
-  
-  // Function to handle sending messages from file detail modal
-  const handleSendMessage = (message: string) => {
-    // If we have onLinkSubmit, we can use it to handle the content
-    if (onLinkSubmit && message.startsWith('http')) {
-      // Send as link if it's a URL
-      onLinkSubmit(message).catch(console.error);
-    }
-  };
-  
-  // Function to handle file quick actions from file detail modal
-  const handleFileQuickAction = (file: UploadedFile, action: string, content: string) => {
-    // We don't have specific handlers for file quick actions in Message component yet
-    console.log("File quick action triggered:", { file, action, content });
-  };
-  
-  // Use both prop annotations and synthetic annotations
-  const annotations = propAnnotations || syntheticAnnotations;
-  
-  // Track which file card is currently loading
-  const [loadingFileId, setLoadingFileId] = useState<string | null>(null);
-  
-  // Function to handle file click and get full file details
-  const handleFileClick = async (fileId: string, filename: string) => {
-    try {
-      // Set loading state for this specific file card
-      setLoadingFileId(fileId);
-      
-      const backendUrl = getBackendUrl();
-      // First, get the basic file info
-      const response = await fetch(`${backendUrl}/api/files/${fileId}`);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch file details: ${response.status}`);
-      }
-      
-      const fileData = await response.json();
-      
-      // Then, try to get the file content if available
-      let fileContent = null;
-      try {
-        const contentResponse = await fetch(`${backendUrl}/api/files/${fileId}/content`);
-        if (contentResponse.ok) {
-          const contentData = await contentResponse.json();
-          if (contentData && contentData.content) {
-            fileContent = contentData.content;
-            fileData.file_content = contentData.content;
-          }
-        }
-      } catch (contentError) {
-        console.warn("Could not load file content:", contentError);
-        // Continue with the file data we have
-      }
-      
-      // Try to fetch additional metadata if chatSessionId is available
-      if (fileData.chatSessionId) {
-        try {
-          const metadataResponse = await fetch(`${backendUrl}/api/files?chat_session_id=${encodeURIComponent(fileData.chatSessionId)}`);
-          if (metadataResponse.ok) {
-            const allFiles = await metadataResponse.json();
-            if (Array.isArray(allFiles)) {
-              const enrichedFile = allFiles.find(f => f.id === fileId);
-              if (enrichedFile) {
-                // Merge all metadata
-                Object.assign(fileData, enrichedFile);
-              }
-            }
-          }
-        } catch (metadataError) {
-          console.warn("Could not load additional metadata:", metadataError);
-        }
-      }
-      
-      const file: UploadedFile = {
-        id: fileData.id,
-        name: fileData.name || filename,
-        size: parseInt(String(fileData.size), 10) || 0,
-        type: fileData.type || '',
-        uploadDate: new Date(fileData.created_at || fileData.upload_date || new Date()),
-        url: fileData.url || '',
-        format: fileData.type?.split('/')[1] || fileData.name?.split('.').pop() || 'unknown',
-        vectorStoreId: fileData.vectorStoreId || '',
-        doc_type: fileData.document?.type || fileData.doc_type || '',
-        doc_title: fileData.document?.title || fileData.doc_title || '',
-        doc_authors: fileData.document?.authors || fileData.doc_authors || [],
-        doc_publication_year: fileData.document?.publication_year || fileData.doc_publication_year || '',
-        doc_summary: fileData.document?.summary || fileData.doc_summary || '',
-        total_pages: fileData.document?.total_pages || fileData.total_pages || 0,
-        source: fileData.source || (fileData.url ? 'link' : 'upload'),
-        status: fileData.status || 'completed',
-        processed_at: fileData.processed_at || '',
-        file_content: fileContent
-      };
-      
-      // If parent component provides onFileSelect, use that
-      if (onFileSelect) {
-        onFileSelect(file);
-      } else {
-        // Otherwise handle locally
-        setSelectedFile(file);
-      }
-    } catch (error) {
-      console.error("Error fetching file details:", error);
-      // Show error notification
-      setNotification('Error loading file details');
-      setTimeout(() => setNotification(null), 3000);
-    } finally {
-      // Clear loading state regardless of success or failure
-      setLoadingFileId(null);
-    }
-  };
   
   // Close tooltip when clicking outside
   useEffect(() => {
@@ -660,6 +544,9 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+  
+  // Use both prop annotations and synthetic annotations
+  const annotations = propAnnotations || syntheticAnnotations;
   
   // Function to extract file IDs directly from a message's metadata
   const extractFileIdsFromMetadata = (msg: MessageType & { metadata?: any }): string[] => {
@@ -1805,272 +1692,471 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
 
   // Assistant message (default)
   return (
-    <div className="inline-block w-full mb-3 py-3 px-4 relative group"
-      style={{
-        borderRadius: '16px',
-        background: 'var(--Monochrome-White, #FFF)'
-      }}
-    >
-      {/* Display notification */}
-      {notification && (
-        <div className="fixed top-6 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-[60] text-sm">
-          {notification}
+    <>
+      <div className="inline-block w-full mb-3 py-3 px-4 relative group"
+        style={{
+          borderRadius: '16px',
+          background: 'var(--Monochrome-White, #FFF)'
+        }}
+      >
+        <div className="flex items-center gap-2 mb-2">
+            {isEditing && (
+            <div className="flex items-center gap-2">
+                <Button
+                  onClick={handleSaveEdit}
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "text-slate-500 hover:bg-gray-100 rounded-md cursor-pointer transition-colors",
+                    !message.content && "opacity-50 cursor-not-allowed"
+                  )}
+                  style={{
+                    display: 'flex',
+                    padding: '0 12px',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '4px',
+                    width: '85px',
+                    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
+                  }}
+                  disabled={isLoadingEnhancedText}
+                >
+                  <span className="text-xs font-medium uppercase text-black" style={{ color: 'black' }}>{citationStyle}</span>
+                  <ChevronDown className="h-3 w-3 flex-shrink-0 text-black" style={{ color: 'black' }} />
+                </Button>
+            </div>
+            )}
+          <div className="flex-grow"></div>
         </div>
-      )}
-      
-      <div className="flex items-center gap-2 mb-2">
-        {isEditing && (
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={handleSaveEdit}
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "text-slate-500 hover:bg-gray-100 rounded-md cursor-pointer transition-colors",
-                !message.content && "opacity-50 cursor-not-allowed"
-              )}
-              style={{
-                display: 'flex',
-                padding: '0 12px',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '4px',
-                width: '85px',
-                fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
-              }}
-              disabled={isLoadingEnhancedText}
-            >
-              <span className="text-xs font-medium uppercase text-black" style={{ color: 'black' }}>{citationStyle}</span>
-              <ChevronDown className="h-3 w-3 flex-shrink-0 text-black" style={{ color: 'black' }} />
-            </Button>
+        
+        {message.hasFile && message.fileName && (
+          <div className="flex items-center gap-2 mb-2">
+            <File className="text-blue-500 h-4 w-4" />
+            <span className="text-sm text-blue-700 truncate">{message.fileName}</span>
           </div>
         )}
-        <div className="flex-grow"></div>
-      </div>
-      
-      {message.hasFile && message.fileName && (
-        <div className="flex items-center gap-2 mb-2">
-          <File className="text-blue-500 h-4 w-4" />
-          <span className="text-sm text-blue-700 truncate">{message.fileName}</span>
-        </div>
-      )}
-      
-      <div>
-        {message.role === 'assistant' ? (
-          <>
-            {isLoadingEnhancedText ? (
-              <div className="space-y-2">
-                {Array(5).fill(0).map((_, i) => {
-                    // Randomize widths between 60% and 100%
-                    const width = 60 + Math.floor(Math.random() * 40);
-                    return (
-                      <div 
-                        key={i} 
-                        className="h-4 bg-slate-100 rounded animate-pulse"
-                        style={{ width: `${width}%` }}
-                      />
-                    );
-                })}
-              </div>
-            ) : isEditing ? (
-              <div className="relative">
-                <textarea
-                  ref={editTextareaRef}
-                  value={editedContent}
-                  onChange={(e) => setEditedContent(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  className="w-full min-h-[100px] p-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y font-mono text-sm"
-                  placeholder="Edit your message..."
-                />
-                <div className="absolute bottom-2 right-2 text-xs text-slate-400">
-                  Press ⌘/Ctrl + Enter to save, Esc to cancel
+        
+        <div>
+          {message.role === 'assistant' ? (
+            <>
+              {isLoadingEnhancedText ? (
+                <div className="space-y-2">
+                  {Array(5).fill(0).map((_, i) => {
+                      // Randomize widths between 60% and 100%
+                      const width = 60 + Math.floor(Math.random() * 40);
+                      return (
+                        <div 
+                          key={i} 
+                          className="h-4 bg-slate-100 rounded animate-pulse"
+                          style={{ width: `${width}%` }}
+                        />
+                      );
+                  })}
                 </div>
-              </div>
-            ) : isStreaming ? (
-              <div className="flex items-center space-x-2">
-                <div className="flex space-x-1">
-                  <div className="h-2 w-2 rounded-full bg-blue-400 animate-pulse delay-0"></div>
-                  <div className="h-2 w-2 rounded-full bg-blue-400 animate-pulse delay-150"></div>
-                  <div className="h-2 w-2 rounded-full bg-blue-400 animate-pulse delay-300"></div>
-                </div>
-                <span className="text-sm text-slate-500">Generating response...</span>
-              </div>
-            ) : (
-              <>
-                {/* Citation indicator - show only when enhancedText exists */}
-                {enhancedText && (
-                  <div className="mb-3 text-xs flex items-center gap-2">
-                    <Badge 
-                      variant="outline" 
-                      className="bg-blue-50 text-blue-700 border-blue-200 py-1 px-2 rounded-md"
-                    >
-                      <BookOpen className="h-3 w-3 mr-1" />
-                      <span>Citations included</span>
-                    </Badge>
-                    <span className="text-slate-500">• {citationStyle.toUpperCase()} style</span>
+              ) : isEditing ? (
+                <div className="relative">
+                  <textarea
+                    ref={editTextareaRef}
+                    value={editedContent}
+                    onChange={(e) => setEditedContent(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    className="w-full min-h-[100px] p-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y font-mono text-sm"
+                    placeholder="Edit your message..."
+                  />
+                  <div className="absolute bottom-2 right-2 text-xs text-slate-400">
+                    Press ⌘/Ctrl + Enter to save, Esc to cancel
                   </div>
-                )}
-                <MessageContent 
-                  content={enhancedText || message.content} 
-                  messageId={message.id} 
-                  onLinkSubmit={onLinkSubmit}
-                />
-              </>
-            )}
-            
-            {/* Action buttons below message content */}
-            {!isEditing && !isLoadingEnhancedText && !isStreaming && (
-              <div className="flex items-center gap-2 mt-3 justify-between">
-                {/* Include Citations button */}
-                <div>
-                  {message.role === 'assistant' && annotations && 
-                    parseCitations(annotations.content).length > 0 && (
-                      <div className="inline-flex">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button 
-                              variant="ghost"
-                              size="sm"
-                              className={cn(
-                                "text-slate-500 hover:bg-gray-100 rounded-md cursor-pointer transition-colors",
-                                !message.content && "opacity-50 cursor-not-allowed"
-                              )}
+                </div>
+              ) : isStreaming ? (
+                <div className="flex items-center space-x-2">
+                  <div className="flex space-x-1">
+                    <div className="h-2 w-2 rounded-full bg-blue-400 animate-pulse delay-0"></div>
+                    <div className="h-2 w-2 rounded-full bg-blue-400 animate-pulse delay-150"></div>
+                    <div className="h-2 w-2 rounded-full bg-blue-400 animate-pulse delay-300"></div>
+                  </div>
+                  <span className="text-sm text-slate-500">Generating response...</span>
+                </div>
+              ) : (
+                <>
+                  {/* Citation indicator - show only when enhancedText exists */}
+                  {enhancedText && (
+                    <div className="mb-3 text-xs flex items-center gap-2">
+                      <Badge 
+                        variant="outline" 
+                        className="bg-blue-50 text-blue-700 border-blue-200 py-1 px-2 rounded-md"
+                      >
+                        <BookOpen className="h-3 w-3 mr-1" />
+                        <span>Citations included</span>
+                      </Badge>
+                      <span className="text-slate-500">• {citationStyle.toUpperCase()} style</span>
+                    </div>
+                  )}
+                  <MessageContent 
+                    content={enhancedText || message.content} 
+                    messageId={message.id} 
+                    onLinkSubmit={onLinkSubmit}
+                  />
+                </>
+              )}
+              
+              {/* Action buttons below message content */}
+              {!isEditing && !isLoadingEnhancedText && !isStreaming && (
+                <div className="flex items-center gap-2 mt-3 justify-between">
+                  {/* Include Citations button */}
+                  <div>
+                    {message.role === 'assistant' && annotations && 
+                      parseCitations(annotations.content).length > 0 && (
+                        <div className="inline-flex">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button 
+                                variant="ghost"
+                                size="sm"
+                                className={cn(
+                                  "text-slate-500 hover:bg-gray-100 rounded-md cursor-pointer transition-colors",
+                                  !message.content && "opacity-50 cursor-not-allowed"
+                                )}
+                                style={{
+                                  display: 'flex',
+                                  padding: '0 12px',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  gap: '4px',
+                                  width: '85px',
+                                  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
+                                }}
+                                disabled={isLoadingEnhancedText}
+                              >
+                                <span className="text-xs font-medium uppercase text-black" style={{ color: 'black' }}>{citationStyle}</span>
+                                <ChevronDown className="h-3 w-3 flex-shrink-0 text-black" style={{ color: 'black' }} />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent 
+                              align="start" 
+                              className="w-48 focus:ring-0 focus:outline-none"
                               style={{
                                 display: 'flex',
-                                padding: '0 12px',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                gap: '4px',
-                                width: '85px',
+                                width: '180px',
+                                padding: '8px',
+                                flexDirection: 'column',
+                                alignItems: 'flex-start',
+                                borderRadius: '12px',
+                                background: 'var(--Monochrome-Black, #232323)',
+                                boxShadow: '0px 0px 20px 0px rgba(203, 203, 203, 0.20)',
                                 fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
                               }}
-                              disabled={isLoadingEnhancedText}
                             >
-                              <span className="text-xs font-medium uppercase text-black" style={{ color: 'black' }}>{citationStyle}</span>
-                              <ChevronDown className="h-3 w-3 flex-shrink-0 text-black" style={{ color: 'black' }} />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent 
-                            align="start" 
-                            className="w-48 focus:ring-0 focus:outline-none"
+                              <DropdownMenuLabel className="text-gray-400 text-xs w-full">
+                                Select Citation Format
+                              </DropdownMenuLabel>
+                              <div className="py-1 w-full">
+                                <DropdownMenuItem 
+                                  onClick={() => { 
+                                    setCitationStyle("apa"); 
+                                  }}
+                                  className="w-full px-4 py-2 text-left focus:bg-transparent focus:outline-none"
+                                  style={{
+                                    color: 'var(--Monochrome-White, #FFF)',
+                                    borderRadius: '8px',
+                                    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                                    fontSize: '14px',
+                                    fontStyle: 'normal',
+                                    fontWeight: 400,
+                                    lineHeight: '20px'
+                                  }}
+                                  title="American Psychological Association style"
+                                >
+                                  <div className="flex items-center justify-between w-full">
+                                    <span>APA Style</span>
+                                    {citationStyle === "apa" && (
+                                      <Check className="h-3.5 w-3.5 text-blue-500" />
+                                    )}
+                                  </div>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => { 
+                                    setCitationStyle("mla"); 
+                                  }}
+                                  className="w-full px-4 py-2 text-left focus:bg-transparent focus:outline-none"
+                                  style={{
+                                    color: 'var(--Monochrome-White, #FFF)',
+                                    borderRadius: '8px',
+                                    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                                    fontSize: '14px',
+                                    fontStyle: 'normal',
+                                    fontWeight: 400,
+                                    lineHeight: '20px'
+                                  }}
+                                  title="Modern Language Association style"
+                                >
+                                  <div className="flex items-center justify-between w-full">
+                                    <span>MLA Style</span>
+                                    {citationStyle === "mla" && (
+                                      <Check className="h-3.5 w-3.5 text-blue-500" />
+                                    )}
+                                  </div>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => { 
+                                    setCitationStyle("chicago"); 
+                                  }}
+                                  className="w-full px-4 py-2 text-left focus:bg-transparent focus:outline-none"
+                                  style={{
+                                    color: 'var(--Monochrome-White, #FFF)',
+                                    borderRadius: '8px',
+                                    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                                    fontSize: '14px',
+                                    fontStyle: 'normal',
+                                    fontWeight: 400,
+                                    lineHeight: '20px'
+                                  }}
+                                  title="Chicago Manual of Style"
+                                >
+                                  <div className="flex items-center justify-between w-full">
+                                    <span>Chicago Style</span>
+                                    {citationStyle === "chicago" && (
+                                      <Check className="h-3.5 w-3.5 text-blue-500" />
+                                    )}
+                                  </div>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => { 
+                                    setCitationStyle("ieee"); 
+                                  }}
+                                  className="w-full px-4 py-2 text-left focus:bg-transparent focus:outline-none"
+                                  style={{
+                                    color: 'var(--Monochrome-White, #FFF)',
+                                    borderRadius: '8px',
+                                    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                                    fontSize: '14px',
+                                    fontStyle: 'normal',
+                                    fontWeight: 400,
+                                    lineHeight: '20px'
+                                  }}
+                                  title="Institute of Electrical and Electronics Engineers style"
+                                >
+                                  <div className="flex items-center justify-between w-full">
+                                    <span>IEEE Style</span>
+                                    {citationStyle === "ieee" && (
+                                      <Check className="h-3.5 w-3.5 text-blue-500" />
+                                    )}
+                                  </div>
+                                </DropdownMenuItem>
+                              </div>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          
+                          <Button 
+                            onClick={isLoadingEnhancedText ? undefined : () => {
+                              handleCopyWithCitations(citationStyle);
+                            }}
+                            variant="ghost"
+                            size="sm"
+                            className={cn(
+                              "text-slate-500 hover:bg-gray-100 rounded-md cursor-pointer transition-colors",
+                              !message.content && "opacity-50 cursor-not-allowed"
+                            )}
                             style={{
                               display: 'flex',
-                              width: '180px',
                               padding: '8px',
-                              flexDirection: 'column',
-                              alignItems: 'flex-start',
-                              borderRadius: '12px',
-                              background: 'var(--Monochrome-Black, #232323)',
-                              boxShadow: '0px 0px 20px 0px rgba(203, 203, 203, 0.20)',
-                              fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
+                              alignItems: 'center',
+                              gap: '4px',
+                              height: '36px'
                             }}
+                            disabled={isLoadingEnhancedText}
+                            title={hasCitationsIncluded ? "Update citations with selected format" : "Include citations with selected format"}
                           >
-                            <DropdownMenuLabel className="text-gray-400 text-xs w-full">
-                              Select Citation Format
-                            </DropdownMenuLabel>
-                            <div className="py-1 w-full">
-                              <DropdownMenuItem 
-                                onClick={() => { 
-                                  setCitationStyle("apa"); 
-                                }}
-                                className="w-full px-4 py-2 text-left focus:bg-transparent focus:outline-none"
-                                style={{
-                                  color: 'var(--Monochrome-White, #FFF)',
-                                  borderRadius: '8px',
-                                  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-                                  fontSize: '14px',
-                                  fontStyle: 'normal',
-                                  fontWeight: 400,
-                                  lineHeight: '20px'
-                                }}
-                                title="American Psychological Association style"
-                              >
-                                <div className="flex items-center justify-between w-full">
-                                  <span>APA Style</span>
-                                  {citationStyle === "apa" && (
-                                    <Check className="h-3.5 w-3.5 text-blue-500" />
-                                  )}
-                                </div>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => { 
-                                  setCitationStyle("mla"); 
-                                }}
-                                className="w-full px-4 py-2 text-left focus:bg-transparent focus:outline-none"
-                                style={{
-                                  color: 'var(--Monochrome-White, #FFF)',
-                                  borderRadius: '8px',
-                                  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-                                  fontSize: '14px',
-                                  fontStyle: 'normal',
-                                  fontWeight: 400,
-                                  lineHeight: '20px'
-                                }}
-                                title="Modern Language Association style"
-                              >
-                                <div className="flex items-center justify-between w-full">
-                                  <span>MLA Style</span>
-                                  {citationStyle === "mla" && (
-                                    <Check className="h-3.5 w-3.5 text-blue-500" />
-                                  )}
-                                </div>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => { 
-                                  setCitationStyle("chicago"); 
-                                }}
-                                className="w-full px-4 py-2 text-left focus:bg-transparent focus:outline-none"
-                                style={{
-                                  color: 'var(--Monochrome-White, #FFF)',
-                                  borderRadius: '8px',
-                                  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-                                  fontSize: '14px',
-                                  fontStyle: 'normal',
-                                  fontWeight: 400,
-                                  lineHeight: '20px'
-                                }}
-                                title="Chicago Manual of Style"
-                              >
-                                <div className="flex items-center justify-between w-full">
-                                  <span>Chicago Style</span>
-                                  {citationStyle === "chicago" && (
-                                    <Check className="h-3.5 w-3.5 text-blue-500" />
-                                  )}
-                                </div>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => { 
-                                  setCitationStyle("ieee"); 
-                                }}
-                                className="w-full px-4 py-2 text-left focus:bg-transparent focus:outline-none"
-                                style={{
-                                  color: 'var(--Monochrome-White, #FFF)',
-                                  borderRadius: '8px',
-                                  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-                                  fontSize: '14px',
-                                  fontStyle: 'normal',
-                                  fontWeight: 400,
-                                  lineHeight: '20px'
-                                }}
-                                title="Institute of Electrical and Electronics Engineers style"
-                              >
-                                <div className="flex items-center justify-between w-full">
-                                  <span>IEEE Style</span>
-                                  {citationStyle === "ieee" && (
-                                    <Check className="h-3.5 w-3.5 text-blue-500" />
-                                  )}
-                                </div>
-                              </DropdownMenuItem>
-                            </div>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                            {isLoadingEnhancedText ? (
+                              <div className="flex items-center gap-1">
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                <span className="text-xs">Including...</span>
+                              </div>
+                              ) : (
+                                <span className="text-xs text-black" style={{ color: 'black' }}>
+                                  {hasCitationsIncluded 
+                                    ? "Update Citations" 
+                                    : "Include Citations"}
+                                </span>
+                            )}
+                          </Button>
+                          </div>
+                        )}
+                  </div>
+                  
+                  {/* Other buttons - remain on the right side */}
+                  <div className="flex items-center gap-2">
+                    {message.role === 'assistant' && (
+                      <div className="relative" ref={tooltipRef}>
+                        <div 
+                          className={`flex items-center justify-center w-6 h-6 rounded-full ${getAgentCircleColor(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant')} ${getIconTextColor(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant')} cursor-pointer`}
+                          onClick={() => setIsTooltipVisible(!isTooltipVisible)}
+                        >
+                          {(() => {
+                            // For empty content (loading state)
+                            if (message.content === '') {
+                              return getAgentIcon(getDisplayAgentName(currentAgent || 'Assistant'));
+                            }
+                            
+                            // For messages with content, prioritize metadata agent name
+                            const displayName = getDisplayAgentName(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant');
+                            return getAgentIcon(displayName);
+                          })()}
+                          {isStreaming && (
+                            <Loader2 className="h-3 w-3 animate-spin absolute top-0 right-0 -mt-1 -mr-1" />
+                          )}
+                        </div>
                         
-                        <Button 
-                          onClick={isLoadingEnhancedText ? undefined : () => {
-                            handleCopyWithCitations(citationStyle);
+                        {/* Tooltip - now showing on click instead of hover */}
+                        {isTooltipVisible && (
+                          <div className="absolute bottom-full left-0 mb-2 transition-opacity duration-200" style={{ zIndex: 5 }}>
+                            <div className="relative">
+                              {/* Arrow */}
+                              <div className="w-2 h-2 bg-[#232323] transform rotate-45 absolute -bottom-1 left-3" style={{ zIndex: 6 }}></div>
+                              
+                              {/* Tooltip content */}
+                              <div 
+                                style={{
+                                  display: "flex",
+                                  width: "210px",
+                                  padding: "4px",
+                                  flexDirection: "column",
+                                  alignItems: "flex-start",
+                                  borderRadius: "12px",
+                                  background: "var(--Monochrome-Black, #232323)",
+                                  boxShadow: "0px 0px 20px 0px rgba(203, 203, 203, 0.20)",
+                                  position: "relative"
+                                }}
+                              >
+                                <div 
+                                  className="font-semibold p-2 w-full"
+                                  style={{
+                                    color: "var(--Monochrome-White, #FFF)",
+                                    fontSize: "12px",
+                                    fontStyle: "normal",
+                                    fontWeight: "400",
+                                    lineHeight: "16px"
+                                  }}
+                                >
+                                  {getDisplayAgentName(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant')}
+                                </div>
+                                <div 
+                                  className="p-2 pt-0 w-full"
+                                  style={{
+                                    color: "var(--Monochrome-White, #FFF)",
+                                    opacity: 0.7,
+                                    fontSize: "12px",
+                                    fontStyle: "normal",
+                                    fontWeight: "400",
+                                    lineHeight: "16px"
+                                  }}
+                                >
+                                  {getAgentDescription(getDisplayAgentName(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant'))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* TTS button (only for assistant messages) - moved to here */}
+                    {message.role === 'assistant' && !message.toolAction && (
+                      <Button
+                        onClick={handleSpeak}
+                        disabled={!message.content}
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          "text-slate-500 hover:bg-gray-100 rounded-md cursor-pointer transition-colors",
+                          !message.content && "opacity-50 cursor-not-allowed"
+                        )}
+                        style={{
+                          display: 'flex',
+                          padding: '8px',
+                          alignItems: 'center',
+                          gap: '4px',
+                          height: '36px'
+                        }}
+                        title={(isSpeaking || isLoadingSpeech) ? "Stop playing audio" : "Play as speech"}
+                      >
+                        {isLoadingSpeech ? (
+                          <div className="flex items-center gap-1">
+                            <Loader2 className="h-4 w-4 animate-spin text-black" />
+                          </div>
+                        ) : isSpeaking ? (
+                          <div className="flex items-center gap-1">
+                            <VolumeX className="h-4 w-4 text-blue-500" />
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <Volume2 className="h-4 w-4 text-black" />
+                          </div>
+                        )}
+                      </Button>
+                    )}
+                    
+                    <Button 
+                      onClick={() => onCopy(enhancedText || message.content)}
+                      variant="ghost"
+                      size="sm"
+                        className={cn(
+                          "text-slate-500 hover:bg-gray-100 rounded-md cursor-pointer transition-colors",
+                          !message.content && "opacity-50 cursor-not-allowed"
+                        )}
+                        style={{
+                          display: 'flex',
+                          padding: '8px',
+                          alignItems: 'center',
+                          gap: '4px',
+                          height: '36px'
+                        }}
+                      title="Copy to clipboard"
+                    >
+                      <Copy className="h-3.5 w-3.5 text-black" style={{ color: 'black' }} />
+                    </Button>
+                      
+                    <Button 
+                      onClick={() => {
+                        // Basic share functionality
+                        if (navigator.share) {
+                          navigator.share({
+                            title: 'Shared message',
+                            text: enhancedText || message.content,
+                          }).catch(console.error);
+                        } else {
+                          // Fallback to copy
+                          onCopy(enhancedText || message.content);
+                          alert('Content copied to clipboard!');
+                        }
+                      }}
+                      variant="ghost"
+                      size="sm"
+                        className={cn(
+                          "text-slate-500 hover:bg-gray-100 rounded-md cursor-pointer transition-colors",
+                          !message.content && "opacity-50 cursor-not-allowed"
+                        )}
+                        style={{
+                          display: 'flex',
+                          padding: '8px',
+                          alignItems: 'center',
+                          gap: '4px',
+                          height: '36px'
+                        }}
+                      title="Share this message"
+                    >
+                      <Share2 className="h-3.5 w-3.5 text-black" style={{ color: 'black' }} />
+                    </Button>
+                      
+                      {/* Delete button in the action bar */}
+                      {onDelete && (
+                              <Button
+                          onClick={() => {
+                            if (confirm('Are you sure you want to delete this message?')) {
+                              onDelete(message);
+                            }
                           }}
-                          variant="ghost"
-                          size="sm"
+                                variant="ghost"
+                                size="sm"
                           className={cn(
                             "text-slate-500 hover:bg-gray-100 rounded-md cursor-pointer transition-colors",
                             !message.content && "opacity-50 cursor-not-allowed"
@@ -2082,371 +2168,168 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
                             gap: '4px',
                             height: '36px'
                           }}
-                          disabled={isLoadingEnhancedText}
-                          title={hasCitationsIncluded ? "Update citations with selected format" : "Include citations with selected format"}
+                          title="Delete message"
                         >
-                          {isLoadingEnhancedText ? (
-                            <div className="flex items-center gap-1">
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              <span className="text-xs">Including...</span>
-                            </div>
-                            ) : (
-                              <span className="text-xs text-black" style={{ color: 'black' }}>
-                                {hasCitationsIncluded 
-                                  ? "Update Citations" 
-                                  : "Include Citations"}
-                              </span>
-                          )}
-                        </Button>
-                        </div>
+                          <Trash2 className="h-3.5 w-3.5 text-black" style={{ color: 'black' }} />
+                              </Button>
                       )}
-                </div>
-                
-                {/* Other buttons - remain on the right side */}
-                <div className="flex items-center gap-2">
-                  {message.role === 'assistant' && (
-                    <div className="relative" ref={tooltipRef}>
-                      <div 
-                        className={`flex items-center justify-center w-6 h-6 rounded-full ${getAgentCircleColor(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant')} ${getIconTextColor(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant')} cursor-pointer`}
-                        onClick={() => setIsTooltipVisible(!isTooltipVisible)}
-                      >
-                        {(() => {
-                          // For empty content (loading state)
-                          if (message.content === '') {
-                            return getAgentIcon(getDisplayAgentName(currentAgent || 'Assistant'));
-                          }
-                          
-                          // For messages with content, prioritize metadata agent name
-                          const displayName = getDisplayAgentName(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant');
-                          return getAgentIcon(displayName);
-                        })()}
-                        {isStreaming && (
-                          <Loader2 className="h-3 w-3 animate-spin absolute top-0 right-0 -mt-1 -mr-1" />
-                        )}
-                      </div>
-                      
-                      {/* Tooltip - now showing on click instead of hover */}
-                      {isTooltipVisible && (
-                        <div className="absolute bottom-full left-0 mb-2 transition-opacity duration-200" style={{ zIndex: 5 }}>
-                          <div className="relative">
-                            {/* Arrow */}
-                            <div className="w-2 h-2 bg-[#232323] transform rotate-45 absolute -bottom-1 left-3" style={{ zIndex: 6 }}></div>
-                            
-                            {/* Tooltip content */}
-                            <div 
-                              style={{
-                                display: "flex",
-                                width: "210px",
-                                padding: "4px",
-                                flexDirection: "column",
-                                alignItems: "flex-start",
-                                borderRadius: "12px",
-                                background: "var(--Monochrome-Black, #232323)",
-                                boxShadow: "0px 0px 20px 0px rgba(203, 203, 203, 0.20)",
-                                position: "relative"
-                              }}
-                            >
-                              <div 
-                                className="font-semibold p-2 w-full"
-                                style={{
-                                  color: "var(--Monochrome-White, #FFF)",
-                                  fontSize: "12px",
-                                  fontStyle: "normal",
-                                  fontWeight: "400",
-                                  lineHeight: "16px"
-                                }}
-                              >
-                                {getDisplayAgentName(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant')}
-                              </div>
-                              <div 
-                                className="p-2 pt-0 w-full"
-                                style={{
-                                  color: "var(--Monochrome-White, #FFF)",
-                                  opacity: 0.7,
-                                  fontSize: "12px",
-                                  fontStyle: "normal",
-                                  fontWeight: "400",
-                                  lineHeight: "16px"
-                                }}
-                              >
-                                {getAgentDescription(getDisplayAgentName(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant'))}
-                              </div>
                             </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                              </div>
+                            )}
 
-                  {/* TTS button (only for assistant messages) - moved to here */}
-                  {message.role === 'assistant' && !message.toolAction && (
-                    <Button
-                      onClick={handleSpeak}
-                      disabled={!message.content}
-                      variant="ghost"
-                      size="sm"
-                      className={cn(
-                        "text-slate-500 hover:bg-gray-100 rounded-md cursor-pointer transition-colors",
-                        !message.content && "opacity-50 cursor-not-allowed"
-                      )}
-                      style={{
-                        display: 'flex',
-                        padding: '8px',
-                        alignItems: 'center',
-                        gap: '4px',
-                        height: '36px'
-                      }}
-                      title={(isSpeaking || isLoadingSpeech) ? "Stop playing audio" : "Play as speech"}
-                    >
-                      {isLoadingSpeech ? (
-                        <div className="flex items-center gap-1">
-                          <Loader2 className="h-4 w-4 animate-spin text-black" />
-                        </div>
-                      ) : isSpeaking ? (
-                        <div className="flex items-center gap-1">
-                          <VolumeX className="h-4 w-4 text-blue-500" />
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1">
-                          <Volume2 className="h-4 w-4 text-black" />
-                        </div>
-                      )}
-                    </Button>
-                  )}
-                
-                <Button 
-                  onClick={() => onCopy(enhancedText || message.content)}
-                  variant="ghost"
-                  size="sm"
-                    className={cn(
-                      "text-slate-500 hover:bg-gray-100 rounded-md cursor-pointer transition-colors",
-                      !message.content && "opacity-50 cursor-not-allowed"
-                    )}
-                    style={{
-                      display: 'flex',
-                      padding: '8px',
-                      alignItems: 'center',
-                      gap: '4px',
-                      height: '36px'
-                    }}
-                  title="Copy to clipboard"
-                >
-                  <Copy className="h-3.5 w-3.5 text-black" style={{ color: 'black' }} />
-                </Button>
-                  
-                <Button 
-                  onClick={() => {
-                    // Basic share functionality
-                    if (navigator.share) {
-                      navigator.share({
-                        title: 'Shared message',
-                        text: enhancedText || message.content,
-                      }).catch(console.error);
-                    } else {
-                      // Fallback to copy
-                      onCopy(enhancedText || message.content);
-                      alert('Content copied to clipboard!');
-                    }
-                  }}
-                  variant="ghost"
-                  size="sm"
-                    className={cn(
-                      "text-slate-500 hover:bg-gray-100 rounded-md cursor-pointer transition-colors",
-                      !message.content && "opacity-50 cursor-not-allowed"
-                    )}
-                    style={{
-                      display: 'flex',
-                      padding: '8px',
-                      alignItems: 'center',
-                      gap: '4px',
-                      height: '36px'
-                    }}
-                  title="Share this message"
-                >
-                  <Share2 className="h-3.5 w-3.5 text-black" style={{ color: 'black' }} />
-                </Button>
-                  
-                  {/* Delete button in the action bar */}
-                  {onDelete && (
-                          <Button
-                      onClick={() => {
-                        if (confirm('Are you sure you want to delete this message?')) {
-                          onDelete(message);
+                {/* Display annotations if passed as prop */}
+                {annotations && !isStreaming && (
+                  <div className="my-3">
+                    <div className="flex overflow-x-auto gap-3 w-full pb-2 hide-scrollbar">
+                      <style jsx global>{`
+                        .hide-scrollbar::-webkit-scrollbar {
+                          display: none;
                         }
-                      }}
-                            variant="ghost"
-                            size="sm"
-                      className={cn(
-                        "text-slate-500 hover:bg-gray-100 rounded-md cursor-pointer transition-colors",
-                        !message.content && "opacity-50 cursor-not-allowed"
-                      )}
-                      style={{
-                        display: 'flex',
-                        padding: '8px',
-                        alignItems: 'center',
-                        gap: '4px',
-                        height: '36px'
-                      }}
-                      title="Delete message"
-                    >
-                      <Trash2 className="h-3.5 w-3.5 text-black" style={{ color: 'black' }} />
-                          </Button>
-                  )}
-                        </div>
-                          </div>
-                        )}
-
-            {/* Display annotations if passed as prop */}
-            {annotations && !isStreaming && (
-              <div className="my-3">
-                <div className="flex overflow-x-auto gap-3 w-full pb-2 hide-scrollbar">
-                  <style jsx global>{`
-                    .hide-scrollbar::-webkit-scrollbar {
-                      display: none;
-                    }
-                    .hide-scrollbar {
-                      -ms-overflow-style: none;
-                      scrollbar-width: none;
-                    }
-                  `}</style>
-                {(() => {
-                  const citations = parseCitations(annotations.content);
-                  // Create a Map to store unique citations by file_id
-                  const uniqueCitations = new Map();
-                  citations.forEach(citation => {
-                    if (!uniqueCitations.has(citation.file_id)) {
-                      uniqueCitations.set(citation.file_id, citation);
-                    }
-                  });
-                  
-                  return Array.from(uniqueCitations.values()).map((citation, index) => {
-                    // We'll rely on the useEffect to fetch metadata only when streaming ends
-                    const metadata = fileMetadata[citation.file_id];
-                    const isLoading = isLoadingMetadata[citation.file_id];
-                    
-                    return (
-                      <div 
-                        key={`${citation.file_id}-${index}`}
-                        className="flex p-4 items-start gap-3 relative group flex-shrink-0 cursor-pointer"
-                        style={{
-                          borderRadius: '16px',
-                          border: '1px solid var(--superlight)',
-                          background: 'var(--ultralight)',
-                          width: '160px',
-                          minWidth: '160px',
-                          maxWidth: '160px'
-                        }}
-                        onClick={() => handleFileClick(citation.file_id, metadata?.file_name || citation.filename)}
-                      >
-                        {/* Show loading overlay when this specific file is loading */}
-                        {loadingFileId === citation.file_id && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-70 z-10 rounded-[16px]">
-                            <div className="flex flex-col items-center">
-                              <div className="h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                              <span className="text-xs mt-1 text-blue-600">Loading...</span>
-                            </div>
-                          </div>
-                        )}
+                        .hide-scrollbar {
+                          -ms-overflow-style: none;
+                          scrollbar-width: none;
+                        }
+                      `}</style>
+                    {(() => {
+                      const citations = parseCitations(annotations.content);
+                      // Create a Map to store unique citations by file_id
+                      const uniqueCitations = new Map();
+                      citations.forEach(citation => {
+                        if (!uniqueCitations.has(citation.file_id)) {
+                          uniqueCitations.set(citation.file_id, citation);
+                        }
+                      });
+                      
+                      return Array.from(uniqueCitations.values()).map((citation, index) => {
+                        // We'll rely on the useEffect to fetch metadata only when streaming ends
+                        const metadata = fileMetadata[citation.file_id];
+                        const isLoading = isLoadingMetadata[citation.file_id];
                         
-                        <div className="flex flex-col flex-grow min-w-0 overflow-hidden">
-                          <div className="flex items-start w-full">
-                            <span className="truncate text-sm font-medium text-foreground">
-                              {(metadata?.file_name || citation.filename).length > 15 
-                                ? (metadata?.file_name || citation.filename).substring(0, 15) + '...' 
-                                : (metadata?.file_name || citation.filename)}
-                            </span>
-                          </div>
-                          
-                          {isLoading ? (
-                            <div className="flex items-center gap-2 flex-wrap mt-2">
-                              <div className="h-3 bg-slate-100 rounded animate-pulse w-24"></div>
-                              <div className="h-3 bg-slate-100 rounded animate-pulse w-16"></div>
-                              <div className="h-3 bg-slate-100 rounded animate-pulse w-12"></div>
-                            </div>
-                          ) : (
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              {/* Authors - keep at the top */}
-                              {metadata?.doc_authors && metadata.doc_authors.length > 0 && (
-                                <span className="text-xs text-slate-700 flex items-center">
-                                  {Array.isArray(metadata.doc_authors) 
-                                    ? metadata.doc_authors.slice(0, 1).map((author: string) => author).join(', ')
-                                    : metadata.doc_authors}
-                                  {Array.isArray(metadata.doc_authors) && metadata.doc_authors.length > 1 && (
-                                    <span className="ml-1 inline-flex items-center justify-center text-slate-800 text-[10px]"
-                                      style={{
-                                        borderRadius: '1000px',
-                                        background: 'var(--Monochrome-Light, #E8E8E5)',
-                                        display: 'flex',
-                                        width: '18px',
-                                        height: '18px',
-                                        padding: '2px 4px 2px 2px',
-                                        flexDirection: 'column',
-                                        justifyContent: 'center',
-                                        alignItems: 'center',
-                                        gap: '10px'
-                                      }}>
-                                      +{metadata.doc_authors.length - 1}
+                        return (
+                          <div 
+                            key={`${citation.file_id}-${index}`}
+                            className="flex p-4 items-start gap-3 relative group flex-shrink-0 cursor-pointer"
+                            style={{
+                              borderRadius: '16px',
+                              border: '1px solid var(--superlight)',
+                              background: 'var(--ultralight)',
+                              width: '160px',
+                              minWidth: '160px',
+                              maxWidth: '160px'
+                            }}
+                            onClick={() => {
+                              // Create file object with all available metadata for FileDetailModal
+                              const fileData = {
+                                id: citation.file_id,
+                                name: metadata?.file_name || citation.filename,
+                                doc_authors: metadata?.doc_authors || [],
+                                doc_publication_year: metadata?.doc_publication_year,
+                                doc_type: metadata?.doc_type || 'Document',
+                                doc_title: metadata?.file_name || citation.filename,
+                                status: 'completed'
+                              };
+                              setSelectedFile(fileData);
+                            }}
+                          >
+                            <div className="flex flex-col flex-grow min-w-0 overflow-hidden">
+                              <div className="flex items-start w-full">
+                                <span className="truncate text-sm font-medium text-foreground">
+                                  {(metadata?.file_name || citation.filename).length > 15 
+                                    ? (metadata?.file_name || citation.filename).substring(0, 15) + '...' 
+                                    : (metadata?.file_name || citation.filename)}
+                                </span>
+                              </div>
+                              
+                              {isLoading ? (
+                                <div className="flex items-center gap-2 flex-wrap mt-2">
+                                  <div className="h-3 bg-slate-100 rounded animate-pulse w-24"></div>
+                                  <div className="h-3 bg-slate-100 rounded animate-pulse w-16"></div>
+                                  <div className="h-3 bg-slate-100 rounded animate-pulse w-12"></div>
+                                </div>
+                              ) : (
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  {/* Authors - keep at the top */}
+                                  {metadata?.doc_authors && metadata.doc_authors.length > 0 && (
+                                    <span className="text-xs text-slate-700 flex items-center">
+                                      {Array.isArray(metadata.doc_authors) 
+                                        ? metadata.doc_authors.slice(0, 1).map((author: string) => author).join(', ')
+                                        : metadata.doc_authors}
+                                      {Array.isArray(metadata.doc_authors) && metadata.doc_authors.length > 1 && (
+                                        <span className="ml-1 inline-flex items-center justify-center text-slate-800 text-[10px]"
+                                          style={{
+                                            borderRadius: '1000px',
+                                            background: 'var(--Monochrome-Light, #E8E8E5)',
+                                            display: 'flex',
+                                            width: '18px',
+                                            height: '18px',
+                                            padding: '2px 4px 2px 2px',
+                                            flexDirection: 'column',
+                                            justifyContent: 'center',
+                                            alignItems: 'center',
+                                            gap: '10px'
+                                          }}>
+                                          +{metadata.doc_authors.length - 1}
+                                        </span>
+                                      )}
                                     </span>
                                   )}
-                                </span>
-                              )}
-                              
-                              {/* File format - should be first in the bottom row */}
-                              {(metadata?.file_name || citation.filename).split('.').length > 1 && (
-                                <span className="text-xs text-muted-foreground">
-                                  {(metadata?.file_name || citation.filename).split('.').pop()?.toUpperCase()}
-                                </span>
-                              )}
-                              
-                              {/* Dot divider */}
-                              {(metadata?.file_name || citation.filename).split('.').length > 1 && 
-                               metadata?.doc_type && (
-                                <span className="text-xs text-slate-400">•</span>
-                              )}
-                              
-                              {/* Document type - should be second */}
-                              {metadata?.doc_type && (
-                                <span className="text-xs text-muted-foreground">
-                                  {metadata.doc_type}
-                                </span>
-                              )}
-                              
-                              {/* Dot divider */}
-                              {metadata?.doc_type && metadata?.doc_publication_year && (
-                                <span className="text-xs text-slate-400">•</span>
-                              )}
-                              
-                              {/* Year - should be third */}
-                              {metadata?.doc_publication_year && (
-                                <span className="text-xs text-muted-foreground">
-                                  {metadata.doc_publication_year}
-                                </span>
+                                  
+                                  {/* File format - should be first in the bottom row */}
+                                  {(metadata?.file_name || citation.filename).split('.').length > 1 && (
+                                    <span className="text-xs text-muted-foreground">
+                                      {(metadata?.file_name || citation.filename).split('.').pop()?.toUpperCase()}
+                                    </span>
+                                  )}
+                                  
+                                  {/* Dot divider */}
+                                  {(metadata?.file_name || citation.filename).split('.').length > 1 && 
+                                   metadata?.doc_type && (
+                                    <span className="text-xs text-slate-400">•</span>
+                                  )}
+                                  
+                                  {/* Document type - should be second */}
+                                  {metadata?.doc_type && (
+                                    <span className="text-xs text-muted-foreground">
+                                      {metadata.doc_type}
+                                    </span>
+                                  )}
+                                  
+                                  {/* Dot divider */}
+                                  {metadata?.doc_type && metadata?.doc_publication_year && (
+                                    <span className="text-xs text-slate-400">•</span>
+                                  )}
+                                  
+                                  {/* Year - should be third */}
+                                  {metadata?.doc_publication_year && (
+                                    <span className="text-xs text-muted-foreground">
+                                      {metadata.doc_publication_year}
+                                    </span>
+                                  )}
+                                </div>
                               )}
                             </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  });
-                })()}
-                </div>
-              </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div>{message.content}</div>
             )}
-          </>
-        ) : (
-          <div>{message.content}</div>
-        )}
+          </div>
+        </div>
       </div>
       
-      {/* Render the file detail modal when selected */}
+      {/* Render the file detail modal when a file is selected */}
       {selectedFile && (
         <FileDetailModal 
           file={selectedFile} 
           onClose={() => setSelectedFile(null)}
-          onSendMessage={handleSendMessage}
-          onFileQuickAction={handleFileQuickAction}
         />
       )}
-    </div>
+    </>
   );
 }

@@ -1,5 +1,5 @@
 import { ChatMessages } from '@/components/chat/ChatMessages';
-import type { Message } from '@/types/chat';
+import type { Message, UploadedFile } from '@/types/chat';
 
 interface ChatContentProps {
   messages: Message[];
@@ -14,6 +14,8 @@ interface ChatContentProps {
   onCopy: (content: string) => void;
   onEdit: (message: Message) => Promise<void>;
   onDelete: (message: Message) => Promise<void>;
+  onLinkSubmit?: (url: string) => Promise<void>;
+  onFileSelect?: (file: UploadedFile) => void;
 }
 
 export function ChatContent({
@@ -28,7 +30,9 @@ export function ChatContent({
   onSendMessage,
   onCopy,
   onEdit,
-  onDelete
+  onDelete,
+  onLinkSubmit,
+  onFileSelect
 }: ChatContentProps) {
   return (
     <div className="flex flex-col h-full">
@@ -41,6 +45,8 @@ export function ChatContent({
           onEdit={onEdit}
           onDelete={onDelete}
           currentAgent={currentAgent}
+          onLinkSubmit={onLinkSubmit}
+          onFileSelect={onFileSelect}
         />
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { useRef, useEffect, useMemo } from 'react';
-import type { ChatMessagesProps } from '@/types/chat';
+import type { ChatMessagesProps, UploadedFile } from '@/types/chat';
 import type { Message as MessageType } from '@/types/chat';
 import { Message } from './Message';
 import { WelcomeIcon } from '@/components/icons/WelcomeIcon';
@@ -48,6 +48,8 @@ interface ExtendedMessage extends MessageType {
 interface ExtendedChatMessagesProps extends Omit<ChatMessagesProps, 'messages'> {
   messages: ExtendedMessage[];
   currentAgent?: string;
+  onLinkSubmit?: (url: string) => Promise<void>;
+  onFileSelect?: (file: UploadedFile) => void;
 }
 
 // Define a type for processed messages
@@ -63,7 +65,9 @@ export function ChatMessages({
   onCopy,
   onEdit,
   onDelete,
-  currentAgent = 'Assistant'
+  currentAgent = 'Assistant',
+  onLinkSubmit,
+  onFileSelect
 }: ExtendedChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -240,6 +244,8 @@ export function ChatMessages({
                     onDelete={onDelete}
                     annotations={annotation}
                     currentAgent={currentAgent}
+                    onLinkSubmit={onLinkSubmit}
+                    onFileSelect={onFileSelect}
                   />
                 </div>
               </div>
