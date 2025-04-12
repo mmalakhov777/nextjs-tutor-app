@@ -125,6 +125,57 @@ const GlobalStyles = () => (
     .hide-scrollbar::-webkit-scrollbar {
       display: none;
     }
+    /* Preserve multiple spaces by preventing browser collapsing */
+    .message-content-container pre {
+      white-space: pre !important;
+      overflow-x: auto;
+    }
+    /* Style for properly preserving multiple spaces in paragraphs */
+    .message-content-container p {
+      white-space: pre-wrap !important;
+      word-break: break-word;
+    }
+    /* Ensure line breaks are properly handled */
+    .message-content-container br {
+      display: block;
+      content: "";
+      margin-top: 0.75em;
+    }
+    /* Give double-spaced content proper spacing */
+    .message-content-container .double-spaced {
+      margin-top: 1.5em;
+    }
+    /* Style for paragraphs with double spaces */
+    .message-content-container p.has-doubled-spaces {
+      letter-spacing: 0.01em;
+      line-height: 1.6;
+    }
+    /* Style for preserving indentation */
+    .message-content-container .indented {
+      padding-left: 2em;
+    }
+    /* Force non-breaking spaces to render properly */
+    .message-content-container .nbsp {
+      white-space: pre !important;
+      display: inline;
+    }
+    /* Critical styling for multi-space spans */
+    .message-content-container .multi-space {
+      white-space: pre !important;
+      letter-spacing: normal !important;
+      display: inline-block !important;
+      font-family: inherit !important;
+    }
+    /* Ensure all spaces are fully preserved */
+    .message-content-container.preserve-all-spaces {
+      white-space: pre-wrap !important;
+      word-wrap: break-word !important;
+      font-variant-ligatures: none !important;
+    }
+    /* Additional spacing for specific scenarios */
+    .message-content-container p + p {
+      margin-top: 1em;
+    }
   `}</style>
 );
 
@@ -247,16 +298,27 @@ const MessageContent = ({ content, messageId, onLinkSubmit }: MessageContentProp
     return [link.url];
   });
   
-  // Properly handle whitespace and paragraphs
-  const formatContent = (content: string) => {
-    // Replace linebreaks with <br> tags for markdown conversion
-    return content.replace(/\n/g, '<br>');
+  // Function to preserve multiple spaces and proper formatting
+  const preserveWhitespace = (content: string) => {
+    if (!content) return '';
+    
+    // First handle multiple consecutive line breaks to preserve paragraph spacing
+    let processedContent = content.replace(/\n{2,}/g, match => {
+      return '\n<br/>\n';
+    });
+    
+    // Convert all instances of two or more spaces to line breaks
+    // This is the critical fix - replace double spaces with <br/> tags
+    processedContent = processedContent.replace(/( {2,})/g, '<br/>');
+    
+    // Replace single linebreaks with <br> tags for markdown conversion
+    return processedContent.replace(/\n/g, '<br/>');
   };
   
   return (
     <div 
       id={messageId ? `message-${messageId}` : undefined} 
-      className="prose prose-sm dark:prose-invert max-w-none message-content-container"
+      className="prose prose-sm dark:prose-invert max-w-none message-content-container preserve-all-breaks"
     >
       <GlobalStyles />
       <ReactMarkdown
@@ -280,7 +342,7 @@ const MessageContent = ({ content, messageId, onLinkSubmit }: MessageContentProp
             
             // Otherwise render with whitespace preservation
             return (
-              <p className="mb-4 last:mb-0 whitespace-pre-wrap">{children}</p>
+              <p className="mb-4 last:mb-0 whitespace-pre-wrap break-words preserve-breaks">{children}</p>
             );
           },
           h1: ({ children }) => <h1 className="text-2xl font-bold mb-4">{children}</h1>,
@@ -353,10 +415,10 @@ const MessageContent = ({ content, messageId, onLinkSubmit }: MessageContentProp
             );
           },
           // Handle line breaks properly
-          br: () => <br />,
+          br: () => <br className="line-break" />,
         }}
       >
-        {content}
+        {preserveWhitespace(content)}
       </ReactMarkdown>
       
       {/* Display all links as cards outside the markdown content */}
@@ -853,7 +915,6 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
 
   // Add useEffect to load enhanced content on mount if it exists in metadata
   useEffect(() => {
-    // Check if message has metadata with citation information
     if (
       message.role === 'assistant' && 
       message.metadata && 
@@ -891,9 +952,15 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
           // Find the parent element containing this message's content
           const messageElement = document.getElementById(`message-${message.id}`);
           if (messageElement) {
+            messageElement.classList.add('preserve-whitespace');
             const paragraphs = messageElement.querySelectorAll('p');
             paragraphs.forEach(p => {
               p.classList.add('whitespace-pre-wrap');
+              
+              // Check for double spacing patterns
+              if (p.innerHTML.includes('&nbsp;&nbsp;') || p.innerHTML.includes('\u00A0\u00A0')) {
+                p.classList.add('has-doubled-spaces');
+              }
             });
             console.log("Added whitespace-pre-wrap to paragraphs");
           }
@@ -1910,11 +1977,13 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
                     <span className="text-slate-500">• {citationStyle.toUpperCase()} style</span>
                   </div>
                 )}
-                <MessageContent 
-                  content={enhancedText || message.content} 
-                  messageId={message.id} 
-                  onLinkSubmit={onLinkSubmit}
-                />
+                <div className={`message-content ${enhancedText ? 'enhanced-content preserve-whitespace' : ''}`}>
+                  <MessageContent 
+                    content={enhancedText || message.content} 
+                    messageId={message.id} 
+                    onLinkSubmit={onLinkSubmit}
+                  />
+                </div>
               </>
             )}
             
