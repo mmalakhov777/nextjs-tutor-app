@@ -194,13 +194,16 @@ export function ChatInput({
               alignItems: 'center',
               gap: '10px',
               borderRadius: '8px',
-              background: 'var(--Monochrome-Light, #E8E8E5)',
+              background: 'transparent',
               border: 'none',
               cursor: 'pointer',
-              opacity: 0
+              opacity: 0.2,
+              fontSize: '12px',
+              fontWeight: 400,
+              color: 'var(--Monochrome-Normal, #9B9B9B)'
             }}
           >
-            <DotsIcon />
+            Give feedback
           </button>
           
           <div className="flex gap-2">
