@@ -841,9 +841,15 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
       }
       
       const data = await response.json();
+      console.log('[Notes Debug] Response:', data);
       
-      if (data && data.content) {
+      if (data && data.notes && data.notes.length > 0 && data.notes[0].content) {
         console.log(`[Notes] Successfully loaded notes for session ${currentConversationId}`);
+        setNoteContent(data.notes[0].content);
+        setLastSavedNoteContent(data.notes[0].content);
+      } else if (data && data.content) {
+        // Handle the original expected format as a fallback
+        console.log(`[Notes] Successfully loaded notes for session ${currentConversationId} (legacy format)`);
         setNoteContent(data.content);
         setLastSavedNoteContent(data.content);
       } else {
@@ -902,8 +908,13 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
         throw new Error(`Failed to save notes: ${response.status}`);
       }
       
+      const data = await response.json();
+      
       console.log(`[Notes] Successfully saved notes for session ${currentConversationId}`);
       setLastSavedNoteContent(content);
+      
+      // Log the response for debugging
+      console.log('[Notes Debug] Save response:', data);
       
       // Also save to localStorage as backup
       if (typeof window !== 'undefined') {

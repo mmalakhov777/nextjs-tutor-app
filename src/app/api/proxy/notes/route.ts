@@ -41,6 +41,9 @@ export async function GET(request: NextRequest) {
     
     // Parse and return the response
     const data = await response.json();
+    console.log('Notes fetched successfully:', data);
+    
+    // Return the response as-is to maintain the format from the backend
     return NextResponse.json(data);
   } catch (error) {
     console.error('Error processing request:', error);
