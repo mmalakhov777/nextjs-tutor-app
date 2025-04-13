@@ -16,6 +16,7 @@ interface ChatContentProps {
   onDelete: (message: Message) => Promise<void>;
   onLinkSubmit?: (url: string) => Promise<void>;
   onFileSelect?: (file: UploadedFile) => void;
+  cachedMetadata?: Record<string, any>;
 }
 
 export function ChatContent({
@@ -32,23 +33,23 @@ export function ChatContent({
   onEdit,
   onDelete,
   onLinkSubmit,
-  onFileSelect
+  onFileSelect,
+  cachedMetadata = {}
 }: ChatContentProps) {
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto pb-20">
-        <ChatMessages
-          messages={messages}
-          isProcessing={isProcessing}
-          showWelcome={showWelcome}
-          onCopy={onCopy}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          currentAgent={currentAgent}
-          onLinkSubmit={onLinkSubmit}
-          onFileSelect={onFileSelect}
-        />
-      </div>
+    <div className="flex flex-col h-full overflow-hidden">
+      <ChatMessages
+        messages={messages}
+        isProcessing={isProcessing}
+        showWelcome={showWelcome}
+        onCopy={onCopy}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        currentAgent={currentAgent}
+        onLinkSubmit={onLinkSubmit}
+        onFileSelect={onFileSelect}
+        cachedMetadata={cachedMetadata}
+      />
     </div>
   );
 } 

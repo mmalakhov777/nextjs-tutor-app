@@ -18,16 +18,53 @@ const getBackendUrl = () => {
   return process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5002';
 };
 
+// YouTube icon component
+const YouTubeIcon = ({ className = "h-3 w-3 text-red-600" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    stroke="none"
+  >
+    <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
+  </svg>
+);
+
 // Define an interface for tracking file uploads
 interface FileUploadStatus {
   id: string;
   name: string;
   status: 'uploading' | 'processing' | 'completed' | 'error';
   progress: number;
+  url?: string; // Add URL for tracking link uploads
 }
+
+// Helper function to check if a URL is a YouTube URL
+const isYouTubeUrl = (url: string): boolean => {
+  try {
+    const parsedUrl = new URL(url);
+    return (
+      parsedUrl.hostname.includes('youtube.com') ||
+      parsedUrl.hostname.includes('youtu.be')
+    );
+  } catch {
+    return false;
+  }
+};
 
 // Helper to get the appropriate icon for a file extension
 const getFileIcon = (fileName: string, file: UploadedFile) => {
+  // Check if it's a YouTube video
+  if (file.source === 'link' && 
+      file.url && 
+      isYouTubeUrl(file.url) || 
+      file.doc_type?.toLowerCase() === 'youtube_video') {
+    return <YouTubeIcon />;
+  }
+  
   // If it's a link or has webpage type, use the webpage icon
   if (file.source === 'link' || 
       file.doc_type?.toLowerCase() === 'webpage' || 
@@ -178,6 +215,22 @@ export function FileSidebar({
       }
     };
 
+    // Add global handlers to allow dragging from anywhere on the page
+    const handleDocumentDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    const handleDocumentDrop = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    // Add global handlers to prevent browser default behavior
+    document.addEventListener('dragover', handleDocumentDragOver);
+    document.addEventListener('drop', handleDocumentDrop);
+
+    // Apply handlers to specific drop area
     const dropArea = dropAreaRef.current;
     if (dropArea && !isLinkMode) {
       dropArea.addEventListener('dragover', handleDragOver);
@@ -187,6 +240,10 @@ export function FileSidebar({
     }
 
     return () => {
+      // Clean up all event listeners
+      document.removeEventListener('dragover', handleDocumentDragOver);
+      document.removeEventListener('drop', handleDocumentDrop);
+      
       if (dropArea) {
         dropArea.removeEventListener('dragover', handleDragOver);
         dropArea.removeEventListener('dragenter', handleDragEnter);
@@ -233,7 +290,7 @@ export function FileSidebar({
     }
   };
 
-  // New function to handle multiple file uploads
+  // New function to handle multiple file uploads in parallel
   const handleMultipleFileUpload = async (files: File[]) => {
     if (!files.length || !defaultVectorStoreId) {
       setNotification(defaultVectorStoreId ? 'No files selected' : 'No vector store available');
@@ -251,10 +308,9 @@ export function FileSidebar({
     
     setFileUploads(prev => [...prev, ...newUploads]);
     
-    // Process each file upload one by one
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const uploadId = newUploads[i].id;
+    // Process all file uploads concurrently
+    const uploadPromises = files.map(async (file, index) => {
+      const uploadId = newUploads[index].id;
       
       try {
         // Update progress to 50% - upload started
@@ -278,12 +334,6 @@ export function FileSidebar({
           )
         );
         
-        // Show success notification only for the last file
-        if (i === files.length - 1) {
-          setNotification(`${files.length} ${files.length === 1 ? 'file' : 'files'} uploaded successfully`);
-          setTimeout(() => setNotification(null), 2000);
-        }
-        
         // Mark as completed
         setTimeout(() => {
           setFileUploads(prev => 
@@ -303,7 +353,7 @@ export function FileSidebar({
       } catch (error) {
         console.error('Error uploading file:', error);
         
-        // Mark as error
+        // Mark as error but with 100% progress (completed with error)
         setFileUploads(prev => 
           prev.map(upload => 
             upload.id === uploadId 
@@ -315,18 +365,22 @@ export function FileSidebar({
         setNotification(error instanceof Error ? `Error: ${error.message}` : 'Error uploading file');
         setTimeout(() => setNotification(null), 2000);
         
-        // Remove error upload after a delay
-        setTimeout(() => {
-          setFileUploads(prev => prev.filter(upload => upload.id !== uploadId));
-        }, 5000);
+        // Don't auto-remove error uploads - let user dismiss them
       }
+    });
+    
+    // Wait for all uploads to complete (either success or error)
+    await Promise.all(uploadPromises);
+    
+    // Show success notification only if at least one file succeeded
+    if (files.length > 0) {
+      setNotification(`File upload${files.length > 1 ? 's' : ''} completed`);
+      setTimeout(() => setNotification(null), 2000);
     }
     
-    // Refresh files after all uploads are done or after 2 seconds
+    // Refresh files after all uploads are processed
     if (onRefreshFiles) {
-      setTimeout(() => {
-        onRefreshFiles();
-      }, 2000);
+      onRefreshFiles();
     }
   };
 
@@ -344,22 +398,90 @@ export function FileSidebar({
 
     try {
       // Validate URL
-      new URL(linkUrl); // This will throw an error if the URL is invalid
+      const url = new URL(linkUrl); // This will throw an error if the URL is invalid
       
-      await onLinkSubmit(linkUrl);
+      // Check if the link is already uploading or present in uploaded files
+      const isDuplicate = fileUploads.some(upload => upload.url === linkUrl) || 
+                         uploadedFiles.some(file => file.source === 'link' && file.url === linkUrl);
       
-      // Show success notification
-      setNotification('Link submitted successfully');
-      setTimeout(() => setNotification(null), 2000);
+      if (isDuplicate) {
+        setNotification('This link is already being processed or has been uploaded');
+        setTimeout(() => setNotification(null), 2000);
+        return;
+      }
       
-      // Clear the input
-      setLinkUrl('');
+      // Add link to uploads with uploading status
+      const uploadId = Math.random().toString(36).substring(2, 11);
+      const isYouTube = isYouTubeUrl(linkUrl);
+      const domain = isYouTube ? 'YouTube Video' : url.hostname;
+      
+      setFileUploads(prev => [
+        ...prev, 
+        {
+          id: uploadId,
+          name: domain,
+          status: 'uploading',
+          progress: 50,
+          url: linkUrl
+        }
+      ]);
+
+      try {
+        // Call the onLinkSubmit function
+        await onLinkSubmit(linkUrl);
+        
+        // Update status to processing
+        setFileUploads(prev => 
+          prev.map(upload => 
+            upload.id === uploadId 
+              ? { ...upload, status: 'processing', progress: 75 } 
+              : upload
+          )
+        );
+        
+        // Show success notification
+        setNotification('Link submitted successfully');
+        setTimeout(() => setNotification(null), 2000);
+        
+        // Clear the input
+        setLinkUrl('');
+        
+        // Mark as completed after a delay
+        setTimeout(() => {
+          setFileUploads(prev => 
+            prev.map(upload => 
+              upload.id === uploadId 
+                ? { ...upload, status: 'completed', progress: 100 } 
+                : upload
+            )
+          );
+          
+          // Remove completed upload after a delay
+          setTimeout(() => {
+            setFileUploads(prev => prev.filter(upload => upload.id !== uploadId));
+          }, 3000);
+        }, 1000);
+      } catch (error) {
+        console.error('Error processing link:', error);
+        
+        // Mark as error but with 100% progress
+        setFileUploads(prev => 
+          prev.map(upload => 
+            upload.id === uploadId 
+              ? { ...upload, status: 'error', progress: 100 } 
+              : upload
+          )
+        );
+        
+        setNotification(error instanceof Error ? `Error: ${error.message}` : 'Error processing link');
+        setTimeout(() => setNotification(null), 2000);
+        
+        // Don't auto-remove error uploads - let user dismiss them
+      }
       
       if (onRefreshFiles) {
-        // Refresh files after a brief delay
-        setTimeout(() => {
-          onRefreshFiles();
-        }, 2000);
+        // Refresh files
+        onRefreshFiles();
       }
     } catch (error) {
       if (error instanceof TypeError) {
@@ -432,7 +554,20 @@ export function FileSidebar({
                 {upload.status === 'uploading' && <Clock className="h-4 w-4 text-amber-500 animate-pulse" />}
                 {upload.status === 'processing' && <Clock className="h-4 w-4 text-amber-500" />}
                 {upload.status === 'completed' && <CheckCircle2 className="h-4 w-4 text-green-500" />}
-                {upload.status === 'error' && <AlertTriangle className="h-4 w-4 text-red-500" />}
+                {upload.status === 'error' && 
+                  <div className="flex items-center">
+                    <AlertTriangle className="h-4 w-4 text-red-500 mr-1" />
+                    <Button
+                      onClick={() => removeUpload(upload.id)}
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 hover:bg-slate-100"
+                      title="Remove"
+                    >
+                      <DeleteIcon className="h-3 w-3 text-slate-500" />
+                    </Button>
+                  </div>
+                }
               </div>
               
               <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
@@ -453,7 +588,7 @@ export function FileSidebar({
                   {upload.status === 'uploading' && 'Uploading...'}
                   {upload.status === 'processing' && 'Processing...'}
                   {upload.status === 'completed' && 'Upload complete'}
-                  {upload.status === 'error' && 'Upload failed'}
+                  {upload.status === 'error' && 'Upload failed - Click X to remove'}
                 </span>
               </div>
             </div>
@@ -461,6 +596,11 @@ export function FileSidebar({
         ))}
       </div>
     );
+  };
+
+  // Function to manually remove an upload from the list (for errors)
+  const removeUpload = (uploadId: string) => {
+    setFileUploads(prev => prev.filter(upload => upload.id !== uploadId));
   };
 
   return (
@@ -652,8 +792,16 @@ export function FileSidebar({
                     disabled={!defaultVectorStoreId || !linkUrl || fileUploads.length > 0}
                     onClick={handleLinkSubmit}
                   >
-                    <Link className="h-4 w-4" strokeWidth={2} />
-                    <span>Submit Link</span>
+                    {fileUploads.some(upload => upload.url === linkUrl) ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" strokeWidth={2} />
+                    ) : (
+                      <Link className="h-4 w-4" strokeWidth={2} />
+                    )}
+                    <span>
+                      {fileUploads.some(upload => upload.url === linkUrl) 
+                        ? 'Processing...' 
+                        : 'Submit Link'}
+                    </span>
                   </button>
                   
                   <div className="mt-4 text-xs text-muted-foreground/70">
@@ -680,10 +828,10 @@ export function FileSidebar({
                   
                   <div 
                     ref={dropAreaRef}
-                    className={`
-                      w-full flex flex-col items-center justify-center text-center
-                      ${isDragging ? 'opacity-70' : ''}
-                    `}
+                    className="w-full flex flex-col items-center justify-center text-center"
+                    style={{ 
+                      background: 'var(--ultralight)'
+                    }}
                     onClick={defaultVectorStoreId && fileUploads.length === 0 ? handleFileButtonClick : undefined}
                   >            
                     <h3 className="text-base font-medium text-foreground mb-2">
@@ -798,8 +946,17 @@ export function FileSidebar({
                       {/* File format with link icon for URLs */}
                       {file.source === 'link' ? (
                         <span className="flex items-center gap-1">
-                          <WebPageIcon file={file} />
-                          Website
+                          {file.url && isYouTubeUrl(file.url) || file.doc_type?.toLowerCase() === 'youtube_video' ? (
+                            <>
+                              <YouTubeIcon />
+                              YouTube
+                            </>
+                          ) : (
+                            <>
+                              <WebPageIcon file={file} />
+                              Website
+                            </>
+                          )}
                         </span>
                       ) : file.name && (
                         <span className="flex items-center gap-1">
@@ -814,7 +971,7 @@ export function FileSidebar({
                       )}
                       
                       {/* Document type */}
-                      {file.doc_type && file.doc_type !== "Unknown" && (
+                      {file.doc_type && file.doc_type !== "Unknown" && file.doc_type.toLowerCase() !== "youtube_video" && (
                         <span>
                           {file.doc_type.toLowerCase() === 'webpage' || file.doc_type.toLowerCase() === 'webpage' 
                             ? "WEB" 

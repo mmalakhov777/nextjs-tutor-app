@@ -70,6 +70,7 @@ type Message = BaseMessage & {
     toolName?: string;
     toolAction?: string;
   };
+  metadata?: any;
 };
 
 // Updating or adding the DatabaseMessage type
@@ -111,6 +112,9 @@ export default function Home({
   const history = useHistory(userId);
   const analysis = useAnalysis();
   const agents = useAgents(userId);
+  
+  // Add a metadata cache to avoid refetching the same metadata
+  const [fileMetadataCache, setFileMetadataCache] = useState<Record<string, any>>({});
   
   // Create a ref for the AgentsSidebar component
   const agentsSidebarRef = useRef<AgentsSidebarRef>(null);
@@ -255,6 +259,222 @@ export default function Home({
       }
     }
   }, [chat.messages, chat.isProcessing]);
+
+  // Replace the previous effect with a more immediate approach
+  useEffect(() => {
+    // Only run when streaming stops
+    if (!chat.isProcessing && chat.messages.length > 0) {
+      // Get the last message which should be the one that just finished streaming
+      const lastMessage = chat.messages[chat.messages.length - 1];
+      
+      // Check if it's an assistant message that might have citations but no annotations yet
+      if (
+        lastMessage.role === 'assistant' && 
+        lastMessage.metadata?.has_citations &&
+        !(lastMessage as any).annotations && 
+        lastMessage.sessionId && 
+        lastMessage.id
+      ) {
+        console.log("Detected message that finished streaming with citations but no annotations, looking for matching annotation event");
+        
+        // Set a shorter timeout - we'll try several times
+        const timeoutId = setTimeout(async () => {
+          try {
+            const backendUrl = getBackendUrl();
+            // Try to get tool messages with annotations for this specific message and specifically limit to most recent ones
+            const toolResponse = await fetch(
+              `${backendUrl}/api/chat-sessions/${lastMessage.sessionId}/messages?role=tool&toolAction=annotations&limit=10`
+            );
+            
+            if (!toolResponse.ok) {
+              throw new Error(`Failed to fetch annotations: ${toolResponse.status}`);
+            }
+            
+            const toolData = await toolResponse.json();
+            console.log("Fetched annotations immediately after streaming:", toolData);
+            
+            // Find the annotation that corresponds to this message based on timing
+            let annotationContent = null;
+            let closestToolMessage = null;
+            
+            if (Array.isArray(toolData) && toolData.length > 0) {
+              // First look for annotations that happened right after our message
+              // Sort by timestamp to find the tool message closest to our message
+              const sortedToolMessages = [...toolData].sort((a, b) => {
+                const timeA = new Date(a.created_at).getTime();
+                const timeB = new Date(b.created_at).getTime();
+                
+                // Get message creation time
+                const messageTime = lastMessage.timestamp?.getTime() || Date.now();
+                
+                // We care about annotations that came AFTER this message within 10 seconds
+                // so calculate time difference where positive values are after the message
+                const diffA = timeA - messageTime;
+                const diffB = timeB - messageTime;
+                
+                // If both are after the message, prefer the closest one
+                if (diffA > 0 && diffB > 0) {
+                  return diffA - diffB;
+                }
+                
+                // Otherwise prefer any that came after
+                if (diffA > 0) return -1;
+                if (diffB > 0) return 1;
+                
+                // If none came after, use absolute difference
+                return Math.abs(diffA) - Math.abs(diffB);
+              });
+              
+              // Use the closest tool message
+              closestToolMessage = sortedToolMessages[0];
+              if (closestToolMessage && closestToolMessage.content) {
+                annotationContent = closestToolMessage.content;
+                console.log("Found matching annotation:", annotationContent.substring(0, 100) + "...");
+              }
+            }
+            
+            if (annotationContent) {
+              // Update the message with annotations
+              const updatedMessages = [...chat.messages];
+              const messageIndex = updatedMessages.findIndex(msg => msg.id === lastMessage.id);
+              
+              if (messageIndex !== -1) {
+                // Need to cast since we're adding a property that might not be in the type
+                updatedMessages[messageIndex] = {
+                  ...updatedMessages[messageIndex],
+                  annotations: {
+                    content: annotationContent,
+                    toolName: closestToolMessage?.metadata?.tool_name || 'file_citations',
+                    toolAction: 'annotations'
+                  }
+                } as Message;
+                
+                // Update the messages state with the new annotations
+                chat.setMessages(updatedMessages);
+                console.log("Updated message with annotations immediately");
+              }
+            } else {
+              console.log("No matching annotations found yet, will retry");
+            }
+          } catch (error) {
+            console.error("Error fetching annotations after streaming:", error);
+          }
+        }, 500); // Much shorter delay - 500ms instead of 5000ms
+        
+        return () => clearTimeout(timeoutId);
+      }
+    }
+  }, [chat.isProcessing, chat.messages]);
+
+  // Add a function to get metadata from cache or fetch it if not available
+  const getOrFetchFileMetadata = useCallback(async (fileId: string) => {
+    // Return from cache if available
+    if (fileMetadataCache[fileId]) {
+      console.log("Using cached metadata for file:", fileId);
+      return fileMetadataCache[fileId];
+    }
+
+    try {
+      console.log("Fetching metadata for file not in cache:", fileId);
+      const backendUrl = getBackendUrl();
+      const response = await fetch(`${backendUrl}/api/files/${fileId}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch file metadata: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Store in cache
+      const metadataToCache = {
+        id: fileId,
+        name: data.name,
+        doc_authors: data.document?.authors || [],
+        doc_publication_year: data.document?.publication_year,
+        doc_type: data.document?.type,
+        doc_summary: data.document?.summary
+      };
+      
+      setFileMetadataCache(prev => ({ 
+        ...prev, 
+        [fileId]: metadataToCache
+      }));
+      
+      return metadataToCache;
+    } catch (error) {
+      console.error("Error fetching file metadata:", error);
+      return null;
+    }
+  }, [fileMetadataCache]);
+
+  // Modify the existing annotation event listener to use metadata cache
+  useEffect(() => {
+    // Set up a listener for annotation events
+    const handleAnnotationEvent = (event: any) => {
+      if (event && event.detail && 
+          event.detail.type === 'annotations' && 
+          event.detail.content && 
+          chat.messages.length > 0) {
+        
+        console.log("Caught annotation event:", event.detail);
+        
+        // Get the annotation content
+        const annotationContent = event.detail.content;
+        
+        // Extract file IDs from annotations for potential metadata prefetching
+        try {
+          // Parse citations to get file IDs
+          const citationRegex = /file_id='([^']+)'/g;
+          const fileIds = [];
+          let match;
+          
+          while ((match = citationRegex.exec(annotationContent)) !== null) {
+            fileIds.push(match[1]);
+          }
+          
+          // Prefetch metadata for any file IDs not already in cache
+          fileIds.forEach(fileId => {
+            if (!fileMetadataCache[fileId]) {
+              getOrFetchFileMetadata(fileId);
+            }
+          });
+        } catch (e) {
+          console.error("Error parsing file IDs from annotations:", e);
+        }
+        
+        // Get the last message which should be the one that just received annotations
+        const lastMessage = chat.messages[chat.messages.length - 1];
+        
+        // Only proceed if this is an assistant message
+        if (lastMessage.role === 'assistant') {
+          // Update the message with annotations
+          const updatedMessages = [...chat.messages];
+          const messageIndex = updatedMessages.length - 1;
+          
+          updatedMessages[messageIndex] = {
+            ...updatedMessages[messageIndex],
+            annotations: {
+              content: annotationContent,
+              toolName: 'file_citations',
+              toolAction: 'annotations'
+            }
+          } as Message;
+          
+          // Update the messages state with the new annotations
+          chat.setMessages(updatedMessages);
+          console.log("Updated message with annotations from direct event");
+        }
+      }
+    };
+    
+    // Add event listener
+    window.addEventListener('annotation-event', handleAnnotationEvent);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('annotation-event', handleAnnotationEvent);
+    };
+  }, [chat.messages, fileMetadataCache, getOrFetchFileMetadata]);
 
   const handleCopy = (content: string) => {
     navigator.clipboard.writeText(content)
@@ -1398,6 +1618,7 @@ content: HIDDEN_CONTENT
               // Use the same approach as when selecting from the FileSidebar
               files.setSelectedFile(file);
             }}
+            cachedMetadata={fileMetadataCache}
           />
         }
         inputComponent={

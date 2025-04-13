@@ -50,6 +50,7 @@ interface ExtendedChatMessagesProps extends Omit<ChatMessagesProps, 'messages'> 
   currentAgent?: string;
   onLinkSubmit?: (url: string) => Promise<void>;
   onFileSelect?: (file: UploadedFile) => void;
+  cachedMetadata?: Record<string, any>;
 }
 
 // Define a type for processed messages
@@ -67,7 +68,8 @@ export function ChatMessages({
   onDelete,
   currentAgent = 'Assistant',
   onLinkSubmit,
-  onFileSelect
+  onFileSelect,
+  cachedMetadata = {}
 }: ExtendedChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -246,6 +248,7 @@ export function ChatMessages({
                     currentAgent={currentAgent}
                     onLinkSubmit={onLinkSubmit}
                     onFileSelect={onFileSelect}
+                    cachedMetadata={cachedMetadata}
                   />
                 </div>
               </div>
@@ -254,6 +257,9 @@ export function ChatMessages({
             {shouldShowLoading && renderLoadingIndicator()}
 
             <div ref={messagesEndRef} />
+            
+            {/* Add extra padding at the bottom to prevent input overlay */}
+            <div className="pb-[50px]"></div>
           </div>
         </div>
       )}

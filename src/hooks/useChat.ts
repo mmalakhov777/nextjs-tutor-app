@@ -483,6 +483,16 @@ export function useChat(userId: string | null) {
                     toolAction: 'annotations',
                     toolName: data.toolName
                   }]);
+                  
+                  // Dispatch custom event to notify listeners about annotations
+                  window.dispatchEvent(new CustomEvent('annotation-event', { 
+                    detail: {
+                      type: 'annotations',
+                      content: data.content,
+                      toolName: data.toolName,
+                      timestamp: new Date()
+                    }
+                  }));
                   break;
 
                 case 'error':

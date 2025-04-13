@@ -235,18 +235,6 @@ content: ${content}
           <h2 className="text-[32px] font-medium leading-[40px] text-[#232323] text-left">
             {file.doc_title || file.name}
           </h2>
-          
-          {file.url && (
-            <a 
-              href={file.url}
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-blue-500 hover:underline flex items-center gap-1 text-sm"
-            >
-              <ExternalLink className="h-3 w-3" />
-              Open Source
-            </a>
-          )}
         </div>
       </div>
       

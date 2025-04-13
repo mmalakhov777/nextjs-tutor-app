@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import React from 'react';
 import Image from 'next/image';
 import { Copy, ArrowRight, File, ChevronDown, ChevronRight, Download, Search, FileText, AlertCircle, Loader2, Trash2, Pencil, Share2, Check, Link, ExternalLink, Volume2, VolumeX, Users, X, Info, Plus, Settings, Wrench, Shield, UserCircle, Brain, Globe, Sparkles, BookOpen, Code, Lightbulb, ChevronDown as ChevronDownIcon, ChevronUp } from 'lucide-react';
@@ -8,13 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import DeleteIcon from '@/components/icons/DeleteIcon';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
-import rehypeRaw from 'rehype-raw';
-import rehypeSanitize from 'rehype-sanitize';
-import rehypeHighlight from 'rehype-highlight';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,597 +24,17 @@ import { MistralLogo } from '@/components/icons/MistralLogo';
 import { PerplexityLogo } from '@/components/icons/PerplexityLogo';
 import { FileDetailModal } from './FileDetailModal';
 import { UploadedFile } from '@/types/chat';
+import { MessageContent, MessageContentProps } from './MessageContent'; // Import the new component
+import FileAnnotations from './FileAnnotations'; // Import FileAnnotations component without the Citation type
+import FileCitationBadges, { Citation } from './FileCitationBadges'; // Import FileCitationBadges with Citation type
+import AgentBadge from './AgentBadge'; // Import AgentBadge component
+import MessageActions from './MessageActions'; // Import MessageActions component
+import CitationControls from './CitationControls'; // Import CitationControls component
 
 // Add a helper function to get the backend URL at the top of the file
 const getBackendUrl = () => {
   return process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5002';
 };
-
-// Favicon component that displays a website's favicon
-const Favicon = React.memo(({ domain }: { domain: string }) => {
-  const [faviconSrc, setFaviconSrc] = useState<string | null>(null);
-  const [error, setError] = useState(false);
-  const [attemptedSources, setAttemptedSources] = useState<string[]>([]);
-  
-  // Only run this effect when domain changes or on first mount
-  useEffect(() => {
-    // Reset states when domain changes
-    setError(false);
-    setAttemptedSources([]);
-    
-    if (!domain) {
-      setError(true);
-      return;
-    }
-    
-    // Start with Google's service which is most reliable
-    const googleFaviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
-    setFaviconSrc(googleFaviconUrl);
-    setAttemptedSources(['google']);
-  }, [domain]);
-  
-  const handleError = () => {
-    // Only proceed if we haven't tried all sources yet
-    if (!faviconSrc) return;
-    
-    // Try DuckDuckGo if Google fails
-    if (!attemptedSources.includes('duckduckgo')) {
-      const duckduckgoUrl = `https://icons.duckduckgo.com/ip3/${domain}.ico`;
-      setFaviconSrc(duckduckgoUrl);
-      setAttemptedSources(prev => [...prev, 'duckduckgo']);
-    }
-    // Try direct favicon if DuckDuckGo fails
-    else if (!attemptedSources.includes('direct')) {
-      const directUrl = `https://${domain}/favicon.ico`;
-      setFaviconSrc(directUrl);
-      setAttemptedSources(prev => [...prev, 'direct']);
-    }
-    // If all fail, show the fallback icon
-    else {
-      setError(true);
-    }
-  };
-  
-  return (
-    <div 
-      className="w-8 h-8 flex items-center justify-center rounded-full flex-shrink-0"
-      style={{ 
-        background: 'var(--superlight)',
-        overflow: 'hidden'
-      }}
-    >
-      {error || !faviconSrc ? (
-        <ExternalLink className="h-4 w-4 text-blue-500" />
-      ) : (
-        <div className="flex items-center justify-center w-full h-full">
-          <img 
-            src={faviconSrc}
-            alt=""
-            width={20}
-            height={20}
-            onError={handleError}
-            className="object-contain max-w-[16px] max-h-[16px]"
-          />
-        </div>
-      )}
-    </div>
-  );
-}, (prevProps, nextProps) => prevProps.domain === nextProps.domain);
-
-interface MessageContentProps {
-  content: string;
-  messageId?: string;
-  onLinkSubmit?: (url: string) => Promise<void>;
-}
-
-// Add a global style component at the top of the file to avoid nesting issues
-const GlobalStyles = () => (
-  <style jsx global>{`
-    .preserve-whitespace p, 
-    .whitespace-pre-wrap,
-    .message-content-container p {
-      white-space: pre-wrap !important;
-    }
-    .hide-scrollbar::-webkit-scrollbar {
-      display: none;
-    }
-    /* Preserve multiple spaces by preventing browser collapsing */
-    .message-content-container pre {
-      white-space: pre !important;
-      overflow-x: auto;
-    }
-    /* Style for properly preserving multiple spaces in paragraphs */
-    .message-content-container p {
-      white-space: pre-wrap !important;
-      word-break: break-word;
-    }
-    /* Ensure line breaks are properly handled */
-    .message-content-container br {
-      display: block;
-      content: "";
-      margin-top: 0.75em;
-    }
-    /* Give double-spaced content proper spacing */
-    .message-content-container .double-spaced {
-      margin-top: 1.5em;
-    }
-    /* Style for paragraphs with double spaces */
-    .message-content-container p.has-doubled-spaces {
-      letter-spacing: 0.01em;
-      line-height: 1.6;
-    }
-    /* Style for preserving indentation */
-    .message-content-container .indented {
-      padding-left: 2em;
-    }
-    /* Force non-breaking spaces to render properly */
-    .message-content-container .nbsp {
-      white-space: pre !important;
-      display: inline;
-    }
-    /* Critical styling for multi-space spans */
-    .message-content-container .multi-space {
-      white-space: pre !important;
-      letter-spacing: normal !important;
-      display: inline-block !important;
-      font-family: inherit !important;
-    }
-    /* Ensure all spaces are fully preserved */
-    .message-content-container.preserve-all-spaces {
-      white-space: pre-wrap !important;
-      word-wrap: break-word !important;
-      font-variant-ligatures: none !important;
-    }
-    /* Additional spacing for specific scenarios */
-    .message-content-container p + p {
-      margin-top: 1em;
-    }
-    /* Make all links bold and black */
-    .message-content-container a {
-      font-weight: bold !important;
-      color: #000 !important;
-      text-decoration: none !important;
-    }
-    /* Add hover effect for links */
-    .message-content-container a:hover {
-      text-decoration: underline !important;
-    }
-    /* Dark mode support */
-    .dark .message-content-container a {
-      color: #fff !important;
-    }
-  `}</style>
-);
-
-interface LinkState {
-  status: 'idle' | 'loading' | 'added' | 'error';
-  message?: string;
-}
-
-const MessageContent = React.memo(({ content, messageId, onLinkSubmit }: MessageContentProps) => {
-  // Function to extract URLs from text with their surrounding context
-  const extractLinks = React.useMemo(() => {
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const urls = content.match(urlRegex) || [];
-    
-    if (urls.length === 0) return { text: content, links: [] };
-    
-    // Extract URLs with context
-    const links = urls.map(url => {
-      // Clean up the URL if it has trailing punctuation
-      const cleanUrl = url.replace(/[.,;:!?)]+$/, '');
-      
-      // Replace utm_source=openai with utm_source=mystylus.com if present
-      let processedUrl = cleanUrl;
-      try {
-        const urlObj = new URL(cleanUrl);
-        if (urlObj.searchParams.has('utm_source') && urlObj.searchParams.get('utm_source') === 'openai') {
-          urlObj.searchParams.set('utm_source', 'mystylus.com');
-          processedUrl = urlObj.toString();
-        }
-      } catch (e) {
-        // If URL parsing fails, just use the original URL
-        processedUrl = cleanUrl;
-      }
-      
-      // Get the sentence containing the URL or nearby context
-      const sentences = content.split(/(?<=[.!?])\s+/);
-      const sentenceWithUrl = sentences.find(s => s.includes(cleanUrl)) || '';
-      
-      // Try to extract a title-like text before the URL
-      const beforeUrl = sentenceWithUrl.split(cleanUrl)[0].trim();
-      
-      // Look for text in quotes, between brackets, or take the last 5-7 words
-      let title = '';
-      const quoteMatch = beforeUrl.match(/['"]([^'"]+)['"]\s*$/);
-      const bracketMatch = beforeUrl.match(/\[([^\]]+)\]\s*$/);
-      
-      if (quoteMatch) {
-        title = quoteMatch[1];
-      } else if (bracketMatch) {
-        title = bracketMatch[1];
-      } else {
-        // Get domain name as fallback title
-        try {
-          const urlObj = new URL(processedUrl);
-          title = urlObj.hostname.replace(/^www\./, '');
-        } catch (e) {
-          title = processedUrl;
-        }
-      }
-      
-      // Get format/extension
-      const extension = (() => {
-        try {
-          // Extract extension from pathname
-          const urlObj = new URL(processedUrl);
-          const path = urlObj.pathname;
-          const lastDotIndex = path.lastIndexOf('.');
-          if (lastDotIndex !== -1 && lastDotIndex < path.length - 1) {
-            return path.substring(lastDotIndex + 1);
-          }
-          return '';
-        } catch (e) {
-          return '';
-        }
-      })();
-      
-      return {
-        url: processedUrl,
-        title: title || 'Link',
-        context: sentenceWithUrl,
-        domain: (() => {
-          try {
-            const urlObj = new URL(processedUrl);
-            return urlObj.hostname.replace(/^www\./, '');
-          } catch (e) {
-            return '';
-          }
-        })(),
-        extension
-      };
-    });
-    
-    // Remove duplicate links
-    const uniqueLinks = links.filter((link, index, self) => 
-      index === self.findIndex(l => l.url === link.url)
-    );
-    
-    return { text: content, links: uniqueLinks };
-  }, [content]);
-  
-  const { text, links } = extractLinks;
-  const [linkStates, setLinkStates] = useState<Record<string, LinkState>>({});
-  const [addedTooltipVisible, setAddedTooltipVisible] = useState<Record<string, boolean>>({}); // State for added tooltips
-  const addedTooltipRefs = useRef<Record<string, HTMLDivElement | null>>({}); // Refs for added tooltips
-
-  // Close added tooltip when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      Object.keys(addedTooltipRefs.current).forEach(url => {
-        if (addedTooltipRefs.current[url] && !addedTooltipRefs.current[url]!.contains(event.target as Node)) {
-          setAddedTooltipVisible(prev => ({ ...prev, [url]: false }));
-        }
-      });
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  // Function to handle link submission with loading state
-  const handleLinkSubmitWithLoading = async (url: string) => {
-    setLinkStates(prev => ({ ...prev, [url]: { status: 'loading' } }));
-    try {
-      await onLinkSubmit!(url); // Use non-null assertion as it's checked before calling
-      setLinkStates(prev => ({ ...prev, [url]: { status: 'added', message: 'Link added successfully' } }));
-      // Show success notification
-      const notification = document.createElement('div');
-      notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm';
-      notification.textContent = 'Link added successfully';
-      document.body.appendChild(notification);
-      setTimeout(() => notification.remove(), 2000);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to add link';
-      setLinkStates(prev => ({ ...prev, [url]: { status: 'error', message: errorMessage } }));
-      // Show error notification
-      const notification = document.createElement('div');
-      notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm';
-      notification.textContent = errorMessage;
-      document.body.appendChild(notification);
-      setTimeout(() => notification.remove(), 2000);
-      // Optionally reset to idle after a delay on error
-      // setTimeout(() => setLinkStates(prev => ({ ...prev, [url]: { status: 'idle' } })), 3000);
-    }
-  };
-  
-  // Function to preserve multiple spaces and proper formatting
-  const preserveWhitespace = (content: string) => {
-    if (!content) return '';
-    
-    // First handle multiple consecutive line breaks to preserve paragraph spacing
-    let processedContent = content.replace(/\n{2,}/g, match => {
-      return '\n<br/>\n';
-    });
-    
-    // Convert all instances of two or more spaces to line breaks
-    // This is the critical fix - replace double spaces with <br/> tags
-    processedContent = processedContent.replace(/( {2,})/g, '<br/>');
-    
-    // Replace single linebreaks with <br> tags for markdown conversion
-    return processedContent.replace(/\n/g, '<br/>');
-  };
-  
-  // Function to toggle added tooltip visibility
-  const toggleAddedTooltip = (url: string) => {
-    setAddedTooltipVisible(prev => ({ ...prev, [url]: !prev[url] }));
-  };
-  
-  return (
-    <div 
-      id={messageId ? `message-${messageId}` : undefined} 
-      className="prose prose-sm dark:prose-invert max-w-none message-content-container preserve-all-breaks"
-    >
-      <GlobalStyles />
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[
-          rehypeKatex,
-          rehypeRaw,
-          rehypeSanitize,
-          [rehypeHighlight, { detect: true, ignoreMissing: true }]
-        ]}
-        components={{
-          // Updated paragraph handling to preserve whitespace
-          p: ({ children }) => {
-            // Always render with whitespace preservation now
-            return (
-              <p className="mb-4 last:mb-0 whitespace-pre-wrap break-words preserve-breaks">{children}</p>
-            );
-          },
-          h1: ({ children }) => <h1 className="text-2xl font-bold mb-4">{children}</h1>,
-          h2: ({ children }) => <h2 className="text-xl font-bold mb-3">{children}</h2>,
-          h3: ({ children }) => <h3 className="text-lg font-bold mb-2">{children}</h3>,
-          ul: ({ children }) => <ul className="list-disc pl-6 mb-4 space-y-1">{children}</ul>,
-          ol: ({ children }) => <ol className="list-decimal pl-6 mb-4 space-y-1">{children}</ol>,
-          li: ({ children }) => <li className="pl-1">{children}</li>,
-          pre: ({ children }) => (
-            <pre className="text-sm p-4 rounded bg-secondary overflow-auto mb-4">
-              {children}
-            </pre>
-          ),
-          code: ({ node, className, children, ...props }) => {
-            // If has language class, it's a code block (already handled by pre)
-            if (className?.startsWith('language-')) {
-              return (
-                <code className={className} {...props}>
-                  {children}
-                </code>
-              );
-            }
-            
-            // It's an inline code element
-            return (
-              <code className="px-1 py-0.5 text-sm bg-muted rounded" {...props}>
-                {children}
-              </code>
-            );
-          },
-          // Improved table with proper overflow handling
-          table: ({ children }) => (
-            <div className="overflow-x-auto mb-4">
-              <table className="min-w-full divide-y divide-gray-200">
-                {children}
-              </table>
-            </div>
-          ),
-          blockquote: ({ children }) => (
-            <blockquote className="border-l-4 border-slate-300 dark:border-slate-700 pl-4 italic mb-4">
-              {children}
-            </blockquote>
-          ),
-          a: ({ node, href, children, ...props }) => {
-            if (!href) return <a {...props}>{children}</a>;
-            
-            // Modify utm_source=openai to utm_source=mystylus.com if present
-            let processedHref = href;
-            try {
-              const urlObj = new URL(href);
-              if (urlObj.searchParams.has('utm_source') && urlObj.searchParams.get('utm_source') === 'openai') {
-                urlObj.searchParams.set('utm_source', 'mystylus.com');
-                processedHref = urlObj.toString();
-              }
-            } catch (e) {
-              // If URL parsing fails, just use the original href
-              processedHref = href;
-            }
-            
-            // Regular link rendering - now with bold black text styling
-            return (
-              <a 
-                href={processedHref} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="font-bold text-black dark:text-white hover:underline" 
-                {...props}
-              >
-                {children}
-              </a>
-            );
-          },
-          // Handle line breaks properly
-          br: () => <br className="line-break" />,
-        }}
-      >
-        {preserveWhitespace(content)}
-      </ReactMarkdown>
-      
-      {/* Display all links as cards outside the markdown content */}
-      {links.length > 0 && (
-        <div className="my-3 relative">
-          {/* Restore horizontal scrolling but ensure tooltips are visible */}
-          <div className="flex overflow-x-auto pb-2 hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            <div className="flex gap-3">
-              {links.map((link, index) => {
-                const currentState = linkStates[link.url] || { status: 'idle' };
-                const isAddedTooltipCurrentlyVisible = addedTooltipVisible[link.url] || false;
-                
-                return (
-                  <div key={`link-card-${link.url}`} className="relative group">
-                    <a 
-                      href={link.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="no-underline block flex-shrink-0"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        window.open(link.url, '_blank', 'noopener,noreferrer');
-                      }}
-                    >
-                      <div 
-                        className="flex p-3 items-start gap-3 relative"
-                        style={{
-                          borderRadius: '16px',
-                          border: '1px solid var(--superlight)',
-                          background: 'var(--ultralight)',
-                          width: '160px',
-                          minWidth: '160px',
-                          maxWidth: '160px'
-                        }}
-                      >
-                        <Favicon domain={link.domain} key={`favicon-${link.domain}`} />
-                        <div className="flex flex-col flex-grow min-w-0 overflow-hidden">
-                          <div className="flex items-start w-full">
-                            <span className="truncate text-sm font-medium text-foreground">
-                              {link.domain || 'link'}
-                            </span>
-                          </div>
-                          
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            <span className="text-xs text-muted-foreground">
-                              webpage
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </a>
-                    {onLinkSubmit && currentState.status !== 'added' && ( // Don't show button if already added
-                      <Button
-                        onClick={() => handleLinkSubmitWithLoading(link.url)}
-                        variant="ghost"
-                        size="icon"
-                        className={cn(
-                          "absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white",
-                          currentState.status === 'loading' && "opacity-100 cursor-not-allowed",
-                          currentState.status === 'error' && "opacity-100"
-                        )}
-                        title={
-                          currentState.status === 'loading' ? "Adding..." :
-                          currentState.status === 'error' ? `Error: ${currentState.message}` :
-                          "Add to files"
-                        }
-                        disabled={currentState.status === 'loading'}
-                      >
-                        {currentState.status === 'loading' && <Loader2 className="h-3 w-3 text-blue-500 animate-spin" />}
-                        {currentState.status === 'error' && <AlertCircle className="h-3 w-3 text-red-500" />}
-                        {currentState.status === 'idle' && <Plus className="h-3 w-3 text-blue-500" />}
-                      </Button>
-                    )}
-                    {/* Show checkmark if added - make it clickable */}
-                    {currentState.status === 'added' && (
-                      <div 
-                        ref={(el) => { addedTooltipRefs.current[link.url] = el; }}
-                        className="absolute top-1 right-1 cursor-pointer"
-                        onClick={() => toggleAddedTooltip(link.url)}
-                      >
-                        <div className="h-6 w-6 flex items-center justify-center rounded-full bg-green-100 hover:bg-green-200 transition-colors">
-                          <Check className="h-3 w-3 text-green-600" />
-                        </div>
-                        {/* Added Tooltip with fixed positioning */}
-                        {isAddedTooltipCurrentlyVisible && (
-                          <div 
-                            className="fixed transform -translate-x-1/2 transition-opacity duration-200" 
-                            style={{ 
-                              zIndex: 9999,
-                              width: '200px',
-                              // Position will be calculated and set by useEffect
-                              left: '50%',
-                              bottom: '30px' // Default fallback
-                            }}
-                            ref={(el) => {
-                              if (el && addedTooltipRefs.current[link.url]) {
-                                // Calculate position relative to the checkmark icon
-                                const rect = addedTooltipRefs.current[link.url]!.getBoundingClientRect();
-                                el.style.left = `${rect.left + rect.width/2}px`;
-                                el.style.bottom = `${window.innerHeight - rect.top + 10}px`;
-                              }
-                            }}
-                          >
-                            <div className="relative">
-                              {/* Arrow */}
-                              <div className="w-2 h-2 bg-[#232323] transform rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2" style={{ zIndex: 101 }}></div>
-
-                              {/* Tooltip content */}
-                              <div
-                                style={{
-                                  zIndex: 100, // Ensure tooltip is above other elements
-                                  display: "flex",
-                                  padding: "8px 12px",
-                                  flexDirection: "column",
-                                  alignItems: "center",
-                                  borderRadius: "12px",
-                                  background: "var(--Monochrome-Black, #232323)",
-                                  boxShadow: "0px 0px 20px 0px rgba(203, 203, 203, 0.20)",
-                                  position: "relative",
-                                  textAlign: "center"
-                                }}
-                              >
-                                <div
-                                  className="w-full"
-                                  style={{
-                                    color: "var(--Monochrome-White, #FFF)",
-                                    fontSize: "12px",
-                                    fontStyle: "normal",
-                                    fontWeight: "400",
-                                    lineHeight: "16px"
-                                  }}
-                                >
-                                  File added to chat context. Manage in File Sidebar.
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}, (prevProps, nextProps) => {
-  // Only re-render if these props change
-  return (
-    prevProps.content === nextProps.content &&
-    prevProps.messageId === nextProps.messageId &&
-    // For onLinkSubmit, we only care if it goes from being defined to undefined or vice versa
-    (!!prevProps.onLinkSubmit === !!nextProps.onLinkSubmit)
-  );
-});
-
-// Add new interface for citations
-interface Citation {
-  file_id: string;
-  index: number;
-  type: string;
-  filename: string;
-}
 
 // Add interface for annotation object
 interface FileAnnotation {
@@ -670,9 +83,10 @@ interface MessageProps {
     toolName?: string;
   };
   currentAgent?: string;
+  cachedMetadata?: Record<string, any>; // Add cached metadata from parent
 }
 
-export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFileSelect, annotations: propAnnotations, currentAgent }: MessageProps) {
+export const Message = React.memo(function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFileSelect, annotations: propAnnotations, currentAgent, cachedMetadata = {} }: MessageProps) {
   // Add console.log to check if annotations are being received
   useEffect(() => {
     if (propAnnotations) {
@@ -700,6 +114,8 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
   const [shouldFetchMetadata, setShouldFetchMetadata] = useState(false);
   const [syntheticAnnotations, setSyntheticAnnotations] = useState<any>(null);
   const [notification, setNotification] = useState<string | null>(null);
+  // Add new state to stabilize hasFileAnnotations
+  const [hasStableFileAnnotations, setHasStableFileAnnotations] = useState(false);
   
   // Add new state for tooltip visibility
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
@@ -709,6 +125,12 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
   
   // Render the file detail modal when a file is selected
   const [selectedFile, setSelectedFile] = useState<UploadedFile | null>(null);
+  
+  // Track which file card is currently loading
+  const [loadingFileId, setLoadingFileId] = useState<string | null>(null);
+  
+  // Determine if this message is in a loading/streaming state
+  const isStreaming = message.role === 'assistant' && message.content === '';
   
   // Function to handle sending messages from file detail modal
   const handleSendMessage = (message: string) => {
@@ -727,9 +149,6 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
   
   // Use both prop annotations and synthetic annotations
   const annotations = propAnnotations || syntheticAnnotations;
-  
-  // Track which file card is currently loading
-  const [loadingFileId, setLoadingFileId] = useState<string | null>(null);
   
   // Function to handle file click and get full file details
   const handleFileClick = async (fileId: string, filename: string) => {
@@ -890,14 +309,12 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
     if (message.role === 'assistant' && message.metadata?.has_citations && !annotations) {
       const fileIds = extractFileIdsFromMetadata(message);
       
-      // Fetch metadata for each file ID
-      fileIds.forEach(fileId => {
-        fetchFileMetadata(fileId);
-      });
-      
-      // If we found file IDs, we want to trigger metadata loading
+      // If we found file IDs, we want to trigger metadata loading flag
+      // but don't automatically fetch
       if (fileIds.length > 0) {
-        setShouldFetchMetadata(true);
+        console.log("Found file IDs in message metadata, but not automatically fetching");
+        // We've removed automatic fetching, so just log the IDs
+        // setShouldFetchMetadata(true); // Removed automatic fetch trigger
       }
     }
   }, [message.id, message.metadata, message.role, message.content, annotations]);
@@ -929,7 +346,11 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
       };
       
       setSyntheticAnnotations(synthetic);
-      setShouldFetchMetadata(true);
+      
+      // No longer triggering metadata fetch after a delay
+      // setTimeout(() => {
+      //   setShouldFetchMetadata(true);
+      // }, 100);
     }
   }, [message.metadata, propAnnotations, message.role, message.timestamp]);
   
@@ -944,18 +365,148 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
     }
   }, [enhancedText]);
   
-  // Function to check if we have access to the annotations
-  const ensureAnnotationsAvailable = async () => {
-    // If we already have annotations (from props or synthetic) or they're not needed, skip
+  // Optimize the metadata fetching function with useCallback - now with cache awareness
+  const fetchFileMetadata = useCallback(async (fileId: string) => {
+    // First check if we already have this in local state
+    if (fileMetadata[fileId] || isLoadingMetadata[fileId]) return;
+    
+    // Then check if it's in the cache passed from parent
+    if (cachedMetadata[fileId]) {
+      console.log("Using cached metadata from parent for file:", fileId);
+      setFileMetadata(prev => ({ 
+        ...prev, 
+        [fileId]: cachedMetadata[fileId]
+      }));
+      return;
+    }
+    
+    // If not in cache, fetch it
+    setIsLoadingMetadata(prev => ({ ...prev, [fileId]: true }));
+    
+    try {
+      console.log("Fetching metadata for file:", fileId);
+      // First, get the basic file info
+      const backendUrl = getBackendUrl();
+      const response = await fetch(`${backendUrl}/api/files/${fileId}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch file metadata: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log("Received basic metadata:", data);
+      
+      // Use chat_session_id to get full metadata
+      if (data.chatSessionId) {
+        const fullResponse = await fetch(`${backendUrl}/api/files?chat_session_id=${encodeURIComponent(data.chatSessionId)}`);
+        
+        if (fullResponse.ok) {
+          const fullData = await fullResponse.json();
+          console.log("Received full metadata:", fullData);
+          
+          if (Array.isArray(fullData)) {
+            const fileData = fullData.find(file => file.id === fileId);
+            if (fileData && fileData.document) {
+              // We have full data with document metadata
+              setFileMetadata(prev => ({ 
+                ...prev, 
+                [fileId]: {
+                  file_name: fileData.name,
+                  doc_authors: fileData.document.authors || [],
+                  doc_publication_year: fileData.document.publication_year,
+                  doc_type: fileData.document.type
+                }
+              }));
+              setIsLoadingMetadata(prev => ({ ...prev, [fileId]: false }));
+              return;
+            }
+          }
+        }
+      }
+      
+      // Fallback to basic data if full data fetch fails
+      setFileMetadata(prev => ({ 
+        ...prev, 
+        [fileId]: {
+          file_name: data.name || fileId
+        }
+      }));
+    } catch (error) {
+      console.error("Error fetching file metadata:", error);
+      // Fallback to file ID as name to prevent eternal loading state
+      setFileMetadata(prev => ({ 
+        ...prev, 
+        [fileId]: {
+          file_name: fileId
+        }
+      }));
+    } finally {
+      setIsLoadingMetadata(prev => ({ ...prev, [fileId]: false }));
+    }
+  }, [fileMetadata, isLoadingMetadata, cachedMetadata]);
+
+  // Clean up the effects to prevent excessive re-renders:
+
+  // 1. Optimize when to process annotations 
+  useEffect(() => {
+    if (shouldFetchMetadata && annotations) {
+      // Set timeout to prevent multiple fetches in quick succession
+      const timeoutId = setTimeout(() => {
+        console.log("Found annotations but NOT automatically fetching metadata");
+        // We can parse citations but won't automatically fetch metadata
+        const citations = parseCitations(annotations.content);
+        
+        if (citations.length > 0) {
+          // Log the citations we found for debugging
+          console.log(`Found ${citations.length} citations, but not automatically fetching metadata`);
+        }
+        
+        // Reset the flag to prevent refetching
+        setShouldFetchMetadata(false);
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [shouldFetchMetadata, annotations]);
+
+  // 2. Optimize the streaming end detection
+  useEffect(() => {
+    // Only trigger once per streaming session when it ends
+    if (!isStreaming && message.role === 'assistant' && message.content !== '' && annotations) {
+      const timeoutId = setTimeout(() => {
+        console.log("Streaming ended, but not automatically fetching metadata");
+        // Disabled automatic fetching of metadata at streaming end
+        
+        // No longer triggering automatic metadata fetch
+        // const citations = parseCitations(annotations.content);
+        // const needsMetadata = citations.some(citation => 
+        //   !fileMetadata[citation.file_id] && !isLoadingMetadata[citation.file_id]
+        // );
+        // 
+        // if (needsMetadata) {
+        //   setShouldFetchMetadata(true);
+        // }
+      }, 300);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isStreaming, message.content, message.role, annotations]);
+
+  // 3. Update the ensureAnnotationsAvailable function to be more efficient
+  const ensureAnnotationsAvailable = useCallback(async () => {
+    // Skip if we already have annotations or they aren't needed
     if (annotations || !message.metadata?.has_citations) return null;
     
-    // We have enhanced content but no annotations - need to fetch them
-    if ((message.metadata?.has_citations || message.content.includes('citation')) && message.sessionId && message.id) {
+    // Skip if we've already attempted to fetch recently (add a flag to track this)
+    if (message.role === 'assistant' && 
+        (message.metadata?.has_citations || message.content.includes('citation')) && 
+        message.sessionId && 
+        message.id) {
+      
+      console.log("Fetching annotations for message:", message.id);
+      
       try {
-        console.log("Fetching annotations for message:", message.id);
-        
         const backendUrl = getBackendUrl();
-        // First try to get tool messages with annotations for this specific message
         const toolResponse = await fetch(
           `${backendUrl}/api/chat-sessions/${message.sessionId}/messages?role=tool&toolAction=annotations`
         );
@@ -965,7 +516,6 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
         }
         
         const toolData = await toolResponse.json();
-        console.log("Annotations tool messages response:", toolData);
         
         // Find the annotation that corresponds to this message based on timing
         let annotationContent = null;
@@ -987,12 +537,11 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
           const closestToolMessage = sortedToolMessages[0];
           if (closestToolMessage && closestToolMessage.content) {
             annotationContent = closestToolMessage.content;
-            console.log("Found annotation content:", annotationContent.substring(0, 50) + "...");
           }
         }
         
         if (annotationContent) {
-          // Create a synthetic annotations object
+          // Create a synthetic annotations object only once
           const fetchedAnnotations = {
             role: 'tool' as MessageType['role'],
             toolAction: 'annotations' as const,
@@ -1004,8 +553,10 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
           // Set the synthetic annotations state
           setSyntheticAnnotations(fetchedAnnotations);
           
-          // Trigger metadata fetch
-          setShouldFetchMetadata(true);
+          // No longer triggering metadata fetch after a delay
+          // setTimeout(() => {
+          //   setShouldFetchMetadata(true);
+          // }, 100);
           
           return fetchedAnnotations;
         }
@@ -1015,15 +566,15 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
     }
     
     return null;
-  };
+  }, [message.id, message.metadata, message.role, message.sessionId, message.timestamp, message.content, annotations]);
 
-  // Use effect to ensure annotations are available when message loads
+  // Update the effect to use the memoized function
   useEffect(() => {
     // Only run this for assistant messages with citations but no annotations
     if (message.role === 'assistant' && message.metadata?.has_citations && !annotations) {
       ensureAnnotationsAvailable();
     }
-  }, [message.id, message.metadata, message.role, annotations]);
+  }, [message.id, message.metadata, message.role, annotations, ensureAnnotationsAvailable]);
 
   // Add useEffect to load enhanced content on mount if it exists in metadata
   useEffect(() => {
@@ -1080,27 +631,29 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
         
         // If we don't have annotations but the message contains citations, trigger metadata fetch
         if (!annotations && message.content.includes('citation')) {
-          console.log("Enhanced message has citations but no annotations, will try to extract citation info");
-          setShouldFetchMetadata(true);
+          console.log("Enhanced message has citations but no annotations - not automatically fetching metadata");
+          // No longer automatically fetching metadata
+          // setShouldFetchMetadata(true);
           
+          // No longer extracting and fetching citation file IDs
           // Try to extract citation file IDs from the enhanced message content
           // Look for common citation patterns like (Author YYYY) or [X]
-          const citationRegex = /\(([^)]+)\s+(\d{4})\)|\[(\d+)\]/g;
-          let match;
-          const extractedCitations = new Set<string>();
-          
-          while ((match = citationRegex.exec(message.content)) !== null) {
-            // We found a citation, now look for file IDs in the message metadata
-            if (message.metadata.citations && Array.isArray(message.metadata.citations)) {
-              message.metadata.citations.forEach((citation: any) => {
-                if (citation.file_id && !extractedCitations.has(citation.file_id)) {
-                  extractedCitations.add(citation.file_id);
-                  console.log(`Extracted citation file ID from metadata: ${citation.file_id}`);
-                  fetchFileMetadata(citation.file_id);
-                }
-              });
-            }
-          }
+          // const citationRegex = /\(([^)]+)\s+(\d{4})\)|\[(\d+)\]/g;
+          // let match;
+          // const extractedCitations = new Set<string>();
+          // 
+          // while ((match = citationRegex.exec(message.content)) !== null) {
+          //   // We found a citation, now look for file IDs in the message metadata
+          //   if (message.metadata.citations && Array.isArray(message.metadata.citations)) {
+          //     message.metadata.citations.forEach((citation: any) => {
+          //       if (citation.file_id && !extractedCitations.has(citation.file_id)) {
+          //         extractedCitations.add(citation.file_id);
+          //         console.log(`Extracted citation file ID from metadata: ${citation.file_id}`);
+          //         fetchFileMetadata(citation.file_id);
+          //       }
+          //     });
+          //   }
+          // }
         }
       }
     }
@@ -1133,9 +686,6 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
       });
     }
   }, [message.role, message.metadata, enhancedText]);
-
-  // Determine if this message is in a loading/streaming state
-  const isStreaming = message.role === 'assistant' && message.content === '';
 
   // Function to parse citations from content
   const parseCitations = (content: string): Citation[] => {
@@ -1224,113 +774,6 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
     }
     return [];
   };
-
-  // Function to fetch file metadata
-  const fetchFileMetadata = async (fileId: string) => {
-    if (fileMetadata[fileId] || isLoadingMetadata[fileId]) return;
-    
-    setIsLoadingMetadata(prev => ({ ...prev, [fileId]: true }));
-    
-    try {
-      console.log("Fetching metadata for file:", fileId);
-      // First, get the basic file info
-      const backendUrl = getBackendUrl();
-      const response = await fetch(`${backendUrl}/api/files/${fileId}`);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch file metadata: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log("Received basic metadata:", data);
-      
-      // Use chat_session_id to get full metadata
-      if (data.chatSessionId) {
-        const fullResponse = await fetch(`${backendUrl}/api/files?chat_session_id=${encodeURIComponent(data.chatSessionId)}`);
-        
-        if (fullResponse.ok) {
-          const fullData = await fullResponse.json();
-          console.log("Received full metadata:", fullData);
-          
-          if (Array.isArray(fullData)) {
-            const fileData = fullData.find(file => file.id === fileId);
-            if (fileData && fileData.document) {
-              // We have full data with document metadata
-              setFileMetadata(prev => ({ 
-                ...prev, 
-                [fileId]: {
-                  file_name: fileData.name,
-                  doc_authors: fileData.document.authors || [],
-                  doc_publication_year: fileData.document.publication_year,
-                  doc_type: fileData.document.type
-                }
-              }));
-              setIsLoadingMetadata(prev => ({ ...prev, [fileId]: false }));
-              return;
-            }
-          }
-        }
-      }
-      
-      // Fallback to basic data if full data fetch fails
-      setFileMetadata(prev => ({ 
-        ...prev, 
-        [fileId]: {
-          file_name: data.name || fileId
-        }
-      }));
-    } catch (error) {
-      console.error("Error fetching file metadata:", error);
-      // Fallback to file ID as name to prevent eternal loading state
-      setFileMetadata(prev => ({ 
-        ...prev, 
-        [fileId]: {
-          file_name: fileId
-        }
-      }));
-    } finally {
-      setIsLoadingMetadata(prev => ({ ...prev, [fileId]: false }));
-    }
-  };
-
-  // Watch for when streaming ends and set shouldFetchMetadata flag
-  useEffect(() => {
-    if (!isStreaming && message.role === 'assistant' && message.content !== '' && annotations) {
-      setShouldFetchMetadata(true);
-    }
-  }, [isStreaming, message.content, message.role, annotations]);
-
-  // Add useEffect to fetch metadata for citations when shouldFetchMetadata is true
-  useEffect(() => {
-    if (shouldFetchMetadata && annotations) {
-      console.log("Fetching metadata for citations in annotations");
-      const citations = parseCitations(annotations.content);
-      
-      // Log the parsed citations for debugging
-      console.log("Parsed citations:", citations);
-      
-      if (citations.length > 0) {
-        // Create a Map to store unique citations by file_id
-        const uniqueCitations = new Map();
-        citations.forEach(citation => {
-          if (!uniqueCitations.has(citation.file_id)) {
-            uniqueCitations.set(citation.file_id, citation);
-          }
-        });
-        
-        // Fetch metadata for all unique citations
-        Array.from(uniqueCitations.values()).forEach(citation => {
-          console.log("Fetching metadata for citation:", citation);
-          fetchFileMetadata(citation.file_id);
-        });
-      } else {
-        console.warn("No citations found in annotations content:", annotations.content.substring(0, 100));
-      }
-      
-      // Reset the flag to prevent refetching
-      setShouldFetchMetadata(false);
-    }
-  }, [shouldFetchMetadata, annotations, fileMetadata, isLoadingMetadata]);
 
   // Function to fetch file content
   const handleFetchFileContent = async (fileId: string) => {
@@ -1647,6 +1090,13 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
     }
     return agentName;
   };
+
+  // Use effect to determine if this message has file annotations and set it once
+  useEffect(() => {
+    if (propAnnotations || syntheticAnnotations || (message.metadata?.has_citations && message.citations && message.citations.length > 0)) {
+      setHasStableFileAnnotations(true);
+    }
+  }, [propAnnotations, syntheticAnnotations, message.metadata?.has_citations, message.citations]);
 
   // Render system message for agent transitions differently
   if (message.role === 'system' && message.agentName) {
@@ -2094,6 +1544,7 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
                     content={enhancedText || message.content} 
                     messageId={message.id} 
                     onLinkSubmit={onLinkSubmit} // Pass the handler down
+                    hasFileAnnotations={false} // Always set to false to keep link cards visible
                   />
                 </div>
               </>
@@ -2102,510 +1553,53 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
             {/* Action buttons below message content */}
             {!isEditing && !isLoadingEnhancedText && !isStreaming && (
               <div className="flex items-center gap-2 mt-3 justify-between">
-                {/* Include Citations button */}
-                <div>
+                {/* Left side: Citations controls and badges in same line */}
+                <div className="flex items-center gap-2">
                   {message.role === 'assistant' && annotations && 
                     parseCitations(annotations.content).length > 0 && (
-                      <div className="inline-flex">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button 
-                              variant="ghost"
-                              size="sm"
-                              className={cn(
-                                "text-slate-500 hover:bg-gray-100 rounded-md cursor-pointer transition-colors",
-                                !message.content && "opacity-50 cursor-not-allowed"
-                              )}
-                              style={{
-                                display: 'flex',
-                                padding: '0 12px',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                gap: '4px',
-                                width: '85px',
-                                fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
-                              }}
-                              disabled={isLoadingEnhancedText}
-                            >
-                              <span className="text-xs font-medium uppercase text-black" style={{ color: 'black' }}>{citationStyle}</span>
-                              <ChevronDown className="h-3 w-3 flex-shrink-0 text-black" style={{ color: 'black' }} />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent 
-                            align="start" 
-                            className="w-48 focus:ring-0 focus:outline-none"
-                            style={{
-                              display: 'flex',
-                              width: '180px',
-                              padding: '8px',
-                              flexDirection: 'column',
-                              alignItems: 'flex-start',
-                              borderRadius: '12px',
-                              background: 'var(--Monochrome-Black, #232323)',
-                              boxShadow: '0px 0px 20px 0px rgba(203, 203, 203, 0.20)',
-                              fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
-                            }}
-                          >
-                            <DropdownMenuLabel className="text-gray-400 text-xs w-full">
-                              Select Citation Format
-                            </DropdownMenuLabel>
-                            <div className="py-1 w-full">
-                              <DropdownMenuItem 
-                                onClick={() => { 
-                                  setCitationStyle("apa"); 
-                                }}
-                                className="w-full px-4 py-2 text-left focus:bg-transparent focus:outline-none"
-                                style={{
-                                  color: 'var(--Monochrome-White, #FFF)',
-                                  borderRadius: '8px',
-                                  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-                                  fontSize: '14px',
-                                  fontStyle: 'normal',
-                                  fontWeight: 400,
-                                  lineHeight: '20px'
-                                }}
-                                title="American Psychological Association style"
-                              >
-                                <div className="flex items-center justify-between w-full">
-                                  <span>APA Style</span>
-                                  {citationStyle === "apa" && (
-                                    <Check className="h-3.5 w-3.5 text-blue-500" />
-                                  )}
-                                </div>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => { 
-                                  setCitationStyle("mla"); 
-                                }}
-                                className="w-full px-4 py-2 text-left focus:bg-transparent focus:outline-none"
-                                style={{
-                                  color: 'var(--Monochrome-White, #FFF)',
-                                  borderRadius: '8px',
-                                  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-                                  fontSize: '14px',
-                                  fontStyle: 'normal',
-                                  fontWeight: 400,
-                                  lineHeight: '20px'
-                                }}
-                                title="Modern Language Association style"
-                              >
-                                <div className="flex items-center justify-between w-full">
-                                  <span>MLA Style</span>
-                                  {citationStyle === "mla" && (
-                                    <Check className="h-3.5 w-3.5 text-blue-500" />
-                                  )}
-                                </div>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => { 
-                                  setCitationStyle("chicago"); 
-                                }}
-                                className="w-full px-4 py-2 text-left focus:bg-transparent focus:outline-none"
-                                style={{
-                                  color: 'var(--Monochrome-White, #FFF)',
-                                  borderRadius: '8px',
-                                  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-                                  fontSize: '14px',
-                                  fontStyle: 'normal',
-                                  fontWeight: 400,
-                                  lineHeight: '20px'
-                                }}
-                                title="Chicago Manual of Style"
-                              >
-                                <div className="flex items-center justify-between w-full">
-                                  <span>Chicago Style</span>
-                                  {citationStyle === "chicago" && (
-                                    <Check className="h-3.5 w-3.5 text-blue-500" />
-                                  )}
-                                </div>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => { 
-                                  setCitationStyle("ieee"); 
-                                }}
-                                className="w-full px-4 py-2 text-left focus:bg-transparent focus:outline-none"
-                                style={{
-                                  color: 'var(--Monochrome-White, #FFF)',
-                                  borderRadius: '8px',
-                                  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-                                  fontSize: '14px',
-                                  fontStyle: 'normal',
-                                  fontWeight: 400,
-                                  lineHeight: '20px'
-                                }}
-                                title="Institute of Electrical and Electronics Engineers style"
-                              >
-                                <div className="flex items-center justify-between w-full">
-                                  <span>IEEE Style</span>
-                                  {citationStyle === "ieee" && (
-                                    <Check className="h-3.5 w-3.5 text-blue-500" />
-                                  )}
-                                </div>
-                              </DropdownMenuItem>
-                            </div>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                        
-                        <Button 
-                          onClick={isLoadingEnhancedText ? undefined : () => {
-                            handleCopyWithCitations(citationStyle);
-                          }}
-                          variant="ghost"
-                          size="sm"
-                          className={cn(
-                            "text-slate-500 hover:bg-gray-100 rounded-md cursor-pointer transition-colors",
-                            !message.content && "opacity-50 cursor-not-allowed"
-                          )}
-                          style={{
-                            display: 'flex',
-                            padding: '8px',
-                            alignItems: 'center',
-                            gap: '4px',
-                            height: '36px'
-                          }}
-                          disabled={isLoadingEnhancedText}
-                          title={hasCitationsIncluded ? "Update citations with selected format" : "Include citations with selected format"}
-                        >
-                          {isLoadingEnhancedText ? (
-                            <div className="flex items-center gap-1">
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              <span className="text-xs">Including...</span>
-                            </div>
-                            ) : (
-                              <span className="text-xs text-black" style={{ color: 'black' }}>
-                                {hasCitationsIncluded 
-                                  ? "Update Citations" 
-                                  : "Include Citations"}
-                              </span>
-                          )}
-                        </Button>
+                      <div className="flex items-center gap-2 px-3 border border-gray-200 rounded-[20px]">
+                        {/* Place file citation badges before citation controls */}
+                        <div className="flex-grow">
+                          <FileCitationBadges
+                            citations={parseCitations(annotations.content)}
+                            fileMetadata={fileMetadata}
+                            isLoadingMetadata={isLoadingMetadata}
+                            loadingFileId={loadingFileId}
+                            onFileClick={handleFileClick}
+                          />
                         </div>
-                      )}
+                        
+                        <div className="flex-shrink-0" style={{ maxWidth: '200px' }}>
+                          <CitationControls
+                            citationStyle={citationStyle}
+                            setCitationStyle={setCitationStyle}
+                            isLoadingEnhancedText={isLoadingEnhancedText}
+                            hasCitationsIncluded={hasCitationsIncluded}
+                            handleCopyCitation={() => handleCopyWithCitations(citationStyle)}
+                          />
+                        </div>
+                      </div>
+                    )}
                 </div>
                 
-                {/* Other buttons - remain on the right side */}
+                {/* Right side: Agent badge and message actions */}
                 <div className="flex items-center gap-2">
                   {message.role === 'assistant' && (
-                    <div className="relative" ref={tooltipRef}> {/* Use agent tooltip ref here */}
-                      <div
-                        className={`flex items-center justify-center w-6 h-6 rounded-full ${getAgentCircleColor(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant')} ${getIconTextColor(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant')} cursor-pointer`}
-                        onClick={() => setIsTooltipVisible(!isTooltipVisible)} // Toggle agent tooltip
-                      >
-                        {(() => {
-                          if (message.content === '') {
-                            return getAgentIcon(getDisplayAgentName(currentAgent || 'Assistant'));
-                          }
-                          const displayName = getDisplayAgentName(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant');
-                          return getAgentIcon(displayName);
-                        })()}
-                        {isStreaming && (
-                          <Loader2 className="h-3 w-3 animate-spin absolute top-0 right-0 -mt-1 -mr-1" />
-                        )}
-                      </div>
-
-                      {/* Agent Tooltip - Restored Content */}
-                      {isTooltipVisible && (
-                        <div className="absolute bottom-full left-0 mb-2 transition-opacity duration-200" style={{ zIndex: 5 }}>
-                          <div className="relative">
-                            {/* Arrow */}
-                            <div className="w-2 h-2 bg-[#232323] transform rotate-45 absolute -bottom-1 left-3" style={{ zIndex: 6 }}></div>
-      
-                            {/* Tooltip content */}
-                            <div
-                              style={{
-                                display: "flex",
-                                width: "210px",
-                                padding: "4px",
-                                flexDirection: "column",
-                                alignItems: "flex-start",
-                                borderRadius: "12px",
-                                background: "var(--Monochrome-Black, #232323)",
-                                boxShadow: "0px 0px 20px 0px rgba(203, 203, 203, 0.20)",
-                                position: "relative"
-                              }}
-                            >
-                              <div
-                                className="font-semibold p-2 w-full"
-                                style={{
-                                  color: "var(--Monochrome-White, #FFF)",
-                                  fontSize: "12px",
-                                  fontStyle: "normal",
-                                  fontWeight: "400",
-                                  lineHeight: "16px"
-                                }}
-                              >
-                                {getDisplayAgentName(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant')}
-                              </div>
-                              <div
-                                className="p-2 pt-0 w-full"
-                                style={{
-                                  color: "var(--Monochrome-White, #FFF)",
-                                  opacity: 0.7,
-                                  fontSize: "12px",
-                                  fontStyle: "normal",
-                                  fontWeight: "400",
-                                  lineHeight: "16px"
-                                }}
-                              >
-                                {getAgentDescription(getDisplayAgentName(message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant'))}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <AgentBadge 
+                      agentName={message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant'}
+                      isStreaming={isStreaming}
+                    />
                   )}
-                  {/* TTS button (only for assistant messages) - moved to here */}
-                  {message.role === 'assistant' && !message.toolAction && (
-                    <Button
-                      onClick={handleSpeak}
-                      disabled={!message.content}
-                      variant="ghost"
-                      size="sm"
-                      className={cn(
-                        "text-slate-500 hover:bg-gray-100 rounded-md cursor-pointer transition-colors",
-                        !message.content && "opacity-50 cursor-not-allowed"
-                      )}
-                      style={{
-                        display: 'flex',
-                        padding: '8px',
-                        alignItems: 'center',
-                        gap: '4px',
-                        height: '36px'
-                      }}
-                      title={(isSpeaking || isLoadingSpeech) ? "Stop playing audio" : "Play as speech"}
-                    >
-                      {isLoadingSpeech ? (
-                        <div className="flex items-center gap-1">
-                          <Loader2 className="h-4 w-4 animate-spin text-black" />
-                        </div>
-                      ) : isSpeaking ? (
-                        <div className="flex items-center gap-1">
-                          <VolumeX className="h-4 w-4 text-blue-500" />
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1">
-                          <Volume2 className="h-4 w-4 text-black" />
-                        </div>
-                      )}
-                    </Button>
-                  )}
-                
-                <Button 
-                  onClick={() => onCopy(enhancedText || message.content)}
-                  variant="ghost"
-                  size="sm"
-                    className={cn(
-                      "text-slate-500 hover:bg-gray-100 rounded-md cursor-pointer transition-colors",
-                      !message.content && "opacity-50 cursor-not-allowed"
-                    )}
-                    style={{
-                      display: 'flex',
-                      padding: '8px',
-                      alignItems: 'center',
-                      gap: '4px',
-                      height: '36px'
-                    }}
-                  title="Copy to clipboard"
-                >
-                  <Copy className="h-3.5 w-3.5 text-black" style={{ color: 'black' }} />
-                </Button>
                   
-                <Button 
-                  onClick={() => {
-                    // Basic share functionality
-                    if (navigator.share) {
-                      navigator.share({
-                        title: 'Shared message',
-                        text: enhancedText || message.content,
-                      }).catch(console.error);
-                    } else {
-                      // Fallback to copy
-                      onCopy(enhancedText || message.content);
-                      alert('Content copied to clipboard!');
-                    }
-                  }}
-                  variant="ghost"
-                  size="sm"
-                    className={cn(
-                      "text-slate-500 hover:bg-gray-100 rounded-md cursor-pointer transition-colors",
-                      !message.content && "opacity-50 cursor-not-allowed"
-                    )}
-                    style={{
-                      display: 'flex',
-                      padding: '8px',
-                      alignItems: 'center',
-                      gap: '4px',
-                      height: '36px'
-                    }}
-                  title="Share this message"
-                >
-                  <Share2 className="h-3.5 w-3.5 text-black" style={{ color: 'black' }} />
-                </Button>
-                  
-                  {/* Delete button in the action bar */}
-                  {onDelete && (
-                          <Button
-                      onClick={() => {
-                        if (confirm('Are you sure you want to delete this message?')) {
-                          onDelete(message);
-                        }
-                      }}
-                            variant="ghost"
-                            size="sm"
-                      className={cn(
-                        "text-slate-500 hover:bg-gray-100 rounded-md cursor-pointer transition-colors",
-                        !message.content && "opacity-50 cursor-not-allowed"
-                      )}
-                      style={{
-                        display: 'flex',
-                        padding: '8px',
-                        alignItems: 'center',
-                        gap: '4px',
-                        height: '36px'
-                      }}
-                      title="Delete message"
-                    >
-                      <Trash2 className="h-3.5 w-3.5 text-black" style={{ color: 'black' }} />
-                          </Button>
-                  )}
-                        </div>
-                          </div>
-                        )}
-
-            {/* Display annotations if passed as prop */}
-            {annotations && !isStreaming && (
-              <div className="my-3">
-                <div className="flex overflow-x-auto gap-3 w-full pb-2 hide-scrollbar">
-                  <style jsx global>{`
-                    .hide-scrollbar::-webkit-scrollbar {
-                      display: none;
-                    }
-                    .hide-scrollbar {
-                      -ms-overflow-style: none;
-                      scrollbar-width: none;
-                    }
-                  `}</style>
-                {(() => {
-                  const citations = parseCitations(annotations.content);
-                  // Create a Map to store unique citations by file_id
-                  const uniqueCitations = new Map();
-                  citations.forEach(citation => {
-                    if (!uniqueCitations.has(citation.file_id)) {
-                      uniqueCitations.set(citation.file_id, citation);
-                    }
-                  });
-                  
-                  return Array.from(uniqueCitations.values()).map((citation, index) => {
-                    // We'll rely on the useEffect to fetch metadata only when streaming ends
-                    const metadata = fileMetadata[citation.file_id];
-                    const isLoading = isLoadingMetadata[citation.file_id];
-                    
-                    return (
-                      <div 
-                        key={`${citation.file_id}-${index}`}
-                        className="flex p-4 items-start gap-3 relative group flex-shrink-0 cursor-pointer"
-                        style={{
-                          borderRadius: '16px',
-                          border: '1px solid var(--superlight)',
-                          background: 'var(--ultralight)',
-                          width: '160px',
-                          minWidth: '160px',
-                          maxWidth: '160px'
-                        }}
-                        onClick={() => handleFileClick(citation.file_id, metadata?.file_name || citation.filename)}
-                      >
-                        {/* Show loading overlay when this specific file is loading */}
-                        {loadingFileId === citation.file_id && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-70 z-10 rounded-[16px]">
-                            <div className="flex flex-col items-center">
-                              <div className="h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                              <span className="text-xs mt-1 text-blue-600">Loading...</span>
-                            </div>
-                          </div>
-                        )}
-                        
-                        <div className="flex flex-col flex-grow min-w-0 overflow-hidden">
-                          <div className="flex items-start w-full">
-                            <span className="truncate text-sm font-medium text-foreground">
-                              {(metadata?.file_name || citation.filename).length > 15 
-                                ? (metadata?.file_name || citation.filename).substring(0, 15) + '...' 
-                                : (metadata?.file_name || citation.filename)}
-                            </span>
-                          </div>
-                          
-                          {isLoading ? (
-                            <div className="flex items-center gap-2 flex-wrap mt-2">
-                              <div className="h-3 bg-slate-100 rounded animate-pulse w-24"></div>
-                              <div className="h-3 bg-slate-100 rounded animate-pulse w-16"></div>
-                              <div className="h-3 bg-slate-100 rounded animate-pulse w-12"></div>
-                            </div>
-                          ) : (
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              {/* Authors - keep at the top */}
-                              {metadata?.doc_authors && metadata.doc_authors.length > 0 && (
-                                <span className="text-xs text-slate-700 flex items-center">
-                                  {Array.isArray(metadata.doc_authors) 
-                                    ? metadata.doc_authors.slice(0, 1).map((author: string) => author).join(', ')
-                                    : metadata.doc_authors}
-                                  {Array.isArray(metadata.doc_authors) && metadata.doc_authors.length > 1 && (
-                                    <span className="ml-1 inline-flex items-center justify-center text-slate-800 text-[10px]"
-                                      style={{
-                                        borderRadius: '1000px',
-                                        background: 'var(--Monochrome-Light, #E8E8E5)',
-                                        display: 'flex',
-                                        width: '18px',
-                                        height: '18px',
-                                        padding: '2px 4px 2px 2px',
-                                        flexDirection: 'column',
-                                        justifyContent: 'center',
-                                        alignItems: 'center',
-                                        gap: '10px'
-                                      }}>
-                                      +{metadata.doc_authors.length - 1}
-                                    </span>
-                                  )}
-                                </span>
-                              )}
-                              
-                              {/* File format - should be first in the bottom row */}
-                              {(metadata?.file_name || citation.filename).split('.').length > 1 && (
-                                <span className="text-xs text-muted-foreground">
-                                  {(metadata?.file_name || citation.filename).split('.').pop()?.toUpperCase()}
-                                </span>
-                              )}
-                              
-                              {/* Dot divider */}
-                              {(metadata?.file_name || citation.filename).split('.').length > 1 && 
-                               metadata?.doc_type && (
-                                <span className="text-xs text-slate-400">•</span>
-                              )}
-                              
-                              {/* Document type - should be second */}
-                              {metadata?.doc_type && (
-                                <span className="text-xs text-muted-foreground">
-                                  {metadata.doc_type}
-                                </span>
-                              )}
-                              
-                              {/* Dot divider */}
-                              {metadata?.doc_type && metadata?.doc_publication_year && (
-                                <span className="text-xs text-slate-400">•</span>
-                              )}
-                              
-                              {/* Year - should be third */}
-                              {metadata?.doc_publication_year && (
-                                <span className="text-xs text-muted-foreground">
-                                  {metadata.doc_publication_year}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  });
-                })()}
+                  <MessageActions
+                    message={message}
+                    enhancedText={enhancedText}
+                    onCopy={onCopy}
+                    onDelete={onDelete}
+                    isSpeaking={isSpeaking}
+                    isLoadingSpeech={isLoadingSpeech}
+                    handleSpeak={handleSpeak}
+                  />
                 </div>
               </div>
             )}
@@ -2626,4 +1620,45 @@ export function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFil
       )}
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  // Add cache check to the memo comparison function
+  // Helper function to parse citations inside the comparison function
+  const parseCitationsFromContent = (content?: string): { file_id: string }[] => {
+    if (!content) return [];
+    try {
+      // Simple regex-based parser for the comparison function
+      const matches = content.match(/file_id='([^']+)'/g) || [];
+      return matches.map(match => {
+        const fileId = match.replace(/file_id='|'/g, '');
+        return { file_id: fileId };
+      });
+    } catch (e) {
+      console.error("Error parsing citations in memo comparison:", e);
+      return [];
+    }
+  };
+
+  // Get citations from both props
+  const prevCitations = prevProps.annotations ? 
+    parseCitationsFromContent(prevProps.annotations.content) : [];
+  const nextCitations = nextProps.annotations ? 
+    parseCitationsFromContent(nextProps.annotations.content) : [];
+  
+  // For each citation, check if the cached metadata is different
+  for (const citation of prevCitations) {
+    const fileId = citation.file_id;
+    if (
+      (!prevProps.cachedMetadata || !prevProps.cachedMetadata[fileId]) && 
+      (nextProps.cachedMetadata && nextProps.cachedMetadata[fileId])
+    ) {
+      // New metadata available in cache, should rerender
+      return false;
+    }
+  }
+  
+  // Default identity check
+  return prevProps.message === nextProps.message && 
+         prevProps.onCopy === nextProps.onCopy && 
+         prevProps.annotations === nextProps.annotations && 
+         prevProps.currentAgent === nextProps.currentAgent;
+});
