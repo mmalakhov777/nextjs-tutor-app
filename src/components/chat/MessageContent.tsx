@@ -12,29 +12,91 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import rehypeHighlight from 'rehype-highlight';
 
+// Global favicon cache to prevent redundant fetches
+const faviconCache: Record<string, string> = {};
 
 // Favicon component that displays a website's favicon
 const Favicon = React.memo(({ domain }: { domain: string }) => {
-  const [faviconSrc, setFaviconSrc] = useState<string | null>(null);
+  const [faviconSrc, setFaviconSrc] = useState<string | null>(() => {
+    // Check if we already have this domain in our cache
+    return faviconCache[domain] || null;
+  });
   const [error, setError] = useState(false);
   const [attemptedSources, setAttemptedSources] = useState<string[]>([]);
+  const domainRef = useRef<string>(domain);
+  const isInitialMount = useRef<boolean>(true);
   
-  // Only run this effect when domain changes or on first mount
+  // Only run this effect on first mount to prevent re-fetching
   useEffect(() => {
-    // Reset states when domain changes
-    setError(false);
-    setAttemptedSources([]);
-    
-    if (!domain) {
-      setError(true);
-      return;
+    // Only load if this is the initial mount or if domain has actually changed
+    // and we don't have it cached
+    if ((isInitialMount.current || domainRef.current !== domain) && !faviconCache[domain]) {
+      isInitialMount.current = false;
+      domainRef.current = domain;
+      
+      // Reset states when domain changes
+      setError(false);
+      setAttemptedSources([]);
+      
+      if (!domain) {
+        setError(true);
+        return;
+      }
+      
+      // Start with Google's service which is most reliable
+      const googleFaviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+      // Preload the image to avoid flickering
+      const img = new window.Image();
+      img.onload = () => {
+        setFaviconSrc(googleFaviconUrl);
+        // Add to cache
+        faviconCache[domain] = googleFaviconUrl;
+      };
+      img.onerror = () => {
+        // Immediately try the next source
+        tryDuckDuckGo();
+      };
+      img.src = googleFaviconUrl;
+      setAttemptedSources(['google']);
     }
-    
-    // Start with Google's service which is most reliable
-    const googleFaviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
-    setFaviconSrc(googleFaviconUrl);
-    setAttemptedSources(['google']);
   }, [domain]);
+  
+  // Extracted to separate function to improve readability
+  const tryDuckDuckGo = () => {
+    if (!domainRef.current) return;
+    
+    const duckduckgoUrl = `https://icons.duckduckgo.com/ip3/${domainRef.current}.ico`;
+    const img = new window.Image();
+    img.onload = () => {
+      setFaviconSrc(duckduckgoUrl);
+      // Add to cache
+      faviconCache[domainRef.current] = duckduckgoUrl;
+    };
+    img.onerror = () => {
+      // Try direct favicon
+      tryDirectFavicon();
+    };
+    img.src = duckduckgoUrl;
+    setAttemptedSources(prev => [...prev, 'duckduckgo']);
+  };
+  
+  const tryDirectFavicon = () => {
+    if (!domainRef.current) return;
+    
+    const directUrl = `https://${domainRef.current}/favicon.ico`;
+    const img = new window.Image();
+    img.onload = () => {
+      setFaviconSrc(directUrl);
+      // Add to cache
+      faviconCache[domainRef.current] = directUrl;
+    };
+    img.onerror = () => {
+      // If all fail, show the fallback icon
+      setError(true);
+    };
+    img.src = directUrl;
+    setAttemptedSources(prev => [...prev, 'direct']);
+  };
   
   const handleError = () => {
     // Only proceed if we haven't tried all sources yet
@@ -42,21 +104,20 @@ const Favicon = React.memo(({ domain }: { domain: string }) => {
     
     // Try DuckDuckGo if Google fails
     if (!attemptedSources.includes('duckduckgo')) {
-      const duckduckgoUrl = `https://icons.duckduckgo.com/ip3/${domain}.ico`;
-      setFaviconSrc(duckduckgoUrl);
-      setAttemptedSources(prev => [...prev, 'duckduckgo']);
+      tryDuckDuckGo();
     }
     // Try direct favicon if DuckDuckGo fails
     else if (!attemptedSources.includes('direct')) {
-      const directUrl = `https://${domain}/favicon.ico`;
-      setFaviconSrc(directUrl);
-      setAttemptedSources(prev => [...prev, 'direct']);
+      tryDirectFavicon();
     }
     // If all fail, show the fallback icon
     else {
       setError(true);
     }
   };
+  
+  // Use cached value when component re-renders to prevent flicker
+  const cachedSrc = React.useMemo(() => faviconSrc, [faviconSrc]);
   
   return (
     <div 
@@ -66,23 +127,27 @@ const Favicon = React.memo(({ domain }: { domain: string }) => {
         overflow: 'hidden'
       }}
     >
-      {error || !faviconSrc ? (
+      {error || !cachedSrc ? (
         <ExternalLink className="h-4 w-4 text-blue-500" />
       ) : (
         <div className="flex items-center justify-center w-full h-full">
           <img 
-            src={faviconSrc}
+            src={cachedSrc}
             alt=""
             width={20}
             height={20}
             onError={handleError}
             className="object-contain max-w-[16px] max-h-[16px]"
+            loading="eager"
           />
         </div>
       )}
     </div>
   );
-}, (prevProps, nextProps) => prevProps.domain === nextProps.domain);
+}, (prevProps, nextProps) => {
+  // Perform a deep equality check on domain
+  return prevProps.domain === nextProps.domain;
+});
 
 
 // Add a global style component at the top of the file to avoid nesting issues
@@ -375,6 +440,201 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
     setAddedTooltipVisible(prev => ({ ...prev, [url]: !prev[url] }));
   };
   
+  // Create a separate memoized LinkCard component to prevent re-renders
+  const LinkCard = React.memo(({ 
+    link, 
+    onLinkSubmit, 
+    linkState, 
+    isAddedTooltipVisible, 
+    toggleAddedTooltip, 
+    addedTooltipRef,
+    index 
+  }: { 
+    link: { url: string; domain: string; title: string; extension: string };
+    onLinkSubmit?: (url: string) => Promise<void>;
+    linkState: LinkState;
+    isAddedTooltipVisible: boolean;
+    toggleAddedTooltip: (url: string) => void;
+    addedTooltipRef: HTMLDivElement | null;
+    index: number;
+  }) => {
+    const [ref, setRef] = useState<HTMLDivElement | null>(null);
+    
+    // Update ref when addedTooltipRef changes
+    useEffect(() => {
+      if (addedTooltipRef) {
+        setRef(addedTooltipRef);
+      }
+    }, [addedTooltipRef]);
+    
+    const handleLinkSubmitWithLoading = async () => {
+      if (!onLinkSubmit) return;
+      
+      try {
+        // Show success notification
+        const notification = document.createElement('div');
+        notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm';
+        notification.textContent = 'Adding link...';
+        document.body.appendChild(notification);
+        
+        await onLinkSubmit(link.url);
+        
+        // Update notification
+        notification.textContent = 'Link added successfully';
+        setTimeout(() => notification.remove(), 2000);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to add link';
+        
+        // Show error notification
+        const notification = document.createElement('div');
+        notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm';
+        notification.textContent = errorMessage;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 2000);
+      }
+    };
+    
+    return (
+      <div key={`link-card-${link.url}-${index}`} className="relative group">
+        <a 
+          href={link.url} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="no-underline block flex-shrink-0"
+          onClick={(e) => {
+            e.preventDefault();
+            window.open(link.url, '_blank', 'noopener,noreferrer');
+          }}
+        >
+          <div 
+            className="flex p-3 items-start gap-3 relative"
+            style={{
+              borderRadius: '16px',
+              border: '1px solid var(--superlight)',
+              background: 'var(--ultralight)',
+              width: '160px',
+              minWidth: '160px',
+              maxWidth: '160px'
+            }}
+          >
+            <Favicon domain={link.domain} key={`favicon-${link.domain}`} />
+            <div className="flex flex-col flex-grow min-w-0 overflow-hidden">
+              <div className="flex items-start w-full">
+                <span className="truncate text-sm font-medium text-foreground">
+                  {link.domain || 'link'}
+                </span>
+              </div>
+              
+              <div className="flex flex-wrap gap-2 mt-2">
+                <span className="text-xs text-muted-foreground">
+                  webpage
+                </span>
+              </div>
+            </div>
+          </div>
+        </a>
+        {onLinkSubmit && linkState.status !== 'added' && ( // Don't show button if already added
+          <Button
+            onClick={handleLinkSubmitWithLoading}
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white",
+              linkState.status === 'loading' && "opacity-100 cursor-not-allowed",
+              linkState.status === 'error' && "opacity-100"
+            )}
+            title={
+              linkState.status === 'loading' ? "Adding..." :
+              linkState.status === 'error' ? `Error: ${linkState.message}` :
+              "Add to files"
+            }
+            disabled={linkState.status === 'loading'}
+          >
+            {linkState.status === 'loading' && <Loader2 className="h-3 w-3 text-blue-500 animate-spin" />}
+            {linkState.status === 'error' && <AlertCircle className="h-3 w-3 text-red-500" />}
+            {linkState.status === 'idle' && <Plus className="h-3 w-3 text-blue-500" />}
+          </Button>
+        )}
+        {/* Show checkmark if added - make it clickable */}
+        {linkState.status === 'added' && (
+          <div 
+            ref={setRef}
+            className="absolute top-1 right-1 cursor-pointer"
+            onClick={() => toggleAddedTooltip(link.url)}
+          >
+            <div className="h-6 w-6 flex items-center justify-center rounded-full bg-green-100 hover:bg-green-200 transition-colors">
+              <Check className="h-3 w-3 text-green-600" />
+            </div>
+            {/* Added Tooltip with fixed positioning */}
+            {isAddedTooltipVisible && (
+              <div 
+                className="fixed transform -translate-x-1/2 transition-opacity duration-200" 
+                style={{ 
+                  zIndex: 9999,
+                  width: '200px',
+                  // Position will be calculated and set by useEffect
+                  left: '50%',
+                  bottom: '30px' // Default fallback
+                }}
+                ref={(el) => {
+                  if (el && ref) {
+                    // Calculate position relative to the checkmark icon
+                    const rect = ref.getBoundingClientRect();
+                    el.style.left = `${rect.left + rect.width/2}px`;
+                    el.style.bottom = `${window.innerHeight - rect.top + 10}px`;
+                  }
+                }}
+              >
+                <div className="relative">
+                  {/* Arrow */}
+                  <div className="w-2 h-2 bg-[#232323] transform rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2" style={{ zIndex: 101 }}></div>
+
+                  {/* Tooltip content */}
+                  <div
+                    style={{
+                      zIndex: 100, // Ensure tooltip is above other elements
+                      display: "flex",
+                      padding: "8px 12px",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      borderRadius: "12px",
+                      background: "var(--Monochrome-Black, #232323)",
+                      boxShadow: "0px 0px 20px 0px rgba(203, 203, 203, 0.20)",
+                      position: "relative",
+                      textAlign: "center"
+                    }}
+                  >
+                    <div
+                      className="w-full"
+                      style={{
+                        color: "var(--Monochrome-White, #FFF)",
+                        fontSize: "12px",
+                        fontStyle: "normal",
+                        fontWeight: "400",
+                        lineHeight: "16px"
+                      }}
+                    >
+                      File added to chat context. Manage in File Sidebar.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }, (prevProps, nextProps) => {
+    // Only re-render if these props change
+    return (
+      prevProps.link.url === nextProps.link.url &&
+      prevProps.link.domain === nextProps.link.domain &&
+      prevProps.linkState.status === nextProps.linkState.status &&
+      prevProps.isAddedTooltipVisible === nextProps.isAddedTooltipVisible &&
+      prevProps.index === nextProps.index
+    );
+  });
+
   return (
     <div 
       id={messageId ? `message-${messageId}` : undefined} 
@@ -485,134 +745,16 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
                 const isAddedTooltipCurrentlyVisible = addedTooltipVisible[link.url] || false;
                 
                 return (
-                  <div key={`link-card-${link.url}-${index}`} className="relative group">
-                    <a 
-                      href={link.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="no-underline block flex-shrink-0"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        window.open(link.url, '_blank', 'noopener,noreferrer');
-                      }}
-                    >
-                      <div 
-                        className="flex p-3 items-start gap-3 relative"
-                        style={{
-                          borderRadius: '16px',
-                          border: '1px solid var(--superlight)',
-                          background: 'var(--ultralight)',
-                          width: '160px',
-                          minWidth: '160px',
-                          maxWidth: '160px'
-                        }}
-                      >
-                        <Favicon domain={link.domain} key={`favicon-${link.domain}`} />
-                        <div className="flex flex-col flex-grow min-w-0 overflow-hidden">
-                          <div className="flex items-start w-full">
-                            <span className="truncate text-sm font-medium text-foreground">
-                              {link.domain || 'link'}
-                            </span>
-                          </div>
-                          
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            <span className="text-xs text-muted-foreground">
-                              webpage
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </a>
-                    {onLinkSubmit && currentState.status !== 'added' && ( // Don't show button if already added
-                      <Button
-                        onClick={() => handleLinkSubmitWithLoading(link.url)}
-                        variant="ghost"
-                        size="icon"
-                        className={cn(
-                          "absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white",
-                          currentState.status === 'loading' && "opacity-100 cursor-not-allowed",
-                          currentState.status === 'error' && "opacity-100"
-                        )}
-                        title={
-                          currentState.status === 'loading' ? "Adding..." :
-                          currentState.status === 'error' ? `Error: ${currentState.message}` :
-                          "Add to files"
-                        }
-                        disabled={currentState.status === 'loading'}
-                      >
-                        {currentState.status === 'loading' && <Loader2 className="h-3 w-3 text-blue-500 animate-spin" />}
-                        {currentState.status === 'error' && <AlertCircle className="h-3 w-3 text-red-500" />}
-                        {currentState.status === 'idle' && <Plus className="h-3 w-3 text-blue-500" />}
-                      </Button>
-                    )}
-                    {/* Show checkmark if added - make it clickable */}
-                    {currentState.status === 'added' && (
-                      <div 
-                        ref={(el) => { addedTooltipRefs.current[link.url] = el; }}
-                        className="absolute top-1 right-1 cursor-pointer"
-                        onClick={() => toggleAddedTooltip(link.url)}
-                      >
-                        <div className="h-6 w-6 flex items-center justify-center rounded-full bg-green-100 hover:bg-green-200 transition-colors">
-                          <Check className="h-3 w-3 text-green-600" />
-                        </div>
-                        {/* Added Tooltip with fixed positioning */}
-                        {isAddedTooltipCurrentlyVisible && (
-                          <div 
-                            className="fixed transform -translate-x-1/2 transition-opacity duration-200" 
-                            style={{ 
-                              zIndex: 9999,
-                              width: '200px',
-                              // Position will be calculated and set by useEffect
-                              left: '50%',
-                              bottom: '30px' // Default fallback
-                            }}
-                            ref={(el) => {
-                              if (el && addedTooltipRefs.current[link.url]) {
-                                // Calculate position relative to the checkmark icon
-                                const rect = addedTooltipRefs.current[link.url]!.getBoundingClientRect();
-                                el.style.left = `${rect.left + rect.width/2}px`;
-                                el.style.bottom = `${window.innerHeight - rect.top + 10}px`;
-                              }
-                            }}
-                          >
-                            <div className="relative">
-                              {/* Arrow */}
-                              <div className="w-2 h-2 bg-[#232323] transform rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2" style={{ zIndex: 101 }}></div>
-
-                              {/* Tooltip content */}
-                              <div
-                                style={{
-                                  zIndex: 100, // Ensure tooltip is above other elements
-                                  display: "flex",
-                                  padding: "8px 12px",
-                                  flexDirection: "column",
-                                  alignItems: "center",
-                                  borderRadius: "12px",
-                                  background: "var(--Monochrome-Black, #232323)",
-                                  boxShadow: "0px 0px 20px 0px rgba(203, 203, 203, 0.20)",
-                                  position: "relative",
-                                  textAlign: "center"
-                                }}
-                              >
-                                <div
-                                  className="w-full"
-                                  style={{
-                                    color: "var(--Monochrome-White, #FFF)",
-                                    fontSize: "12px",
-                                    fontStyle: "normal",
-                                    fontWeight: "400",
-                                    lineHeight: "16px"
-                                  }}
-                                >
-                                  File added to chat context. Manage in File Sidebar.
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  <LinkCard
+                    key={`link-card-${link.url}-${index}`}
+                    link={link}
+                    onLinkSubmit={onLinkSubmit}
+                    linkState={currentState}
+                    isAddedTooltipVisible={isAddedTooltipCurrentlyVisible}
+                    toggleAddedTooltip={toggleAddedTooltip}
+                    addedTooltipRef={addedTooltipRefs.current[link.url]}
+                    index={index}
+                  />
                 );
               })}
             </div>
