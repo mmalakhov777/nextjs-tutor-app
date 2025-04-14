@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import React from 'react';
 import Image from 'next/image';
 import { Copy, ArrowRight, File, ChevronDown, ChevronRight, Download, Search, FileText, AlertCircle, Loader2, Trash2, Pencil, Share2, Check, Link, ExternalLink, Volume2, VolumeX, Users, X, Info, Plus, Settings, Wrench, Shield, UserCircle, Brain, Globe, Sparkles, BookOpen, Code, Lightbulb, ChevronDown as ChevronDownIcon, ChevronUp } from 'lucide-react';
@@ -24,19 +24,18 @@ import { MistralLogo } from '@/components/icons/MistralLogo';
 import { PerplexityLogo } from '@/components/icons/PerplexityLogo';
 import { FileDetailModal } from './FileDetailModal';
 import { UploadedFile } from '@/types/chat';
-import { MessageContent, MessageContentProps } from './MessageContent'; // Import the new component
-import FileAnnotations from './FileAnnotations'; // Import FileAnnotations component without the Citation type
-import FileCitationBadges, { Citation } from './FileCitationBadges'; // Import FileCitationBadges with Citation type
-import AgentBadge from './AgentBadge'; // Import AgentBadge component
-import MessageActions from './MessageActions'; // Import MessageActions component
-import CitationControls from './CitationControls'; // Import CitationControls component
+import { MessageContent, MessageContentProps } from './MessageContent';
+import FileAnnotations from './FileAnnotations';
+import FileCitationBadges, { Citation } from './FileCitationBadges';
+import AgentBadge from './AgentBadge';
+import MessageActions from './MessageActions';
+import CitationControls from './CitationControls';
+import { getFileMetadataFromLocalStorage, saveFileMetadataToLocalStorage } from '@/utils/fileStorage';
 
-// Add a helper function to get the backend URL at the top of the file
 const getBackendUrl = () => {
   return process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5002';
 };
 
-// Add interface for annotation object
 interface FileAnnotation {
   type: string;
   file_citation: {
@@ -46,7 +45,6 @@ interface FileAnnotation {
   };
 }
 
-// Add FileCitation interface
 interface FileCitation {
   file_id: string;
   index: number;
@@ -56,7 +54,7 @@ interface FileCitation {
 }
 
 interface DebugState {
-  fileContents: Record<string, string | null>;  // Map of fileId to content
+  fileContents: Record<string, string | null>;  
   isLoading: boolean;
   error: string | null;
 }
@@ -83,19 +81,13 @@ interface MessageProps {
     toolName?: string;
   };
   currentAgent?: string;
-  cachedMetadata?: Record<string, any>; // Add cached metadata from parent
+  cachedMetadata?: Record<string, any>; 
 }
 
 export const Message = React.memo(function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFileSelect, annotations: propAnnotations, currentAgent, cachedMetadata = {} }: MessageProps) {
-  // Add console.log to check if annotations are being received
+  
   useEffect(() => {
-    if (propAnnotations) {
-      console.log("Message received annotations:", {
-        message_id: message.id,
-        has_annotations: !!propAnnotations,
-        annotation_content: propAnnotations.content ? propAnnotations.content.substring(0, 50) + '...' : 'No content'
-      });
-    }
+    
   }, [message.id, propAnnotations]);
 
   const [isExpanded, setIsExpanded] = useState(false);
@@ -114,50 +106,94 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
   const [shouldFetchMetadata, setShouldFetchMetadata] = useState(false);
   const [syntheticAnnotations, setSyntheticAnnotations] = useState<any>(null);
   const [notification, setNotification] = useState<string | null>(null);
-  // Add new state to stabilize hasFileAnnotations
+  
   const [hasStableFileAnnotations, setHasStableFileAnnotations] = useState(false);
   
-  // Add new state for tooltip visibility
+  
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
   
-  // New ref for handling clicks outside the tooltip
+  
   const tooltipRef = useRef<HTMLDivElement>(null);
   
-  // Render the file detail modal when a file is selected
+  
   const [selectedFile, setSelectedFile] = useState<UploadedFile | null>(null);
   
-  // Track which file card is currently loading
+  
   const [loadingFileId, setLoadingFileId] = useState<string | null>(null);
   
-  // Determine if this message is in a loading/streaming state
+  
   const isStreaming = message.role === 'assistant' && message.content === '';
   
-  // Function to handle sending messages from file detail modal
+  
   const handleSendMessage = (message: string) => {
-    // If we have onLinkSubmit, we can use it to handle the content
+    
     if (onLinkSubmit && message.startsWith('http')) {
-      // Send as link if it's a URL
-      onLinkSubmit(message).catch(console.error);
+      
+      onLinkSubmit(message).catch(error => {
+        
+      });
     }
   };
   
-  // Function to handle file quick actions from file detail modal
+  
   const handleFileQuickAction = (file: UploadedFile, action: string, content: string) => {
-    // We don't have specific handlers for file quick actions in Message component yet
-    console.log("File quick action triggered:", { file, action, content });
+    
+    
   };
   
-  // Use both prop annotations and synthetic annotations
+  
   const annotations = propAnnotations || syntheticAnnotations;
   
-  // Function to handle file click and get full file details
+  
   const handleFileClick = async (fileId: string, filename: string) => {
     try {
-      // Set loading state for this specific file card
+      
       setLoadingFileId(fileId);
       
+      
+      const storedMetadata = getFileMetadataFromLocalStorage(fileId);
+      
+      
+      if (storedMetadata && storedMetadata.file_content) {
+        
+        
+        const file: UploadedFile = {
+          id: fileId,
+          name: storedMetadata.name || filename,
+          size: storedMetadata.size || 0,
+          type: storedMetadata.type || '',
+          uploadDate: new Date(storedMetadata.uploadDate || new Date()),
+          url: storedMetadata.url || '',
+          format: storedMetadata.format || 'unknown',
+          vectorStoreId: storedMetadata.vectorStoreId || '',
+          doc_type: storedMetadata.doc_type || '',
+          doc_title: storedMetadata.doc_title || '',
+          doc_authors: storedMetadata.doc_authors || [],
+          doc_publication_year: storedMetadata.doc_publication_year || '',
+          doc_summary: storedMetadata.doc_summary || '',
+          total_pages: storedMetadata.total_pages || 0,
+          source: storedMetadata.source || 'upload',
+          status: storedMetadata.status || 'completed',
+          processed_at: storedMetadata.processed_at || '',
+          file_content: storedMetadata.file_content
+        };
+        
+        
+        if (onFileSelect) {
+          onFileSelect(file);
+        } else {
+          
+          setSelectedFile(file);
+        }
+        
+        
+        setLoadingFileId(null);
+        return;
+      }
+      
+      
       const backendUrl = getBackendUrl();
-      // First, get the basic file info
+      
       const response = await fetch(`${backendUrl}/api/files/${fileId}`);
       
       if (!response.ok) {
@@ -166,7 +202,7 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
       
       const fileData = await response.json();
       
-      // Then, try to get the file content if available
+      
       let fileContent = null;
       try {
         const contentResponse = await fetch(`${backendUrl}/api/files/${fileId}/content`);
@@ -178,11 +214,11 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
           }
         }
       } catch (contentError) {
-        console.warn("Could not load file content:", contentError);
-        // Continue with the file data we have
+        
+        
       }
       
-      // Try to fetch additional metadata if chatSessionId is available
+      
       if (fileData.chatSessionId) {
         try {
           const metadataResponse = await fetch(`${backendUrl}/api/files?chat_session_id=${encodeURIComponent(fileData.chatSessionId)}`);
@@ -191,13 +227,13 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
             if (Array.isArray(allFiles)) {
               const enrichedFile = allFiles.find(f => f.id === fileId);
               if (enrichedFile) {
-                // Merge all metadata
+                
                 Object.assign(fileData, enrichedFile);
               }
             }
           }
         } catch (metadataError) {
-          console.warn("Could not load additional metadata:", metadataError);
+          
         }
       }
       
@@ -222,25 +258,28 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
         file_content: fileContent
       };
       
-      // If parent component provides onFileSelect, use that
+      
+      saveFileMetadataToLocalStorage(file);
+      
+      
       if (onFileSelect) {
         onFileSelect(file);
       } else {
-        // Otherwise handle locally
+        
         setSelectedFile(file);
       }
     } catch (error) {
-      console.error("Error fetching file details:", error);
-      // Show error notification
+      
+      
       setNotification('Error loading file details');
       setTimeout(() => setNotification(null), 3000);
     } finally {
-      // Clear loading state regardless of success or failure
+      
       setLoadingFileId(null);
     }
   };
   
-  // Close tooltip when clicking outside
+  
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (tooltipRef.current && !tooltipRef.current.contains(event.target as Node)) {
@@ -254,13 +293,13 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
     };
   }, []);
   
-  // Function to extract file IDs directly from a message's metadata
+  
   const extractFileIdsFromMetadata = (msg: MessageType & { metadata?: any }): string[] => {
     const fileIds: string[] = [];
     
     if (!msg.metadata) return fileIds;
     
-    // Case 1: Direct citations array in metadata
+    
     if (msg.metadata.citations && Array.isArray(msg.metadata.citations)) {
       msg.metadata.citations.forEach((citation: any) => {
         if (citation.file_id && !fileIds.includes(citation.file_id)) {
@@ -269,7 +308,7 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
       });
     }
     
-    // Case 2: Raw content with AnnotationFileCitation format
+    
     if (typeof msg.content === 'string' && 
         msg.content.includes('AnnotationFileCitation')) {
       const matches = msg.content.match(/file_id='([^']+)'/g) || [];
@@ -282,7 +321,7 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
       });
     }
     
-    // Case 3: Enhanced content with citation markers
+    
     if (msg.metadata.has_citations && 
         typeof msg.content === 'string' && 
         msg.content.includes('(') && 
@@ -290,36 +329,36 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
         (msg.content.includes('cited in') || msg.content.includes('et al') || 
          msg.content.includes('citation'))) {
       
-      // This is a heuristic - if the message looks like it includes citations
-      // and has metadata but no actual file IDs were found, look for them in Works Cited
+      
+      
       const worksCitedMatch = msg.content.match(/Works Cited:[\s\S]+/);
       if (worksCitedMatch) {
-        console.log("Found Works Cited section, analyzing...");
-        // This message has a Works Cited section - good indicator of enhanced content
+        
+        
         setShouldFetchMetadata(true);
       }
     }
     
-    console.log("Extracted file IDs from metadata:", fileIds);
+    
     return fileIds;
   };
   
-  // Use effect to automatically fetch metadata for cited files on refresh
+  
   useEffect(() => {
     if (message.role === 'assistant' && message.metadata?.has_citations && !annotations) {
       const fileIds = extractFileIdsFromMetadata(message);
       
-      // If we found file IDs, we want to trigger metadata loading flag
-      // but don't automatically fetch
+      
+      
       if (fileIds.length > 0) {
-        console.log("Found file IDs in message metadata, but not automatically fetching");
-        // We've removed automatic fetching, so just log the IDs
-        // setShouldFetchMetadata(true); // Removed automatic fetch trigger
+        
+        
+        
       }
     }
   }, [message.id, message.metadata, message.role, message.content, annotations]);
   
-  // Create synthetic annotations from metadata if needed
+  
   useEffect(() => {
     if (!propAnnotations && 
         message.role === 'assistant' && 
@@ -328,9 +367,9 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
         Array.isArray(message.metadata.citations) && 
         message.metadata.citations.length > 0) {
       
-      console.log("Creating synthetic annotations from metadata.citations");
       
-      // Create annotation content in the format expected by parseCitations
+      
+      
       const citationStrings = message.metadata.citations.map((citation: any, index: number) => {
         return `AnnotationFileCitation(file_id='${citation.file_id}', index=${index}, type='file_citation', filename='${citation.filename || "document.pdf"}')`;
       });
@@ -347,32 +386,31 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
       
       setSyntheticAnnotations(synthetic);
       
-      // No longer triggering metadata fetch after a delay
-      // setTimeout(() => {
-      //   setShouldFetchMetadata(true);
-      // }, 100);
+      
+      
+      
+      
     }
   }, [message.metadata, propAnnotations, message.role, message.timestamp]);
   
-  // Effect to ensure UI updates when enhancedText changes
+  
   useEffect(() => {
     if (enhancedText) {
-      // Force UI refresh when enhancedText is available
+      
       setHasCitationsIncluded(true);
       
-      // Log to verify text is available
-      console.log("Enhanced text available:", enhancedText.substring(0, 50) + "...");
+      
     }
   }, [enhancedText]);
   
-  // Optimize the metadata fetching function with useCallback - now with cache awareness
+  
   const fetchFileMetadata = useCallback(async (fileId: string) => {
-    // First check if we already have this in local state
+    
     if (fileMetadata[fileId] || isLoadingMetadata[fileId]) return;
     
-    // Then check if it's in the cache passed from parent
+    
     if (cachedMetadata[fileId]) {
-      console.log("Using cached metadata from parent for file:", fileId);
+      
       setFileMetadata(prev => ({ 
         ...prev, 
         [fileId]: cachedMetadata[fileId]
@@ -380,12 +418,12 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
       return;
     }
     
-    // If not in cache, fetch it
+    
     setIsLoadingMetadata(prev => ({ ...prev, [fileId]: true }));
     
     try {
-      console.log("Fetching metadata for file:", fileId);
-      // First, get the basic file info
+      
+      
       const backendUrl = getBackendUrl();
       const response = await fetch(`${backendUrl}/api/files/${fileId}`);
       
@@ -394,20 +432,20 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
       }
       
       const data = await response.json();
-      console.log("Received basic metadata:", data);
       
-      // Use chat_session_id to get full metadata
+      
+      
       if (data.chatSessionId) {
         const fullResponse = await fetch(`${backendUrl}/api/files?chat_session_id=${encodeURIComponent(data.chatSessionId)}`);
         
         if (fullResponse.ok) {
           const fullData = await fullResponse.json();
-          console.log("Received full metadata:", fullData);
+          
           
           if (Array.isArray(fullData)) {
             const fileData = fullData.find(file => file.id === fileId);
             if (fileData && fileData.document) {
-              // We have full data with document metadata
+              
               setFileMetadata(prev => ({ 
                 ...prev, 
                 [fileId]: {
@@ -424,7 +462,7 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
         }
       }
       
-      // Fallback to basic data if full data fetch fails
+      
       setFileMetadata(prev => ({ 
         ...prev, 
         [fileId]: {
@@ -432,8 +470,8 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
         }
       }));
     } catch (error) {
-      console.error("Error fetching file metadata:", error);
-      // Fallback to file ID as name to prevent eternal loading state
+      
+      
       setFileMetadata(prev => ({ 
         ...prev, 
         [fileId]: {
@@ -445,23 +483,23 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
     }
   }, [fileMetadata, isLoadingMetadata, cachedMetadata]);
 
-  // Clean up the effects to prevent excessive re-renders:
+  
 
-  // 1. Optimize when to process annotations 
+  
   useEffect(() => {
     if (shouldFetchMetadata && annotations) {
-      // Set timeout to prevent multiple fetches in quick succession
+      
       const timeoutId = setTimeout(() => {
-        console.log("Found annotations but NOT automatically fetching metadata");
-        // We can parse citations but won't automatically fetch metadata
+        
+        
         const citations = parseCitations(annotations.content);
         
         if (citations.length > 0) {
-          // Log the citations we found for debugging
-          console.log(`Found ${citations.length} citations, but not automatically fetching metadata`);
+          
+          
         }
         
-        // Reset the flag to prevent refetching
+        
         setShouldFetchMetadata(false);
       }, 100);
       
@@ -469,41 +507,40 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
     }
   }, [shouldFetchMetadata, annotations]);
 
-  // 2. Optimize the streaming end detection
+  
   useEffect(() => {
-    // Only trigger once per streaming session when it ends
+    
     if (!isStreaming && message.role === 'assistant' && message.content !== '' && annotations) {
       const timeoutId = setTimeout(() => {
-        console.log("Streaming ended, but not automatically fetching metadata");
-        // Disabled automatic fetching of metadata at streaming end
         
-        // No longer triggering automatic metadata fetch
-        // const citations = parseCitations(annotations.content);
-        // const needsMetadata = citations.some(citation => 
-        //   !fileMetadata[citation.file_id] && !isLoadingMetadata[citation.file_id]
-        // );
-        // 
-        // if (needsMetadata) {
-        //   setShouldFetchMetadata(true);
-        // }
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
       }, 300);
       
       return () => clearTimeout(timeoutId);
     }
   }, [isStreaming, message.content, message.role, annotations]);
 
-  // 3. Update the ensureAnnotationsAvailable function to be more efficient
+  
   const ensureAnnotationsAvailable = useCallback(async () => {
-    // Skip if we already have annotations or they aren't needed
+    
     if (annotations || !message.metadata?.has_citations) return null;
     
-    // Skip if we've already attempted to fetch recently (add a flag to track this)
+    
     if (message.role === 'assistant' && 
         (message.metadata?.has_citations || message.content.includes('citation')) && 
         message.sessionId && 
         message.id) {
       
-      console.log("Fetching annotations for message:", message.id);
+      
       
       try {
         const backendUrl = getBackendUrl();
@@ -517,23 +554,23 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
         
         const toolData = await toolResponse.json();
         
-        // Find the annotation that corresponds to this message based on timing
+        
         let annotationContent = null;
         
         if (Array.isArray(toolData) && toolData.length > 0) {
-          // Sort by timestamp to find the tool message closest to our message
+          
           const sortedToolMessages = [...toolData].sort((a, b) => {
             const timeA = new Date(a.created_at).getTime();
             const timeB = new Date(b.created_at).getTime();
             
-            // Get message creation time
+            
             const messageTime = message.timestamp?.getTime() || Date.now();
             
-            // Calculate absolute difference between message time and tool message time
+            
             return Math.abs(timeA - messageTime) - Math.abs(timeB - messageTime);
           });
           
-          // Use the closest tool message
+          
           const closestToolMessage = sortedToolMessages[0];
           if (closestToolMessage && closestToolMessage.content) {
             annotationContent = closestToolMessage.content;
@@ -541,7 +578,7 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
         }
         
         if (annotationContent) {
-          // Create a synthetic annotations object only once
+          
           const fetchedAnnotations = {
             role: 'tool' as MessageType['role'],
             toolAction: 'annotations' as const,
@@ -550,33 +587,32 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
             timestamp: message.timestamp
           };
           
-          // Set the synthetic annotations state
+          
           setSyntheticAnnotations(fetchedAnnotations);
           
-          // No longer triggering metadata fetch after a delay
-          // setTimeout(() => {
-          //   setShouldFetchMetadata(true);
-          // }, 100);
+          
+          
+          
           
           return fetchedAnnotations;
         }
       } catch (error) {
-        console.error("Error fetching annotations:", error);
+        
       }
     }
     
     return null;
   }, [message.id, message.metadata, message.role, message.sessionId, message.timestamp, message.content, annotations]);
 
-  // Update the effect to use the memoized function
+  
   useEffect(() => {
-    // Only run this for assistant messages with citations but no annotations
+    
     if (message.role === 'assistant' && message.metadata?.has_citations && !annotations) {
       ensureAnnotationsAvailable();
     }
   }, [message.id, message.metadata, message.role, annotations, ensureAnnotationsAvailable]);
 
-  // Add useEffect to load enhanced content on mount if it exists in metadata
+  
   useEffect(() => {
     if (
       message.role === 'assistant' && 
@@ -584,16 +620,18 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
       message.metadata.has_citations && 
       message.metadata.original_content
     ) {
-      // If the current content is already enhanced, no need to update
+      
       if (message.metadata.original_content !== message.content) {
-        // Message already has enhanced content
-        console.log("Found enhanced content, loading it with proper formatting");
         
-        // Ensure whitespace is preserved by explicitly setting the enhancedText state
-        // rather than relying on the message.content directly
+        
+        
+        
+        
+        
         let enhancedContent = message.content;
         
-        // Force text processing by adding an invisible character if this was loaded from a page refresh
+        
+        
         const isPageReload = window.performance && 
           (window.performance.navigation?.type === 1 || 
            window.performance.getEntriesByType('navigation').some(
@@ -601,18 +639,18 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
            ));
         
         if (isPageReload) {
-          // Add an invisible zero-width space to force a re-parse on page reload
+          
           enhancedContent = enhancedContent.trim() + '\u200B';
-          console.log("Added invisible character to force re-rendering on reload");
+          
         }
         
         setEnhancedText(enhancedContent);
         setHasCitationsIncluded(true);
         setCitationStyle(message.metadata.citation_style || 'apa');
         
-        // Add class to force whitespace preservation
+        
         setTimeout(() => {
-          // Find the parent element containing this message's content
+          
           const messageElement = document.getElementById(`message-${message.id}`);
           if (messageElement) {
             messageElement.classList.add('preserve-whitespace');
@@ -620,48 +658,47 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
             paragraphs.forEach(p => {
               p.classList.add('whitespace-pre-wrap');
               
-              // Check for double spacing patterns
+              
               if (p.innerHTML.includes('&nbsp;&nbsp;') || p.innerHTML.includes('\u00A0\u00A0')) {
                 p.classList.add('has-doubled-spaces');
               }
             });
-            console.log("Added whitespace-pre-wrap to paragraphs");
+            
           }
         }, 100);
         
-        // If we don't have annotations but the message contains citations, trigger metadata fetch
+        
         if (!annotations && message.content.includes('citation')) {
-          console.log("Enhanced message has citations but no annotations - not automatically fetching metadata");
-          // No longer automatically fetching metadata
-          // setShouldFetchMetadata(true);
           
-          // No longer extracting and fetching citation file IDs
-          // Try to extract citation file IDs from the enhanced message content
-          // Look for common citation patterns like (Author YYYY) or [X]
-          // const citationRegex = /\(([^)]+)\s+(\d{4})\)|\[(\d+)\]/g;
-          // let match;
-          // const extractedCitations = new Set<string>();
-          // 
-          // while ((match = citationRegex.exec(message.content)) !== null) {
-          //   // We found a citation, now look for file IDs in the message metadata
-          //   if (message.metadata.citations && Array.isArray(message.metadata.citations)) {
-          //     message.metadata.citations.forEach((citation: any) => {
-          //       if (citation.file_id && !extractedCitations.has(citation.file_id)) {
-          //         extractedCitations.add(citation.file_id);
-          //         console.log(`Extracted citation file ID from metadata: ${citation.file_id}`);
-          //         fetchFileMetadata(citation.file_id);
-          //       }
-          //     });
-          //   }
-          // }
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
         }
       }
     }
   }, [message.id, message.metadata, message.content, message.role, annotations]);
 
-  // Use location.reload detection to preserve formatting
+  
   useEffect(() => {
-    // Check if this is a page reload (not a navigation)
+    
     const isPageReload = window.performance && 
       window.performance.navigation && 
       window.performance.navigation.type === 1;
@@ -670,12 +707,12 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
         message.role === 'assistant' && 
         message.metadata?.has_citations && 
         enhancedText) {
-      console.log("Detected page reload with enhanced content, forcing whitespace preservation");
       
-      // Force re-render with explicit whitespace preservation
+      
+      
       setHasCitationsIncluded(true);
       
-      // Add special class to message container on reload
+      
       document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
           const container = document.querySelector('.message-content-container');
@@ -687,30 +724,30 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
     }
   }, [message.role, message.metadata, enhancedText]);
 
-  // Function to parse citations from content
+  
   const parseCitations = (content: string): Citation[] => {
     try {
-      // Handle the specific format with annotations= prefix
+      
       if (content.startsWith('annotations=')) {
-        console.log("Parsing citations from annotations= format");
-        // Strip the annotations= prefix and any surrounding brackets
+        
+        
         const contentWithoutPrefix = content.replace(/^annotations=\s*\[\s*|\s*\]\s*$/g, '');
-        // Look for AnnotationFileCitation patterns
+        
         const matches = contentWithoutPrefix.match(/AnnotationFileCitation\(([^)]+)\)/g);
         
         if (matches) {
-          console.log(`Found ${matches.length} citations in annotations format`);
+          
           return matches.map(match => {
-            // Extract the content inside the parentheses
+            
             const paramsStr = match.slice(match.indexOf('(') + 1, match.lastIndexOf(')'));
             
-            // Split by comma but handle quoted values
+            
             const parts = paramsStr.match(/([^,]+='[^']*'|[^,]+=[^,]+)/g) || [];
             
             const obj: Record<string, string> = {};
             parts.forEach(part => {
               const [key, value] = part.trim().split('=');
-              // Remove quotes and handle special characters
+              
               obj[key] = value.replace(/^'|'$/g, '').replace(/\\'/g, "'");
             });
 
@@ -724,21 +761,21 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
         }
       }
       
-      // Handle individual AnnotationFileCitation matches
+      
       if (content.includes('AnnotationFileCitation')) {
         const matches = content.match(/AnnotationFileCitation\(([^)]+)\)/g);
         if (matches) {
           return matches.map(match => {
-            // Extract the content inside the parentheses
+            
             const paramsStr = match.slice(match.indexOf('(') + 1, match.lastIndexOf(')'));
             
-            // Split by comma but handle quoted values
+            
             const parts = paramsStr.match(/([^,]+='[^']*'|[^,]+=[^,]+)/g) || [];
             
             const obj: Record<string, string> = {};
             parts.forEach(part => {
               const [key, value] = part.trim().split('=');
-              // Remove quotes and handle special characters
+              
               obj[key] = value.replace(/^'|'$/g, '').replace(/\\'/g, "'");
             });
 
@@ -752,7 +789,7 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
         }
       }
       
-      // Try parsing as JSON if not in the above format
+      
       try {
         const contentObj = JSON.parse(content);
         if (Array.isArray(contentObj.annotations)) {
@@ -766,18 +803,18 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
             }));
         }
       } catch (jsonError) {
-        // Silent error handling for JSON parsing
+        
       }
     } catch (e) {
-      console.error("Error parsing citations:", e);
-      // Silent error handling
+      
+      
     }
     return [];
   };
 
-  // Function to fetch file content
+  
   const handleFetchFileContent = async (fileId: string) => {
-    // If we already have the content, don't fetch again
+    
     if (fileContents[fileId]) return;
 
     try {
@@ -786,14 +823,14 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
       const text = await response.text();
       
       try {
-        // Try to parse as JSON
+        
         const data = JSON.parse(text);
       const content = typeof data.content === 'string' ? data.content : 
                      typeof data === 'string' ? data : 
                      JSON.stringify(data);
         setFileContents(prev => ({ ...prev, [fileId]: content }));
       } catch (parseError) {
-        // If parsing fails, assume the response is raw text content
+        
         setFileContents(prev => ({ ...prev, [fileId]: text }));
       }
     } catch (error) {
@@ -801,25 +838,25 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
     }
   };
 
-  // Helper for copying content with citations
+  
   const handleCopyWithCitations = async (style: string = citationStyle) => {
     if (!annotations) return;
     
     try {
       setIsLoadingEnhancedText(true);
       
-      // Parse citations from annotations
+      
       const citations = parseCitations(annotations.content);
       
-      // If we're changing the format, temporarily reset the included state
+      
       if (hasCitationsIncluded) {
         setHasCitationsIncluded(false);
       }
       
-      // Preserve original message's paragraphs and formatting
+      
       const originalParagraphs = message.content.split(/\n\s*\n/);
       
-      // Prepare the request body
+      
       const requestBody = {
         message_content: message.content,
         citations: citations.map(citation => ({
@@ -828,10 +865,10 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
           filename: citation.filename
         })),
         citation_style: style,
-        preserve_formatting: true // Add flag to preserve formatting
+        preserve_formatting: true 
       };
       
-      // Call the citation API
+      
       const backendUrl = getBackendUrl();
       const response = await fetch(`${backendUrl}/api/citations`, {
         method: 'POST',
@@ -845,30 +882,27 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
         throw new Error(`Error: ${response.status}`);
       }
       
-      // Get the data from the response
+      
       const data = await response.json();
-      console.log("Citations API Response:", data); // Debug log
+       
       
       if (!data.enhanced_message) {
         throw new Error('No enhanced text received from server');
       }
 
-      // Update the UI immediately
+      
       const enhancedMessage = data.enhanced_message;
       
-      // Set enhanced text ensuring whitespace is preserved
+      
       setEnhancedText(enhancedMessage);
       setHasCitationsIncluded(true);
       
-      // Save to database
+      
       if (message.id && message.sessionId) {
         try {
-          console.log("Saving enhanced message to database:", {
-            id: message.id,
-            sessionId: message.sessionId
-          });
           
-          // Create metadata for enhancement tracking
+          
+          
           const enhancedMetadata = {
             ...message.metadata || {},
             citation_style: style,
@@ -898,31 +932,28 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
           }
           
           const updateResult = await updateResponse.json();
-          console.log("Database update result:", updateResult);
+          
           
         } catch (dbError) {
-          console.error("Error saving enhanced message to database:", dbError);
-          // Continue anyway since the UI is already updated
+          
+          
         }
       } else {
-        console.warn("Cannot save to database: missing message.id or message.sessionId", { 
-          id: message.id, 
-          sessionId: message.sessionId 
-        });
+         
       }
     } catch (error) {
-      console.error("Citation processing error:", error);
+      
       alert('Failed to process citations. Please try again.');
     } finally {
       setIsLoadingEnhancedText(false);
     }
   };
 
-  // Function to handle edit mode
+  
   const handleStartEdit = () => {
     setIsEditing(true);
     setEditedContent(message.content);
-    // Focus the textarea in the next tick after it's rendered
+    
     setTimeout(() => {
       if (editTextareaRef.current) {
         editTextareaRef.current.focus();
@@ -946,7 +977,7 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
     setEditedContent(message.content);
   };
 
-  // Handle keyboard shortcuts
+  
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       handleSaveEdit();
@@ -955,10 +986,10 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
     }
   };
 
-  // Function to handle text-to-speech
+  
   const handleSpeak = async () => {
     if (isSpeaking || isLoadingSpeech) {
-      // If already speaking or loading, stop the playback
+      
       stopSpeaking();
       setIsSpeaking(false);
       setIsLoadingSpeech(false);
@@ -966,29 +997,29 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
     }
     
     if (message.role !== 'assistant') {
-      return; // Only speak assistant messages
+      return; 
     }
     
     try {
       setIsLoadingSpeech(true);
       setIsSpeaking(true);
       
-      // Use the enhanced text if available, otherwise use the original content
+      
       const textToSpeak = enhancedText || message.content;
       
-      // Speak the text
+      
       await speakText(textToSpeak);
       
       setIsSpeaking(false);
     } catch (error) {
-      console.error('Error speaking text:', error);
+      
       setIsSpeaking(false);
     } finally {
       setIsLoadingSpeech(false);
     }
   };
 
-  // Stop audio when component unmounts
+  
   useEffect(() => {
     return () => {
       if (isSpeaking) {
@@ -997,7 +1028,7 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
     };
   }, [isSpeaking]);
 
-  // Helper function to get agent icon
+  
   const getAgentIcon = (agentName: string) => {
     switch(agentName) {
       case "Triage Agent":
@@ -1019,30 +1050,30 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
     }
   };
 
-  // Helper function to get agent background color
+  
   const getAgentCircleColor = (agentName: string) => {
     switch(agentName) {
       case "Triage Agent":
       case "General Assistant":
-        return "bg-emerald-500"; // Green color for both Triage and General Assistant
+        return "bg-emerald-500"; 
       case "Claude Creative":
-        return "rounded-[1000px] border border-[#E8E8E5] bg-[#D77655]"; // Specific Claude Creative styling
+        return "rounded-[1000px] border border-[#E8E8E5] bg-[#D77655]"; 
       case "Deep Seek":
-        return "rounded-[1000px] border border-[#E8E8E5] bg-[#4D6BFE]"; // Specific Deep Seek styling
+        return "rounded-[1000px] border border-[#E8E8E5] bg-[#4D6BFE]"; 
       case "Mistral Europe":
-        return "rounded-[1000px] border border-[#E8E8E5] bg-[#FA5310]"; // Specific Mistral Europe styling
+        return "rounded-[1000px] border border-[#E8E8E5] bg-[#FA5310]"; 
       case "Perplexity":
-        return "rounded-[1000px] border border-[#E8E8E5] bg-[#1F1F1F]"; // Specific Perplexity styling
+        return "rounded-[1000px] border border-[#E8E8E5] bg-[#1F1F1F]"; 
       case "Deep Thinker":
-        return "rounded-[1000px] border border-[#E8E8E5] bg-black"; // Deep Thinker styling with pure black
+        return "rounded-[1000px] border border-[#E8E8E5] bg-black"; 
       case "Grok X":
-        return "bg-black"; // Black color for the third icon
+        return "bg-black"; 
       default:
         return "bg-white border border-slate-200";
     }
   };
 
-  // Get icon color based on agent background color
+  
   const getIconTextColor = (agentName: string) => {
     switch(agentName) {
       case "Triage Agent":
@@ -1053,13 +1084,13 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
       case "Mistral Europe":
       case "Perplexity":
       case "Deep Thinker":
-        return "text-white"; // White text for dark backgrounds
+        return "text-white"; 
       default:
-        return "text-slate-800"; // Dark text for light backgrounds
+        return "text-slate-800"; 
     }
   };
 
-  // Helper function to get agent description
+  
   const getAgentDescription = (agentName: string) => {
     switch(agentName) {
       case "Triage Agent":
@@ -1082,23 +1113,23 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
     }
   };
 
-  // Helper function to get display name for agents
+  
   const getDisplayAgentName = (agentName: string) => {
-    // Always display "General Assistant" instead of "Triage Agent"
+    
     if (agentName === "Triage Agent") {
       return "General Assistant";
     }
     return agentName;
   };
 
-  // Use effect to determine if this message has file annotations and set it once
+  
   useEffect(() => {
     if (propAnnotations || syntheticAnnotations || (message.metadata?.has_citations && message.citations && message.citations.length > 0)) {
       setHasStableFileAnnotations(true);
     }
   }, [propAnnotations, syntheticAnnotations, message.metadata?.has_citations, message.citations]);
 
-  // Render system message for agent transitions differently
+  
   if (message.role === 'system' && message.agentName) {
     return (
       <div className="flex items-center gap-2 py-1 px-3 my-2 rounded-md text-gray-200 text-xs font-mono max-w-[90%] shadow-md">
@@ -1109,7 +1140,7 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
     );
   }
   
-  // Render tool messages differently
+  
   if (message.role === 'tool') {
     let icon = '🔧';
     let label = 'Tool Call';
@@ -1127,7 +1158,7 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
       isCollapsible = false;
     }
 
-    // Add tool name to label if available
+    
     if (message.toolName) {
       label = `${label}: ${message.toolName}`;
     }
@@ -1166,7 +1197,7 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
       );
     }
 
-    // For non-collapsible messages (annotations)
+    
     if (message.toolAction === 'annotations') {
       const citations = parseCitations(message.content);
       const uniqueFileIds = Array.from(new Set(citations.map(c => c.file_id)));
@@ -1180,7 +1211,7 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
       );
     }
 
-    // For non-collapsible messages (annotations)
+    
     return (
       <Card className={`inline-block max-w-[85%] w-auto mb-3 ${bgColor}`}>
         <CardContent className="py-2 px-4">
@@ -1197,7 +1228,7 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
           </div>
 
           <div className="rounded-lg border border-yellow-100 overflow-hidden">
-            {/* File Info Header */}
+            
             <div className="px-3 py-2 border-b border-yellow-100">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -1211,8 +1242,8 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
                   size="sm"
                   className="text-xs text-yellow-700 hover:text-yellow-800"
                   onClick={() => {
-                    // TODO: Implement document viewer when available
-                    console.log('View in document clicked');
+                    
+                    
                   }}
                 >
                   View in Document
@@ -1220,13 +1251,13 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
               </div>
             </div>
 
-            {/* Citation Content */}
+            
             <div className="p-3">
               <div className="font-mono text-sm rounded p-2 border border-yellow-50">
                 {typeof message.content === 'string' ? message.content : JSON.stringify(message.content, null, 2)}
               </div>
               
-              {/* Context Preview - if available */}
+              
               <div className="mt-2 text-xs text-gray-500">
                 <span className="font-medium">Context:</span> Showing verified citation from document. Full context view coming soon.
               </div>
@@ -1237,46 +1268,46 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
     );
   }
 
-  // Check if a message is a file quick action message (updated format)
+  
   const isFileQuickAction = (content: string) => {
     return typeof content === 'string' && 
           (content.startsWith('<FILE_QUICK_ACTION>') || 
            content.startsWith('Analyze this document:'));
   };
 
-  // Parse file quick action message to extract metadata (handles both old and new formats)
+  
   const parseFileQuickAction = (content: string) => {
     if (!isFileQuickAction(content)) return null;
     
-    // Handle the new format: "Analyze this document: "filename". Action"
+    
     if (content.startsWith('Analyze this document:')) {
       try {
-        // Extract filename - should be inside quotes after "Analyze this document:"
+        
         const filenameMatch = content.match(/Analyze this document: "([^"]+)"/);
         const filename = filenameMatch ? filenameMatch[1] : "document";
         
-        // Extract action - should be the text between the filename and the content section
+        
         const actionMatch = content.match(/Analyze this document: "[^"]+"\.?\s*([^\.]+)/);
         const action = actionMatch ? actionMatch[1].trim() : "Analyze";
         
         return {
           filename,
           action,
-          file_id: "unknown"  // We don't have this in the new format
+          file_id: "unknown"  
         };
       } catch (e) {
-        console.error("Error parsing new file quick action format:", e);
+        
         return null;
       }
     }
     
-    // Handle the old tag-based format
+    
     if (content.startsWith('<FILE_QUICK_ACTION>')) {
       const lines = content.split('\n');
       const result: {[key: string]: string} = {};
       
-      // Parse each line for key-value pairs
-      for (let i = 1; i < lines.length - 1; i++) { // Skip first and last line (tags)
+      
+      for (let i = 1; i < lines.length - 1; i++) { 
         const line = lines[i].trim();
         const colonIndex = line.indexOf(':');
         if (colonIndex > 0) {
@@ -1292,9 +1323,9 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
     return null;
   };
 
-  // User message
+  
   if (message.role === 'user') {
-    // Check if this is a file quick action message
+    
     if (typeof message.content === 'string' && isFileQuickAction(message.content)) {
       const actionData = parseFileQuickAction(message.content);
       if (actionData) {
@@ -1302,8 +1333,8 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
           <div className="inline-block max-w-[85%] w-auto mb-3 py-3 px-4 relative group"
             style={{
               borderRadius: '16px 16px 0px 16px',
-              border: '2px solid #FF9500', // Orange border
-              background: 'rgba(255, 149, 0, 0.05)', // Light orange background
+              border: '2px solid #FF9500', 
+              background: 'rgba(255, 149, 0, 0.05)', 
             }}
           >
             <div className="flex items-center gap-2 mb-2">
@@ -1319,26 +1350,27 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
       }
     }
     
-    // For regular user messages, check if they contain "Document content:" section to hide
+    
     if (typeof message.content === 'string' && message.content.includes('Document content:')) {
-      // More robust approach to extract just the essential parts
+      
       try {
-        // First, try to detect if this is a file quick action message in disguise
-        // Check for "Analyze this document:" or similar patterns
+        
+        
+        
         let fileActionMessage = false;
         let filename = "";
         let action = "";
 
-        // Try to extract filename and action from full format
+        
         const analyzeMatch = message.content.match(/Analyze this document: "([^"]+)"\.?\s*([^\.]+)/);
         if (analyzeMatch) {
           fileActionMessage = true;
           filename = analyzeMatch[1] || "document";
           action = analyzeMatch[2]?.trim() || "Analyze";
         } 
-        // Also try to match other patterns like the CNN article example
+        
         else {
-          // Look for obvious title patterns
+          
           const titleMatch = message.content.match(/^([^|\.]+)(\s*\|\s*[^\.]+)?\s*Action:\s*(.+?)(?=\s*Document content:)/s);
           if (titleMatch) {
             fileActionMessage = true;
@@ -1347,14 +1379,14 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
           }
         }
 
-        // If we detected a file action format
+        
         if (fileActionMessage) {
           return (
             <div className="inline-block max-w-[85%] w-auto mb-3 py-3 px-4 relative group"
               style={{
                 borderRadius: '16px 16px 0px 16px',
-                border: '2px solid #FF9500', // Orange border
-                background: 'rgba(255, 149, 0, 0.05)', // Light orange background
+                border: '2px solid #FF9500', 
+                background: 'rgba(255, 149, 0, 0.05)', 
               }}
             >
               <div className="flex items-center gap-2 mb-2">
@@ -1369,8 +1401,8 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
           );
         }
 
-        // Fallback to simpler approach if not detected as file action
-        // Extract just the part before "Document content:"
+        
+        
         const contentParts = message.content.split('Document content:');
         const displayContent = contentParts[0].trim();
         
@@ -1386,8 +1418,8 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
           </div>
         );
       } catch (e) {
-        console.error("Error parsing document content message:", e);
-        // Fallback to just showing content before "Document content:"
+        
+        
         const contentParts = message.content.split('Document content:');
         const displayContent = contentParts[0].trim();
         
@@ -1405,7 +1437,7 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
       }
     }
     
-    // Regular user message
+    
     return (
       <div className="inline-block max-w-[85%] w-auto mb-3 py-3 px-4 relative group"
         style={{
@@ -1419,7 +1451,7 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
     );
   }
 
-  // Error message
+  
   if (message.role === 'error') {
     return (
       <div className="inline-block max-w-[85%] w-auto mb-3 py-3 px-4 rounded-[16px] text-red-700"
@@ -1432,15 +1464,16 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
     );
   }
 
-  // Assistant message (default)
+  
   return (
     <div className="inline-block w-full mb-3 py-3 px-4 relative group"
       style={{
         borderRadius: '16px',
         background: 'var(--Monochrome-White, #FFF)'
       }}
+      id={`message-${message.id}`}
     >
-      {/* Display notification */}
+      
       {notification && (
         <div className="fixed top-6 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-[60] text-sm">
           {notification}
@@ -1490,7 +1523,7 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
             {isLoadingEnhancedText ? (
               <div className="space-y-2">
                 {Array(5).fill(0).map((_, i) => {
-                    // Randomize widths between 60% and 100%
+                    
                     const width = 60 + Math.floor(Math.random() * 40);
                     return (
                       <div 
@@ -1526,7 +1559,7 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
               </div>
             ) : (
               <>
-                {/* Citation indicator - show only when enhancedText exists */}
+                
                 {enhancedText && (
                   <div className="mb-3 text-xs flex items-center gap-2">
                     <Badge 
@@ -1543,22 +1576,22 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
                   <MessageContent 
                     content={enhancedText || message.content} 
                     messageId={message.id} 
-                    onLinkSubmit={onLinkSubmit} // Pass the handler down
-                    hasFileAnnotations={false} // Always set to false to keep link cards visible
+                    onLinkSubmit={onLinkSubmit} 
+                    hasFileAnnotations={false} 
                   />
                 </div>
               </>
             )}
             
-            {/* Action buttons below message content */}
+            
             {!isEditing && !isLoadingEnhancedText && !isStreaming && (
               <div className="flex items-center gap-2 mt-3 justify-between">
-                {/* Left side: Citations controls and badges in same line */}
+                
                 <div className="flex items-center gap-2">
                   {message.role === 'assistant' && annotations && 
                     parseCitations(annotations.content).length > 0 && (
                       <div className="flex items-center gap-2 px-3 border border-gray-200 rounded-[20px]">
-                        {/* Place file citation badges before citation controls */}
+                        
                         <div className="flex-grow">
                           <FileCitationBadges
                             citations={parseCitations(annotations.content)}
@@ -1582,7 +1615,7 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
                     )}
                 </div>
                 
-                {/* Right side: Agent badge and message actions */}
+                
                 <div className="flex items-center gap-2">
                   {message.role === 'assistant' && (
                     <AgentBadge 
@@ -1609,7 +1642,7 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
         )}
       </div>
       
-      {/* Render the file detail modal when selected */}
+      
       {selectedFile && (
         <FileDetailModal 
           file={selectedFile} 
@@ -1621,42 +1654,42 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
     </div>
   );
 }, (prevProps, nextProps) => {
-  // Add cache check to the memo comparison function
-  // Helper function to parse citations inside the comparison function
+  
+  
   const parseCitationsFromContent = (content?: string): { file_id: string }[] => {
     if (!content) return [];
     try {
-      // Simple regex-based parser for the comparison function
+      
       const matches = content.match(/file_id='([^']+)'/g) || [];
       return matches.map(match => {
         const fileId = match.replace(/file_id='|'/g, '');
         return { file_id: fileId };
       });
     } catch (e) {
-      console.error("Error parsing citations in memo comparison:", e);
+      
       return [];
     }
   };
 
-  // Get citations from both props
+  
   const prevCitations = prevProps.annotations ? 
     parseCitationsFromContent(prevProps.annotations.content) : [];
   const nextCitations = nextProps.annotations ? 
     parseCitationsFromContent(nextProps.annotations.content) : [];
   
-  // For each citation, check if the cached metadata is different
+  
   for (const citation of prevCitations) {
     const fileId = citation.file_id;
     if (
       (!prevProps.cachedMetadata || !prevProps.cachedMetadata[fileId]) && 
       (nextProps.cachedMetadata && nextProps.cachedMetadata[fileId])
     ) {
-      // New metadata available in cache, should rerender
+      
       return false;
     }
   }
   
-  // Default identity check
+  
   return prevProps.message === nextProps.message && 
          prevProps.onCopy === nextProps.onCopy && 
          prevProps.annotations === nextProps.annotations && 

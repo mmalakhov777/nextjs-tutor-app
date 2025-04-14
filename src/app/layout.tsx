@@ -3,6 +3,7 @@ import Link from 'next/link';
 import './globals.css';
 import 'katex/dist/katex.min.css';
 import Script from 'next/script';
+import { FileProvider } from '@/contexts/FileContext';
 
 export const metadata: Metadata = {
   title: 'AI Tutoring Platform',
@@ -32,7 +33,9 @@ export default function RootLayout({
       </head>
       <body>
         <main>
-          {children}
+          <FileProvider>
+            {children}
+          </FileProvider>
         </main>
       </body>
     </html>

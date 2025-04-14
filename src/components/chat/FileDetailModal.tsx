@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from 'react';
 import { 
   Copy, 
@@ -28,6 +30,52 @@ const formatFileSize = (bytes: number) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
+// Helper function to save file metadata to local storage - same as in FileSidebar
+const saveFileMetadataToLocalStorage = (file: UploadedFile) => {
+  try {
+    // Get existing metadata from local storage
+    const storedMetadata = localStorage.getItem('uploadedFilesMetadata');
+    const metadataObj = storedMetadata ? JSON.parse(storedMetadata) : {};
+    
+    // Save or update metadata for this file
+    metadataObj[file.id] = {
+      id: file.id,
+      name: file.name,
+      doc_title: file.doc_title,
+      doc_authors: file.doc_authors,
+      doc_publication_year: file.doc_publication_year,
+      doc_type: file.doc_type,
+      doc_summary: file.doc_summary,
+      total_pages: file.total_pages,
+      url: file.url,
+      source: file.source,
+      processed_at: file.processed_at,
+      status: file.status,
+      // Save file content if it exists
+      file_content: file.file_content
+    };
+    
+    // Save back to local storage
+    localStorage.setItem('uploadedFilesMetadata', JSON.stringify(metadataObj));
+  } catch (error) {
+    console.error('Error saving file metadata to local storage:', error);
+  }
+};
+
+// Helper function to get file metadata from local storage - same as in FileSidebar
+const getFileMetadataFromLocalStorage = (fileId: string): Partial<UploadedFile> | null => {
+  try {
+    const storedMetadata = localStorage.getItem('uploadedFilesMetadata');
+    if (!storedMetadata) return null;
+    
+    const metadataObj = JSON.parse(storedMetadata);
+    return metadataObj[fileId] || null;
+  } catch (error) {
+    console.error('Error getting file metadata from local storage:', error);
+    return null;
+  }
+};
+
 // FileDetailModal component to show detailed file information
 export const FileDetailModal = ({ 
   file, 
@@ -42,6 +90,13 @@ export const FileDetailModal = ({
 }) => {
   if (!file) return null;
   
+  // Enhancement: Check if we have additional metadata in localStorage
+  const storedMetadata = getFileMetadataFromLocalStorage(file.id);
+  const enhancedFile = storedMetadata ? { ...storedMetadata, ...file } as UploadedFile : file;
+  
+  // Save the enhanced file to localStorage for future use
+  saveFileMetadataToLocalStorage(enhancedFile);
+  
   const [notification, setNotification] = useState<string | null>(null);
   
   // Define text value style
@@ -54,23 +109,39 @@ export const FileDetailModal = ({
   };
   
   // Function to get file content from backend if it's not already in the file object
-  const [fileContent, setFileContent] = useState<string | null>(file.file_content || null);
+  // Check localStorage first, then backend
+  const [fileContent, setFileContent] = useState<string | null>(enhancedFile.file_content || null);
   const [isLoadingContent, setIsLoadingContent] = useState(false);
   
   const loadFileContent = async () => {
     if (fileContent) return; // Already loaded
     
+    // First check if we have content in localStorage
+    const storedData = getFileMetadataFromLocalStorage(enhancedFile.id);
+    if (storedData && storedData.file_content) {
+      setFileContent(storedData.file_content);
+      return;
+    }
+    
     setIsLoadingContent(true);
     try {
       const backendUrl = getBackendUrl();
-      const response = await fetch(`${backendUrl}/api/files/${file.id}/content`);
+      const response = await fetch(`${backendUrl}/api/files/${enhancedFile.id}/content`);
       
       if (!response.ok) {
         throw new Error(`Failed to load file content: ${response.status}`);
       }
       
       const data = await response.json();
-      setFileContent(data.content || 'No content available');
+      const content = data.content || 'No content available';
+      
+      // Set the content
+      setFileContent(content);
+      
+      // Save to localStorage for future use
+      enhancedFile.file_content = content;
+      saveFileMetadataToLocalStorage(enhancedFile);
+      
     } catch (error) {
       console.error('Error loading file content:', error);
       setFileContent('Failed to load content');
@@ -79,9 +150,14 @@ export const FileDetailModal = ({
     }
   };
   
-  const isWebLink = file.source === 'link' || 
-                    file.doc_type?.toLowerCase() === 'webpage' || 
-                    file.doc_type?.toLowerCase() === 'webpage';
+  // When the component mounts, save metadata to localStorage
+  useEffect(() => {
+    saveFileMetadataToLocalStorage(enhancedFile);
+  }, []);
+  
+  const isWebLink = enhancedFile.source === 'link' || 
+                    enhancedFile.doc_type?.toLowerCase() === 'webpage' || 
+                    enhancedFile.doc_type?.toLowerCase() === 'webpage';
   
   // Function to truncate content to prevent overly large messages
   const truncateContent = (content: string) => {
@@ -95,8 +171,8 @@ export const FileDetailModal = ({
   // Format the message with special tags for identification
   const formatQuickActionMessage = (content: string, action: string) => {
     return `<FILE_QUICK_ACTION>
-filename: ${file.name || "document"}
-file_id: ${file.id}
+filename: ${enhancedFile.name || "document"}
+file_id: ${enhancedFile.id}
 action: ${action}
 content: ${content}
 </FILE_QUICK_ACTION>`;
@@ -121,7 +197,7 @@ content: ${content}
       setIsLoadingContent(true);
       try {
         const backendUrl = getBackendUrl();
-        const response = await fetch(`${backendUrl}/api/files/${file.id}/content`);
+        const response = await fetch(`${backendUrl}/api/files/${enhancedFile.id}/content`);
         
         if (!response.ok) {
           throw new Error(`Failed to load file content: ${response.status}`);
@@ -134,8 +210,12 @@ content: ${content}
         // Update state
         setFileContent(content);
         
+        // Save to localStorage
+        enhancedFile.file_content = content;
+        saveFileMetadataToLocalStorage(enhancedFile);
+        
         // Create a direct format that works better with streaming
-        const directMessage = `${file.name}\nAction: ${action}\n\nDocument content: ${truncatedContent}`;
+        const directMessage = `${enhancedFile.name}\nAction: ${action}\n\nDocument content: ${truncatedContent}`;
         
         // Send the message directly without special formatting
         if (onSendMessage) {
@@ -146,7 +226,7 @@ content: ${content}
           setTimeout(() => onClose(), 500);
         }
         else if (onFileQuickAction) {
-          onFileQuickAction(file, action, truncatedContent);
+          onFileQuickAction(enhancedFile, action, truncatedContent);
           
           // Show success notification before closing
           setNotification("Message sent to chat!");
@@ -156,13 +236,13 @@ content: ${content}
         console.error('Error loading file content for quick action:', error);
         
         // Create a simpler fallback message
-        const fallbackMessage = `${file.name}\nAction: ${action}\n\nDocument content: Unable to load content`;
+        const fallbackMessage = `${enhancedFile.name}\nAction: ${action}\n\nDocument content: Unable to load content`;
         
         if (onSendMessage) {
           onSendMessage(fallbackMessage);
         }
         else if (onFileQuickAction) {
-          onFileQuickAction(file, action, "Unable to load content");
+          onFileQuickAction(enhancedFile, action, "Unable to load content");
         }
         
         // Show notification before closing
@@ -176,14 +256,14 @@ content: ${content}
       const truncatedContent = truncateContent(fileContent);
       
       // Create a direct format that works better with streaming
-      const directMessage = `${file.name}\nAction: ${action}\n\nDocument content: ${truncatedContent}`;
+      const directMessage = `${enhancedFile.name}\nAction: ${action}\n\nDocument content: ${truncatedContent}`;
       
       // Send the message directly without special formatting
       if (onSendMessage) {
         onSendMessage(directMessage);
       }
       else if (onFileQuickAction) {
-        onFileQuickAction(file, action, truncatedContent);
+        onFileQuickAction(enhancedFile, action, truncatedContent);
       }
       
       // Show success notification before closing
@@ -233,7 +313,7 @@ content: ${content}
         
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-[32px] font-medium leading-[40px] text-[#232323] text-left">
-            {file.doc_title || file.name}
+            {enhancedFile.doc_title || enhancedFile.name}
           </h2>
         </div>
       </div>
@@ -242,16 +322,16 @@ content: ${content}
       <div className="flex-1 overflow-y-auto">
         <div className="flex flex-col items-center gap-10 p-6 md:px-16 lg:px-24 xl:px-[314px] pb-10 self-stretch">
           {/* URL for web links */}
-          {file.url && (
+          {enhancedFile.url && (
             <div className="mb-6 w-full">
               <a 
-                href={file.url} 
+                href={enhancedFile.url} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className={`text-blue-500 hover:underline flex items-center gap-2 ${textValueStyle}`}
               >
                 <Globe className="h-4 w-4 text-blue-500" />
-                {file.url}
+                {enhancedFile.url}
               </a>
             </div>
           )}
@@ -264,34 +344,34 @@ content: ${content}
               <div className="flex items-center gap-2">
                 <FileTypeIcon className="h-5 w-5 text-gray-500" />
                 <span className={textValueStyle}>{isWebLink ? 'webpage' : 
-                  file.doc_type?.toLowerCase().includes('pdf') ? 'PDF' : 
-                  file.doc_type || file.type || 'Unknown'}</span>
+                  enhancedFile.doc_type?.toLowerCase().includes('pdf') ? 'PDF' : 
+                  enhancedFile.doc_type || enhancedFile.type || 'Unknown'}</span>
               </div>
               
               {/* Authors */}
-              {file.doc_authors && file.doc_authors.length > 0 && (
+              {enhancedFile.doc_authors && enhancedFile.doc_authors.length > 0 && (
                 <div className="flex items-center gap-2">
                   <AuthorIcon className="h-5 w-5 text-gray-500" />
-                  <span className={textValueStyle}>{file.doc_authors.join(', ')}</span>
+                  <span className={textValueStyle}>{enhancedFile.doc_authors.join(', ')}</span>
                 </div>
               )}
               
               {/* Publication Year */}
-              {file.doc_publication_year && (
+              {enhancedFile.doc_publication_year && (
                 <div className="flex items-center gap-2">
-                  <span className={textValueStyle}>{file.doc_publication_year}</span>
+                  <span className={textValueStyle}>{enhancedFile.doc_publication_year}</span>
                 </div>
               )}
               
               {/* Total Pages */}
-              {file.total_pages && (
+              {enhancedFile.total_pages && (
                 <div className="flex items-center gap-2">
-                  <span className={textValueStyle}>{file.total_pages} pages</span>
+                  <span className={textValueStyle}>{enhancedFile.total_pages} pages</span>
                 </div>
               )}
               
               {/* Always show Total Pages if file is PDF, even if not in object */}
-              {!file.total_pages && file.doc_type?.toLowerCase().includes('pdf') && (
+              {!enhancedFile.total_pages && enhancedFile.doc_type?.toLowerCase().includes('pdf') && (
                 <div className="flex items-center gap-2">
                   <span className={textValueStyle}>11 pages</span>
                 </div>
@@ -300,10 +380,10 @@ content: ${content}
           </div>
           
           {/* Summary */}
-          {file.doc_summary && (
+          {enhancedFile.doc_summary && (
             <div className="mt-6 pt-6 border-t w-full">
               <div className="flex items-start gap-2">
-                <p className={`whitespace-pre-line ${textValueStyle}`}>{file.doc_summary}</p>
+                <p className={`whitespace-pre-line ${textValueStyle}`}>{enhancedFile.doc_summary}</p>
               </div>
             </div>
           )}

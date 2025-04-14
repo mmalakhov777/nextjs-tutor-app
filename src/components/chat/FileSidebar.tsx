@@ -1,3 +1,5 @@
+"use client";
+
 import { useRef, useState, useEffect } from 'react';
 import { 
   Upload, FileText, Info, Copy, 
@@ -12,6 +14,7 @@ import { DeleteIcon } from '@/components/icons';
 import type { FileSidebarProps, UploadedFile } from '@/types/chat';
 import { WebPageIcon } from './WebPageIcon';
 import { FileDetailModal } from './FileDetailModal';
+import { useFileContext } from '@/contexts/FileContext';
 
 // Add a helper function to get the backend URL at the top of the file
 const getBackendUrl = () => {
@@ -38,8 +41,10 @@ interface FileUploadStatus {
   id: string;
   name: string;
   status: 'uploading' | 'processing' | 'completed' | 'error';
-  progress: number;
   url?: string; // Add URL for tracking link uploads
+  file?: File; // Add file object for rendering purposes
+  fileName: string; // Add original filename for deduplication
+  errorMessage: string; // Add field for error message
 }
 
 // Helper function to check if a URL is a YouTube URL
@@ -107,6 +112,92 @@ const getFileIcon = (fileName: string, file: UploadedFile) => {
   }
 };
 
+// Helper function to save file metadata to local storage
+const saveFileMetadataToLocalStorage = (file: UploadedFile) => {
+  try {
+    // Get existing metadata from local storage
+    const storedMetadata = localStorage.getItem('uploadedFilesMetadata');
+    const metadataObj = storedMetadata ? JSON.parse(storedMetadata) : {};
+    
+    // Save or update metadata for this file
+    metadataObj[file.id] = {
+      id: file.id,
+      name: file.name,
+      doc_title: file.doc_title,
+      doc_authors: file.doc_authors,
+      doc_publication_year: file.doc_publication_year,
+      doc_type: file.doc_type,
+      doc_summary: file.doc_summary,
+      total_pages: file.total_pages,
+      url: file.url,
+      source: file.source,
+      processed_at: file.processed_at,
+      status: file.status,
+      // Also save file content if it exists
+      file_content: file.file_content
+    };
+    
+    // Save back to local storage
+    localStorage.setItem('uploadedFilesMetadata', JSON.stringify(metadataObj));
+  } catch (error) {
+    console.error('Error saving file metadata to local storage:', error);
+  }
+};
+
+// Helper function to get file metadata from local storage
+const getFileMetadataFromLocalStorage = (fileId: string): Partial<UploadedFile> | null => {
+  try {
+    const storedMetadata = localStorage.getItem('uploadedFilesMetadata');
+    if (!storedMetadata) return null;
+    
+    const metadataObj = JSON.parse(storedMetadata);
+    return metadataObj[fileId] || null;
+  } catch (error) {
+    console.error('Error getting file metadata from local storage:', error);
+    return null;
+  }
+};
+
+// New function to load and save file content after upload
+const loadAndSaveFileContent = async (fileId: string) => {
+  try {
+    // Check if the file content already exists in localStorage
+    const storedMetadata = localStorage.getItem('uploadedFilesMetadata');
+    if (storedMetadata) {
+      const metadataObj = JSON.parse(storedMetadata);
+      if (metadataObj[fileId] && metadataObj[fileId].file_content) {
+        // Content already exists
+        return;
+      }
+    }
+    
+    // Fetch the file content from the backend
+    const backendUrl = getBackendUrl();
+    const response = await fetch(`${backendUrl}/api/files/${fileId}/content`);
+    
+    if (!response.ok) {
+      console.warn(`Could not load content for file ${fileId}: ${response.status}`);
+      return;
+    }
+    
+    const data = await response.json();
+    const content = data.content || '';
+    
+    // Update the file content in localStorage
+    const updatedStoredMetadata = localStorage.getItem('uploadedFilesMetadata');
+    if (updatedStoredMetadata) {
+      const updatedMetadataObj = JSON.parse(updatedStoredMetadata);
+      if (updatedMetadataObj[fileId]) {
+        updatedMetadataObj[fileId].file_content = content;
+        localStorage.setItem('uploadedFilesMetadata', JSON.stringify(updatedMetadataObj));
+        console.log(`File content saved for ${fileId}`);
+      }
+    }
+  } catch (error) {
+    console.error('Error loading file content:', error);
+  }
+};
+
 export function FileSidebar({
   uploadedFiles,
   isUploadingFile,
@@ -140,6 +231,9 @@ export function FileSidebar({
   
   // Track multiple file uploads with their progress
   const [fileUploads, setFileUploads] = useState<FileUploadStatus[]>([]);
+
+  // Get the setUploadedFiles function from the FileContext
+  const { setUploadedFiles } = useFileContext();
 
   // Auto-collapse upload area when files are uploaded
   useEffect(() => {
@@ -177,7 +271,16 @@ export function FileSidebar({
     }
     
     lastVectorStoreIdRef.current = defaultVectorStoreId;
-  }, [defaultVectorStoreId, onRefreshFiles]);
+    
+    // If there are uploaded files, save their metadata to local storage
+    // And update the FileContext
+    if (uploadedFiles.length > 0) {
+      uploadedFiles.forEach(file => {
+        saveFileMetadataToLocalStorage(file);
+      });
+      setUploadedFiles(uploadedFiles);
+    }
+  }, [defaultVectorStoreId, onRefreshFiles, uploadedFiles, setUploadedFiles]);
 
   // Set up drag and drop event handlers
   useEffect(() => {
@@ -274,7 +377,7 @@ export function FileSidebar({
   const onCopyId = (id: string) => {
     navigator.clipboard.writeText(id);
     setNotification('ID copied to clipboard');
-    setTimeout(() => setNotification(null), 2000);
+    setTimeout(() => setNotification(null), 3000);
   };
   
   // The single handleFileButtonClick function
@@ -290,95 +393,166 @@ export function FileSidebar({
     }
   };
 
-  // New function to handle multiple file uploads in parallel
+  // New function to check if a file format is supported
+  const isFileFormatSupported = (fileName: string): boolean => {
+    const extension = fileName.split('.').pop()?.toLowerCase() || '';
+    const supportedExtensions = [
+      'pdf', 'txt', 'csv', 'json', 'jsonl',
+      'py', 'js', 'ts', 'jsx', 'tsx', 'java', 'c', 'cpp', 'html', 'css', 'xml'
+    ];
+    return supportedExtensions.includes(extension);
+  };
+
+  // Update the handleMultipleFileUpload function to validate file formats
   const handleMultipleFileUpload = async (files: File[]) => {
     if (!files.length || !defaultVectorStoreId) {
       setNotification(defaultVectorStoreId ? 'No files selected' : 'No vector store available');
-      setTimeout(() => setNotification(null), 2000);
+      setTimeout(() => setNotification(null), 3000);
       return;
     }
     
+    // Filter files into supported and unsupported
+    const supportedFiles: File[] = [];
+    const unsupportedFiles: File[] = [];
+    
+    files.forEach(file => {
+      if (isFileFormatSupported(file.name)) {
+        supportedFiles.push(file);
+      } else {
+        unsupportedFiles.push(file);
+      }
+    });
+    
+    // Show error for unsupported files immediately
+    if (unsupportedFiles.length > 0) {
+      const fileNames = unsupportedFiles.map(f => f.name).join(', ');
+      setNotification(`Error: Unsupported file format(s) - ${fileNames}`);
+      setTimeout(() => setNotification(null), 3000);
+      
+      // Add unsupported files to the uploads list with error status
+      const newErrorUploads = unsupportedFiles.map(file => ({
+        id: Math.random().toString(36).substring(2, 11),
+        name: file.name,
+        fileName: file.name,
+        status: 'error' as const,
+        file: file,
+        errorMessage: 'Unsupported file format. Only PDF, TXT, CSV, JSON, and code files are supported.'
+      }));
+      
+      setFileUploads(prev => [...prev, ...newErrorUploads]);
+      
+      // If all files are unsupported, return early
+      if (supportedFiles.length === 0) return;
+    }
+    
+    // Continue with supported files only
     // Add each file to the uploads state with initial status
-    const newUploads = files.map(file => ({
+    const newUploads = supportedFiles.map(file => ({
       id: Math.random().toString(36).substring(2, 11), // Generate a temporary ID
       name: file.name,
+      fileName: file.name, // Store original filename for deduplication
       status: 'uploading' as const, 
-      progress: 0
+      file: file, // Store the file object for rendering purposes
+      errorMessage: '' // Add field for error message
     }));
     
     setFileUploads(prev => [...prev, ...newUploads]);
     
-    // Process all file uploads concurrently
-    const uploadPromises = files.map(async (file, index) => {
-      const uploadId = newUploads[index].id;
+    // Process files one by one to avoid issues if one fails
+    for (let i = 0; i < supportedFiles.length; i++) {
+      const file = supportedFiles[i];
+      const uploadId = newUploads[i].id;
       
       try {
-        // Update progress to 50% - upload started
-        setFileUploads(prev => 
-          prev.map(upload => 
-            upload.id === uploadId 
-              ? { ...upload, progress: 50 } 
-              : upload
-          )
-        );
-        
-        // Call the original onFileUpload function
+        // Upload the file - wrap in try-catch to handle fetch errors
         await onFileUpload(file);
         
         // Mark as processing
         setFileUploads(prev => 
           prev.map(upload => 
             upload.id === uploadId 
-              ? { ...upload, status: 'processing', progress: 75 } 
+              ? { ...upload, status: 'processing' } 
               : upload
           )
         );
         
-        // Mark as completed
-        setTimeout(() => {
+        // Check if the file was successfully added to uploadedFiles
+        const uploadedFile = uploadedFiles.find(uploadedFile => 
+          uploadedFile.name === file.name
+        );
+        
+        if (uploadedFile) {
+          // File was uploaded successfully, now fetch and save its content
+          try {
+            await loadAndSaveFileContent(uploadedFile.id);
+          } catch (contentError) {
+            console.warn(`Could not load content for ${uploadedFile.id}: ${contentError}`);
+            // Continue anyway - this is not critical
+          }
+          
+          // Remove from fileUploads
+          setFileUploads(prev => prev.filter(upload => upload.id !== uploadId));
+        } else {
+          // Mark as completed if not found in error checks
           setFileUploads(prev => 
             prev.map(upload => 
               upload.id === uploadId 
-                ? { ...upload, status: 'completed', progress: 100 } 
+                ? { ...upload, status: 'completed' } 
                 : upload
             )
           );
-          
-          // Remove completed upload after a delay
-          setTimeout(() => {
-            setFileUploads(prev => prev.filter(upload => upload.id !== uploadId));
-          }, 3000);
-        }, 1000);
-        
+        }
       } catch (error) {
-        console.error('Error uploading file:', error);
+        console.warn(`Error uploading file ${file.name}:`, error);
         
-        // Mark as error but with 100% progress (completed with error)
+        // Mark this file as error but continue with others
         setFileUploads(prev => 
           prev.map(upload => 
             upload.id === uploadId 
-              ? { ...upload, status: 'error', progress: 100 } 
+              ? { 
+                  ...upload, 
+                  status: 'error',
+                  errorMessage: error instanceof Error 
+                    ? error.message 
+                    : error instanceof TypeError && error.message.includes('fetch')
+                      ? 'Network error: Could not connect to server'
+                      : 'Upload failed'
+                } 
               : upload
           )
         );
         
-        setNotification(error instanceof Error ? `Error: ${error.message}` : 'Error uploading file');
-        setTimeout(() => setNotification(null), 2000);
-        
-        // Don't auto-remove error uploads - let user dismiss them
+        // Continue with next file, don't abort the entire process
+        continue;
       }
-    });
-    
-    // Wait for all uploads to complete (either success or error)
-    await Promise.all(uploadPromises);
-    
-    // Show success notification only if at least one file succeeded
-    if (files.length > 0) {
-      setNotification(`File upload${files.length > 1 ? 's' : ''} completed`);
-      setTimeout(() => setNotification(null), 2000);
     }
     
-    // Refresh files after all uploads are processed
+    // Final check for any files that might not have been properly handled
+    setTimeout(() => {
+      // Check for PDF files - they often cause silent 400 errors
+      setFileUploads(prev => 
+        prev.map(upload => {
+          if (upload.status === 'completed' && 
+              upload.fileName.toLowerCase().endsWith('.pdf')) {
+            return { 
+              ...upload, 
+              status: 'error',
+              errorMessage: 'Failed to upload file: 400 - PDFs not supported'
+            };
+          }
+          return upload;
+        })
+      );
+      
+      // Show success notification if any uploads completed successfully
+      const successfulUploads = fileUploads.filter(upload => upload.status === 'completed').length;
+      if (successfulUploads > 0) {
+        setNotification(`${successfulUploads} file upload${successfulUploads > 1 ? 's' : ''} completed`);
+        setTimeout(() => setNotification(null), 3000);
+      }
+    }, 1500);
+    
+    // Refresh files regardless of success/failure
     if (onRefreshFiles) {
       onRefreshFiles();
     }
@@ -392,7 +566,7 @@ export function FileSidebar({
   const handleLinkSubmit = async () => {
     if (!linkUrl || !defaultVectorStoreId || !onLinkSubmit) {
       setNotification(defaultVectorStoreId ? 'No URL entered' : 'No vector store available');
-      setTimeout(() => setNotification(null), 2000);
+      setTimeout(() => setNotification(null), 3000);
       return;
     }
 
@@ -406,7 +580,7 @@ export function FileSidebar({
       
       if (isDuplicate) {
         setNotification('This link is already being processed or has been uploaded');
-        setTimeout(() => setNotification(null), 2000);
+        setTimeout(() => setNotification(null), 3000);
         return;
       }
       
@@ -420,9 +594,10 @@ export function FileSidebar({
         {
           id: uploadId,
           name: domain,
-          status: 'uploading',
-          progress: 50,
-          url: linkUrl
+          fileName: domain, // Add fileName for deduplication
+          status: 'uploading' as const,
+          url: linkUrl,
+          errorMessage: ''
         }
       ]);
 
@@ -434,49 +609,57 @@ export function FileSidebar({
         setFileUploads(prev => 
           prev.map(upload => 
             upload.id === uploadId 
-              ? { ...upload, status: 'processing', progress: 75 } 
+              ? { ...upload, status: 'processing' } 
               : upload
           )
         );
         
         // Show success notification
         setNotification('Link submitted successfully');
-        setTimeout(() => setNotification(null), 2000);
+        setTimeout(() => setNotification(null), 3000);
         
         // Clear the input
         setLinkUrl('');
         
-        // Mark as completed after a delay
+        // Find the newly added link in uploadedFiles
+        // Wait a short time for the link to be processed and added to uploadedFiles
         setTimeout(() => {
-          setFileUploads(prev => 
-            prev.map(upload => 
-              upload.id === uploadId 
-                ? { ...upload, status: 'completed', progress: 100 } 
-                : upload
-            )
+          const addedLink = uploadedFiles.find(file => 
+            file.source === 'link' && file.url === linkUrl
           );
           
-          // Remove completed upload after a delay
-          setTimeout(() => {
-            setFileUploads(prev => prev.filter(upload => upload.id !== uploadId));
-          }, 3000);
-        }, 1000);
+          if (addedLink) {
+            // Link was added successfully, fetch and save its content
+            loadAndSaveFileContent(addedLink.id);
+          }
+          
+          // Immediately mark as completed and remove from fileUploads
+          setFileUploads(prev => prev.filter(upload => upload.url !== linkUrl));
+        }, 2000);
       } catch (error) {
         console.error('Error processing link:', error);
         
-        // Mark as error but with 100% progress
+        // Get error message
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        
+        // Mark as error but keep it visible
         setFileUploads(prev => 
           prev.map(upload => 
             upload.id === uploadId 
-              ? { ...upload, status: 'error', progress: 100 } 
+              ? { 
+                  ...upload, 
+                  status: 'error',
+                  errorMessage: errorMessage 
+                } 
               : upload
           )
         );
         
-        setNotification(error instanceof Error ? `Error: ${error.message}` : 'Error processing link');
-        setTimeout(() => setNotification(null), 2000);
+        // Show error notification
+        setNotification(`Error: ${errorMessage}`);
+        setTimeout(() => setNotification(null), 3000);
         
-        // Don't auto-remove error uploads - let user dismiss them
+        // NEVER auto-remove error uploads - let user dismiss them
       }
       
       if (onRefreshFiles) {
@@ -490,7 +673,7 @@ export function FileSidebar({
         console.error('Error submitting link:', error);
         setNotification(error instanceof Error ? `Error: ${error.message}` : 'Error submitting link');
       }
-      setTimeout(() => setNotification(null), 2000);
+      setTimeout(() => setNotification(null), 3000);
     }
   };
 
@@ -537,63 +720,326 @@ export function FileSidebar({
     return null;
   };
 
-  // Render function for in-progress uploads
-  const renderFileUploads = () => {
-    if (fileUploads.length === 0) return null;
+  // Render function for uploaded files and uploads in progress 
+  const renderAllFiles = () => {
+    // Define proper types for the combined array
+    type CombinedFile = 
+      | { isUpload: true; upload: FileUploadStatus; file?: never }
+      | { isUpload: false; file: UploadedFile; upload?: never };
+      
+    // Create a set of file names that exist in uploadedFiles
+    const uploadedFileNames = new Set(uploadedFiles.map(file => file.name));
+    
+    // For files with errors, ALWAYS KEEP THEM VISIBLE
+    // For successful uploads, only show if not already in uploadedFiles
+    const filteredUploads = fileUploads.filter(upload => 
+      upload.status === 'error' || !uploadedFileNames.has(upload.fileName)
+    );
+    
+    // Filter out uploaded files that don't have any metadata after processing
+    // Keep files that are still processing or have error status
+    const filteredUploadedFiles = uploadedFiles.filter(file => {
+      // Always keep files that are still processing or have error status
+      if (file.status === 'processing' || file.status === 'pending' || file.status === 'error') {
+        return true;
+      }
+      
+      // Check if file has any meaningful metadata
+      const hasMetadata = Boolean(
+        file.doc_title || 
+        (file.doc_authors && file.doc_authors.length > 0) || 
+        file.doc_publication_year || 
+        file.doc_type || 
+        file.doc_summary || 
+        (file.total_pages && file.total_pages > 0) ||
+        file.source === 'link' // Always keep links
+      );
+      
+      return hasMetadata;
+    });
+    
+    // Combine filtered uploads with filtered uploaded files for rendering
+    const combinedFiles: CombinedFile[] = [
+      ...filteredUploads.map(upload => ({ 
+        isUpload: true as const, 
+        upload 
+      })),
+      ...filteredUploadedFiles.map(file => ({ 
+        isUpload: false as const, 
+        file 
+      }))
+    ];
+    
+    if (combinedFiles.length === 0) return null;
     
     return (
-      <div className="space-y-3 mb-4 w-full">
-        {fileUploads.map((upload) => (
-          <div 
-            key={upload.id}
-            className="flex w-full p-3 items-start gap-3 relative border border-light rounded-lg bg-white"
-          >
-            <div className="flex flex-col flex-grow min-w-0 overflow-hidden">
-              <div className="flex items-center justify-between w-full mb-1">
-                <span className="truncate text-sm font-medium text-foreground">{upload.name}</span>
-                {upload.status === 'uploading' && <Clock className="h-4 w-4 text-amber-500 animate-pulse" />}
-                {upload.status === 'processing' && <Clock className="h-4 w-4 text-amber-500" />}
-                {upload.status === 'completed' && <CheckCircle2 className="h-4 w-4 text-green-500" />}
-                {upload.status === 'error' && 
-                  <div className="flex items-center">
-                    <AlertTriangle className="h-4 w-4 text-red-500 mr-1" />
-                    <Button
-                      onClick={() => removeUpload(upload.id)}
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5 hover:bg-slate-100"
-                      title="Remove"
-                    >
-                      <DeleteIcon className="h-3 w-3 text-slate-500" />
-                    </Button>
-                  </div>
-                }
-              </div>
+      <div className="mt-3 sm:mt-4">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-xs sm:text-sm font-semibold text-foreground">
+            {fileUploads.length > 0 && filteredUploadedFiles.length === 0 
+              ? "Uploading Files" 
+              : "Uploaded Files"}
+          </h3>
+        </div>
+        <div className="space-y-3 w-full">
+          {combinedFiles.map((item) => {
+            // Unified card component for both uploaded files and files in progress
+            if (item.isUpload) {
+              const upload = item.upload;
+              const fileExtension = upload.file ? upload.name.split('.').pop()?.toLowerCase() || '' : '';
               
-              <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+              return (
                 <div 
-                  className={`h-full rounded-full ${
-                    upload.status === 'error' 
-                      ? 'bg-red-500' 
-                      : upload.status === 'completed'
-                        ? 'bg-green-500'
-                        : 'bg-blue-500'
-                  }`}
-                  style={{ width: `${upload.progress}%`, transition: 'width 0.5s ease' }}
-                ></div>
-              </div>
-              
-              <div className="mt-1">
-                <span className="text-xs text-slate-500">
-                  {upload.status === 'uploading' && 'Uploading...'}
-                  {upload.status === 'processing' && 'Processing...'}
-                  {upload.status === 'completed' && 'Upload complete'}
-                  {upload.status === 'error' && 'Upload failed - Click X to remove'}
-                </span>
-              </div>
-            </div>
-          </div>
-        ))}
+                  key={`upload-${upload.id}`}
+                  className="flex w-full max-w-full p-4 items-start gap-3 relative group"
+                  style={{
+                    borderRadius: '16px',
+                    border: '1px solid var(--superlight)',
+                    background: 'var(--ultralight)'
+                  }}
+                >
+                  <div className="flex flex-col flex-grow min-w-0 overflow-hidden">
+                    <div className="flex items-start w-full">
+                      <span className="truncate text-sm font-medium text-foreground">{upload.name}</span>
+                    </div>
+                    
+                    {/* File type and status */}
+                    <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                      {/* File format */}
+                      <span className="flex items-center gap-1">
+                        {getFileIcon(upload.name, { name: upload.name } as UploadedFile)}
+                        {fileExtension.toUpperCase().substring(0, 4) || 'FILE'}
+                      </span>
+                      
+                      <span className="text-slate-400">•</span>
+                      
+                      {/* Upload status */}
+                      <span className={`
+                        ${upload.status === 'error' ? 'text-red-600' : 
+                          upload.status === 'completed' ? 'text-green-600' : 'text-amber-600'}
+                      `}>
+                        {upload.status === 'uploading' && 'Uploading...'}
+                        {upload.status === 'processing' && 'Processing...'}
+                        {upload.status === 'completed' && 'Completed'}
+                        {upload.status === 'error' && 'Error'}
+                      </span>
+
+                      {/* Show error message if available */}
+                      {upload.status === 'error' && upload.errorMessage && (
+                        <span className="ml-1 text-xs text-red-600">
+                         
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Right side actions */}
+                  <div className="flex flex-col items-end gap-2">
+                    {/* Status icon or delete button for errors */}
+                    {(upload.status === 'uploading' || upload.status === 'processing') && (
+                      <RefreshCw className="h-4 w-4 text-amber-500 animate-spin" />
+                    )}
+                    {upload.status === 'completed' && (
+                      <div className="flex items-center gap-1">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <Button
+                          onClick={() => removeUpload(upload.id)}
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 hover:bg-transparent opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label="Remove upload"
+                        >
+                          <DeleteIcon className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      </div>
+                    )}
+                    {upload.status === 'error' && 
+                      <div className="flex items-center gap-1">
+                        <AlertTriangle className="h-4 w-4 text-red-500" />
+                        <Button
+                          onClick={() => removeUpload(upload.id)}
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 hover:bg-transparent"
+                          aria-label="Remove upload"
+                        >
+                          <DeleteIcon className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      </div>
+                    }
+                  </div>
+                </div>
+              );
+            } else {
+              // This is an uploaded file - use the same card layout as above
+              const file = item.file;
+              return (
+                <div 
+                  key={file.id}
+                  className="flex w-full max-w-full p-4 items-start gap-3 relative group cursor-pointer hover:bg-gray-50"
+                  style={{
+                    borderRadius: '16px',
+                    border: '1px solid var(--superlight)',
+                    background: 'var(--ultralight)'
+                  }}
+                  onClick={() => handleFileSelection(file)}
+                >
+                  <div className="flex flex-col flex-grow min-w-0 overflow-hidden">
+                    <div className="flex items-start w-full">
+                      <span className="truncate text-sm font-medium text-foreground">
+                        {file.doc_title || file.name}
+                      </span>
+                    </div>
+                    
+                    {/* Show filename as secondary info when title is displayed */}
+                    {file.doc_title && (
+                      <div className="text-xs text-slate-500 truncate mt-0.5 mb-0.5">
+                        {file.name}
+                      </div>
+                    )}
+                    
+                    {/* File metadata - authors and type */}
+                    <div className="flex items-center gap-2 flex-wrap mt-0.5 mb-1">
+                      {file.doc_authors && file.doc_authors.length > 0 && (
+                        <span className="text-xs text-slate-700 flex items-center">
+                          {Array.isArray(file.doc_authors) 
+                            ? file.doc_authors.slice(0, 1).map((author: string) => author).join(', ')
+                            : file.doc_authors}
+                          {Array.isArray(file.doc_authors) && file.doc_authors.length > 1 && (
+                            <span className="ml-1 inline-flex items-center justify-center text-slate-800 text-[10px]"
+                              style={{
+                                borderRadius: '1000px',
+                                background: 'var(--Monochrome-Light, #E8E8E5)',
+                                display: 'flex',
+                                width: '18px',
+                                height: '18px',
+                                padding: '2px 4px 2px 2px',
+                                flexDirection: 'column',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                gap: '10px'
+                              }}>
+                              +{file.doc_authors.length - 1}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* File type and status on the same line */}
+                    <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+                      {/* File format with link icon for URLs */}
+                      {file.source === 'link' ? (
+                        <span className="flex items-center gap-1">
+                          {file.url && isYouTubeUrl(file.url) || file.doc_type?.toLowerCase() === 'youtube_video' ? (
+                            <>
+                              <YouTubeIcon />
+                              YouTube
+                            </>
+                          ) : (
+                            <>
+                              <WebPageIcon file={file} />
+                              Website
+                            </>
+                          )}
+                        </span>
+                      ) : file.name && (
+                        <span className="flex items-center gap-1">
+                          {getFileIcon(file.name, file)}
+                          {file.name.split('.').pop()?.toUpperCase().substring(0, 4) || 'FILE'}
+                        </span>
+                      )}
+                      
+                      {/* Dot divider */}
+                      {file.name && file.doc_type && file.doc_type !== "Unknown" && (
+                        <span className="text-slate-400">•</span>
+                      )}
+                      
+                      {/* Document type */}
+                      {file.doc_type && file.doc_type !== "Unknown" && file.doc_type.toLowerCase() !== "youtube_video" && (
+                        <span>
+                          {file.doc_type.toLowerCase() === 'webpage' || file.doc_type.toLowerCase() === 'webpage' 
+                            ? "WEB" 
+                            : file.doc_type.substring(0, 3).toUpperCase()}
+                        </span>
+                      )}
+                      
+                      {/* Dot divider */}
+                      {((file.name || (file.doc_type && file.doc_type !== "Unknown")) && 
+                        (file.doc_publication_year || (file.status && file.status !== 'completed'))) && (
+                        <span className="text-slate-400">•</span>
+                      )}
+                      
+                      {/* Year instead of "Ready" status */}
+                      {file.doc_publication_year && (
+                        <span>
+                          {file.doc_publication_year}
+                        </span>
+                      )}
+                      
+                      {/* Only show error or processing status */}
+                      {file.status && file.status !== 'completed' && (
+                        <span className={`${file.status === 'error' ? 'text-red-600' : 'text-amber-600'}`}>
+                          {file.status === 'error' ? 'Error' : 'Processing'}
+                        </span>
+                      )}
+                      
+                      {/* Show URL for link files */}
+                      {file.source === 'link' && file.url && (
+                        <a 
+                          href={file.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="ml-auto text-blue-500 hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          View source
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Right side actions */}
+                  <div className="flex flex-col items-end gap-2">
+                    {/* Show spinner for processing status */}
+                    {file.status === 'pending' || file.status === 'processing' ? (
+                      <RefreshCw className="h-4 w-4 text-amber-500 animate-spin" />
+                    ) : (
+                      /* Delete button */
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent opening the modal
+                          setIsDeletingFile(file.id);
+                          const result = onFileDeleted?.(file.id);
+                          // Check if the result is a Promise-like object
+                          if (result && typeof (result as any).then === 'function') {
+                            (result as Promise<any>).finally(() => {
+                              setIsDeletingFile(null);
+                            });
+                          } else {
+                            // If not a promise, reset state after a small delay
+                            setTimeout(() => setIsDeletingFile(null), 500);
+                          }
+                        }}
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-transparent"
+                        aria-label="Delete file"
+                        disabled={isDeletingFile === file.id}
+                      >
+                        {isDeletingFile === file.id ? (
+                          <RefreshCw className="h-4 w-4 text-muted-foreground animate-spin" />
+                        ) : (
+                          <DeleteIcon className="h-4 w-4 text-muted-foreground group-hover:text-[#232323]" />
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+          })}
+        </div>
       </div>
     );
   };
@@ -601,6 +1047,26 @@ export function FileSidebar({
   // Function to manually remove an upload from the list (for errors)
   const removeUpload = (uploadId: string) => {
     setFileUploads(prev => prev.filter(upload => upload.id !== uploadId));
+  };
+
+  // Update the function that handles file selection for detail view to enhance with local storage data
+  const handleFileSelection = (file: UploadedFile) => {
+    // Check if we can enhance the file data with metadata from local storage
+    const storedMetadata = getFileMetadataFromLocalStorage(file.id);
+    
+    if (storedMetadata) {
+      // Merge the stored metadata with the current file data, preferring current data where it exists
+      const enhancedFile = {
+        ...storedMetadata,
+        ...file,
+      };
+      setSelectedFile(enhancedFile as UploadedFile);
+    } else {
+      // No stored metadata, just use the file as is
+      setSelectedFile(file);
+      // And save it for future use
+      saveFileMetadataToLocalStorage(file);
+    }
   };
 
   return (
@@ -721,15 +1187,18 @@ export function FileSidebar({
             </div>
           ) : (
             <div 
+              ref={dropAreaRef}
               className={`
                 relative overflow-hidden rounded-[16px] p-6
                 flex flex-col items-center justify-center text-center
                 transition-all duration-300 ease-in-out
                 ${!defaultVectorStoreId ? 'cursor-not-allowed opacity-60' : ''}
+                ${isDragging ? 'border-primary border-2' : ''}
               `}
               style={{ 
-                border: '1px dashed var(--normal)',
-                background: 'var(--ultralight)'
+                border: isDragging ? '2px dashed var(--primary)' : '1px dashed var(--normal)',
+                background: 'var(--ultralight)',
+                transition: 'border 0.2s ease-in-out'
               }}
             >
               {/* Toggle between file upload and link input */}
@@ -822,12 +1291,11 @@ export function FileSidebar({
                     className="hidden"
                     id="file-upload"
                     multiple
-                    accept=".txt,.md,.csv,.json,.jsonl,.html,.xml,.py,.js,.java,.c,.cpp,.pdf,.jpg,.jpeg,.png,.gif,.webp"
+                    accept=".pdf,.txt,.csv,.json,.jsonl,.py,.js,.ts,.jsx,.tsx,.java,.c,.cpp,.html,.css,.xml"
                     ref={fileInputRef}
                   />
                   
                   <div 
-                    ref={dropAreaRef}
                     className="w-full flex flex-col items-center justify-center text-center"
                     style={{ 
                       background: 'var(--ultralight)'
@@ -862,7 +1330,7 @@ export function FileSidebar({
                     </button>
                     
                     <div className="mt-4 text-xs text-muted-foreground/70">
-                      PDF, TXT, CSV, JSON, and code files supported
+                      Only PDF, TXT, CSV, JSON, and code files are supported
                     </div>
                   </div>
                 </>
@@ -882,172 +1350,12 @@ export function FileSidebar({
           )}
         </div>
         
-        {/* Show active file uploads with progress */}
-        {renderFileUploads()}
+        {/* Render both active uploads and uploaded files in one unified list */}
+        {renderAllFiles()}
         
         {notification && (
           <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm">
             {notification}
-          </div>
-        )}
-        
-        {uploadedFiles.length > 0 && (
-          <div className="mt-3 sm:mt-4">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-xs sm:text-sm font-semibold text-foreground">Uploaded Files</h3>
-            </div>
-            <div className="space-y-3 w-full">
-              {uploadedFiles.map((file) => (
-                <div 
-                  key={file.id}
-                  className="flex w-full max-w-full p-4 items-start gap-3 relative group cursor-pointer hover:bg-gray-50"
-                  style={{
-                    borderRadius: '16px',
-                    border: '1px solid var(--superlight)',
-                    background: 'var(--ultralight)'
-                  }}
-                  onClick={() => setSelectedFile(file)}
-                >
-                  <div className="flex flex-col flex-grow min-w-0 overflow-hidden">
-                    <div className="flex items-start w-full">
-                      <span className="truncate text-sm font-medium text-foreground">{file.name}</span>
-                    </div>
-                    
-                    {/* File metadata - authors and type */}
-                    <div className="flex items-center gap-2 flex-wrap mt-0.5 mb-1">
-                      {file.doc_authors && file.doc_authors.length > 0 && (
-                        <span className="text-xs text-slate-700 flex items-center">
-                          {Array.isArray(file.doc_authors) 
-                            ? file.doc_authors.slice(0, 1).map((author: string) => author).join(', ')
-                            : file.doc_authors}
-                          {Array.isArray(file.doc_authors) && file.doc_authors.length > 1 && (
-                            <span className="ml-1 inline-flex items-center justify-center text-slate-800 text-[10px]"
-                              style={{
-                                borderRadius: '1000px',
-                                background: 'var(--Monochrome-Light, #E8E8E5)',
-                                display: 'flex',
-                                width: '18px',
-                                height: '18px',
-                                padding: '2px 4px 2px 2px',
-                                flexDirection: 'column',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                gap: '10px'
-                              }}>
-                              +{file.doc_authors.length - 1}
-                            </span>
-                          )}
-                        </span>
-                      )}
-                    </div>
-                    
-                    {/* File type and status on the same line */}
-                    <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
-                      {/* File format with link icon for URLs */}
-                      {file.source === 'link' ? (
-                        <span className="flex items-center gap-1">
-                          {file.url && isYouTubeUrl(file.url) || file.doc_type?.toLowerCase() === 'youtube_video' ? (
-                            <>
-                              <YouTubeIcon />
-                              YouTube
-                            </>
-                          ) : (
-                            <>
-                              <WebPageIcon file={file} />
-                              Website
-                            </>
-                          )}
-                        </span>
-                      ) : file.name && (
-                        <span className="flex items-center gap-1">
-                          {getFileIcon(file.name, file)}
-                          {file.name.split('.').pop()?.toUpperCase().substring(0, 4) || 'FILE'}
-                        </span>
-                      )}
-                      
-                      {/* Dot divider */}
-                      {file.name && file.doc_type && file.doc_type !== "Unknown" && (
-                        <span className="text-slate-400">•</span>
-                      )}
-                      
-                      {/* Document type */}
-                      {file.doc_type && file.doc_type !== "Unknown" && file.doc_type.toLowerCase() !== "youtube_video" && (
-                        <span>
-                          {file.doc_type.toLowerCase() === 'webpage' || file.doc_type.toLowerCase() === 'webpage' 
-                            ? "WEB" 
-                            : file.doc_type.substring(0, 3).toUpperCase()}
-                        </span>
-                      )}
-                      
-                      {/* Dot divider */}
-                      {((file.name || (file.doc_type && file.doc_type !== "Unknown")) && 
-                        (file.doc_publication_year || (file.status && file.status !== 'completed'))) && (
-                        <span className="text-slate-400">•</span>
-                      )}
-                      
-                      {/* Year instead of "Ready" status */}
-                      {file.doc_publication_year && (
-                        <span>
-                          {file.doc_publication_year}
-                        </span>
-                      )}
-                      
-                      {/* Only show error or processing status */}
-                      {file.status && file.status !== 'completed' && (
-                        <span className={`${file.status === 'error' ? 'text-red-600' : 'text-amber-600'}`}>
-                          {file.status === 'error' ? 'Error' : 'Processing'}
-                        </span>
-                      )}
-                      
-                      {/* Show URL for link files */}
-                      {file.source === 'link' && file.url && (
-                        <a 
-                          href={file.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="ml-auto text-blue-500 hover:underline"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          View source
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Right side actions */}
-                  <div className="flex flex-col items-end gap-2">
-                    {/* Delete button */}
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation(); // Prevent opening the modal
-                        setIsDeletingFile(file.id);
-                        const result = onFileDeleted?.(file.id);
-                        // Check if the result is a Promise-like object
-                        if (result && typeof (result as any).then === 'function') {
-                          (result as Promise<any>).finally(() => {
-                            setIsDeletingFile(null);
-                          });
-                        } else {
-                          // If not a promise, reset state after a small delay
-                          setTimeout(() => setIsDeletingFile(null), 500);
-                        }
-                      }}
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-transparent"
-                      aria-label="Delete file"
-                      disabled={isDeletingFile === file.id}
-                    >
-                      {isDeletingFile === file.id ? (
-                        <RefreshCw className="h-4 w-4 text-muted-foreground animate-spin" />
-                      ) : (
-                        <DeleteIcon className="h-4 w-4 text-muted-foreground group-hover:text-[#232323]" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         )}
       </div>

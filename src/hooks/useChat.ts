@@ -196,7 +196,7 @@ export function useChat(userId: string | null) {
                 }
               }
             } catch (e) {
-              console.error('Error parsing chunk:', e);
+              // Silently catch errors to avoid console logs
             }
           }
         }
@@ -212,15 +212,7 @@ export function useChat(userId: string | null) {
         metadata: responseMetadata
       };
     } catch (error) {
-      console.error('Error:', error);
-      // Add more detailed error logging
-      if (error instanceof Error) {
-        console.error('Detailed error info:', {
-          message: error.message,
-          name: error.name,
-          stack: error.stack
-        });
-      }
+      // Keep minimal error handling without console.error
       setIsProcessing(false);
       return { success: false, error };
     }
@@ -230,16 +222,39 @@ export function useChat(userId: string | null) {
   const handleSendMessage = async (message: string) => {
     if (!message.trim() || isProcessing) return;
 
-    const newMessage: Message = {
+    // Separate the display content from the backend content
+    const metaStartTag = '__FILES_METADATA__';
+    const metaEndTag = '__END_FILES_METADATA__';
+    let displayContent = message;
+    const metaStartIndex = message.lastIndexOf(metaStartTag); // Use lastIndexOf
+
+    if (metaStartIndex !== -1) {
+      const metaEndIndex = message.indexOf(metaEndTag, metaStartIndex);
+      if (metaEndIndex !== -1) {
+        // Extract content *before* the metadata block for display
+        displayContent = message.substring(0, metaStartIndex).trim();
+      }
+      // If tags are malformed, displayContent remains the original message for now
+    }
+    
+    // ADDED: Clean up the file references in the display content
+    // Convert @[file-file-ID:filename.pdf] to simply filename.pdf
+    displayContent = displayContent.replace(/@\[file-[a-zA-Z0-9-_]+:([^\]]+)\]/g, '$1');
+
+    const newMessageForDisplay: Message = {
       role: 'user',
-      content: message,
+      content: displayContent, // Use the cleaned content for display
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, newMessage]);
+    // Add the CLEANED message to the state for immediate UI update
+    setMessages(prev => [...prev, newMessageForDisplay]);
     setCurrentMessage('');
     setIsProcessing(true);
     setShowWelcome(false);
+
+    // --- The rest of the function uses the ORIGINAL `message` variable --- 
+    // --- which contains the metadata for the backend --- 
 
     try {
       if (!currentConversationId && userId) {
@@ -294,24 +309,29 @@ export function useChat(userId: string | null) {
         question: message,
         userId: userId,
         conversationId: currentConversationId,
-        history: messages
+        history: [...messages, newMessageForDisplay] // Pass updated history
           .filter(msg => msg.role !== 'error' && msg.role !== 'system')
-          .map(msg => ({ role: msg.role, content: msg.content }))
+          // Send the ORIGINAL content for previous user messages, and the cleaned one for the current
+          .map(msg => ({
+             role: msg.role, 
+             content: (msg.timestamp === newMessageForDisplay.timestamp && msg.role === 'user') 
+                      ? message // Send ORIGINAL message content for the current message
+                      : msg.content // Send existing content for previous messages
+            }))
       };
 
-      console.log('Sending chat request to:', endpoint);
-      console.log('Request body:', JSON.stringify(requestBody));
-
+      // Send the request with the ORIGINAL message content
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify({
+          ...requestBody,
+          question: message // Ensure the original message is sent here
+        })
       });
 
       if (!response.ok) {
-        console.error(`API request failed with status ${response.status}`);
         const errorText = await response.text();
-        console.error('Error response:', errorText);
         throw new Error(`API request failed with status ${response.status}: ${errorText}`);
       }
 
@@ -341,12 +361,10 @@ export function useChat(userId: string | null) {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
-              console.log('Stream Event:', { type: data.type, content: data.content, currentAgent: currentAgentRef.current });
 
               switch (data.type) {
                 case 'agent_update':
                   const newAgent = data.content.replace('Switched to ', '');
-                  console.log('Agent Update:', { newAgent, currentAgent: currentAgentRef.current });
                   if (currentAgentRef.current !== newAgent) {
                     if (newAgent !== "Triage Agent") {
                       shouldShowTriageReturn = true;
@@ -367,7 +385,6 @@ export function useChat(userId: string | null) {
                     seenAgents.add(newAgent);
                     setCurrentAgent(newAgent);
                     currentAgentRef.current = newAgent;  // Update ref immediately
-                    console.log('Updated Current Agent:', newAgent);
                     
                     // Reset for new agent
                     currentResponse = '';
@@ -377,12 +394,9 @@ export function useChat(userId: string | null) {
 
                 case 'message':
                   currentResponse = data.content;
-                  console.log('Message Event:', { currentResponse, currentAgent: currentAgentRef.current, responseAdded });
                   
                   if (!responseAdded) {
-                    console.log('Creating new message with agent:', currentAgentRef.current);
                     setMessages(prev => {
-                      console.log('Previous messages:', prev);
                       return [...prev, { 
                         role: 'assistant', 
                         content: currentResponse,
@@ -401,7 +415,6 @@ export function useChat(userId: string | null) {
                       const newMessages = [...prev];
                       const lastMessage = newMessages[newMessages.length - 1];
                       if (lastMessage && lastMessage.role === 'assistant') {
-                        console.log('Updating last message with agent:', currentAgentRef.current);
                         lastMessage.content = currentResponse;
                         lastMessage.agentName = currentAgentRef.current;
                         lastMessage.metadata = {
@@ -417,12 +430,9 @@ export function useChat(userId: string | null) {
 
                 case 'token':
                   currentResponse += data.content;
-                  console.log('Token Event:', { currentResponse, currentAgent: currentAgentRef.current, responseAdded });
                   
                   if (!responseAdded) {
-                    console.log('Creating new token message with agent:', currentAgentRef.current);
                     setMessages(prev => {
-                      console.log('Previous messages:', prev);
                       return [...prev, { 
                         role: 'assistant', 
                         content: currentResponse,
@@ -441,7 +451,6 @@ export function useChat(userId: string | null) {
                       const newMessages = [...prev];
                       const lastMessage = newMessages[newMessages.length - 1];
                       if (lastMessage && lastMessage.role === 'assistant') {
-                        console.log('Updating token message with agent:', currentAgentRef.current);
                         lastMessage.content = currentResponse;
                         lastMessage.agentName = currentAgentRef.current;
                         lastMessage.metadata = {
@@ -504,21 +513,13 @@ export function useChat(userId: string | null) {
                   break;
               }
             } catch (e) {
-              console.error('Error processing message:', e);
+              // Silently catch errors
             }
           }
         }
       }
     } catch (error) {
-      console.error('Error:', error);
-      // Add more detailed error logging
-      if (error instanceof Error) {
-        console.error('Detailed error info:', {
-          message: error.message,
-          name: error.name,
-          stack: error.stack
-        });
-      }
+      // Minimal error handling
       setMessages(prev => [...prev, { 
         role: 'error', 
         content: 'Connection error. Please try again.',

@@ -725,10 +725,19 @@ export default function Home({
           return true;
         })
         .map((msg: ExtendedDBMessage, index: number, array: ExtendedDBMessage[]) => {
+          let displayContent = msg.content;
+          // Hide metadata block for user messages
+          if (msg.role === 'user' && typeof msg.content === 'string') {
+            const metaStartIndex = msg.content.indexOf('__FILES_METADATA__');
+            if (metaStartIndex !== -1) {
+              displayContent = msg.content.substring(0, metaStartIndex).trim();
+            }
+          }
+
           const message: Message = {
             id: msg.id,
             role: msg.role as MessageRole,
-            content: msg.content,
+            content: displayContent, // Use potentially modified content
             sessionId: msg.session_id || msg.chat_session_id, // Handle both formats
             timestamp: new Date(msg.created_at),
             agentName: msg.agent_name
@@ -1057,10 +1066,19 @@ export default function Home({
             return true;
           })
           .map((msg: ExtendedDBMessage, index: number, array: ExtendedDBMessage[]) => {
+            let displayContent = msg.content;
+            // Hide metadata block for user messages
+            if (msg.role === 'user' && typeof msg.content === 'string') {
+              const metaStartIndex = msg.content.indexOf('__FILES_METADATA__');
+              if (metaStartIndex !== -1) {
+                displayContent = msg.content.substring(0, metaStartIndex).trim();
+              }
+            }
+            
             const message: Message = {
               id: msg.id,
               role: msg.role as MessageRole,
-              content: msg.content,
+              content: displayContent, // Use potentially modified content
               sessionId: msg.session_id || msg.chat_session_id, // Handle both formats
               timestamp: new Date(msg.created_at),
               agentName: msg.agent_name
