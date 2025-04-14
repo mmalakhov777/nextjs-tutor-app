@@ -120,18 +120,38 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
   
   
   const [loadingFileId, setLoadingFileId] = useState<string | null>(null);
+  const [loadingLinkId, setLoadingLinkId] = useState<string | null>(null);
   
   
   const isStreaming = message.role === 'assistant' && message.content === '';
   
   
   const handleSendMessage = (message: string) => {
-    
     if (onLinkSubmit && message.startsWith('http')) {
-      
-      onLinkSubmit(message).catch(error => {
-        
-      });
+      setLoadingLinkId(message);
+      onLinkSubmit(message)
+        .then(() => {
+          // Successfully submitted link
+        })
+        .catch(error => {
+          console.error("Error submitting link:", error);
+        })
+        .finally(() => {
+          setLoadingLinkId(null);
+        });
+    }
+  };
+  
+  const handleLinkSubmit = async (url: string) => {
+    if (onLinkSubmit) {
+      setLoadingLinkId(url);
+      try {
+        await onLinkSubmit(url);
+      } catch (error) {
+        console.error("Error submitting link:", error);
+      } finally {
+        setLoadingLinkId(null);
+      }
     }
   };
   
@@ -147,9 +167,8 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
   
   const handleFileClick = async (fileId: string, filename: string) => {
     try {
-      
+      // Set loading state for this file
       setLoadingFileId(fileId);
-      
       
       const storedMetadata = getFileMetadataFromLocalStorage(fileId);
       
@@ -169,7 +188,9 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
           doc_type: storedMetadata.doc_type || '',
           doc_title: storedMetadata.doc_title || '',
           doc_authors: storedMetadata.doc_authors || [],
-          doc_publication_year: storedMetadata.doc_publication_year || '',
+          doc_publication_year: typeof storedMetadata.doc_publication_year === 'string' ? 
+                               parseInt(storedMetadata.doc_publication_year, 10) || null : 
+                               storedMetadata.doc_publication_year || null,
           doc_summary: storedMetadata.doc_summary || '',
           total_pages: storedMetadata.total_pages || 0,
           source: storedMetadata.source || 'upload',
@@ -249,7 +270,12 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
         doc_type: fileData.document?.type || fileData.doc_type || '',
         doc_title: fileData.document?.title || fileData.doc_title || '',
         doc_authors: fileData.document?.authors || fileData.doc_authors || [],
-        doc_publication_year: fileData.document?.publication_year || fileData.doc_publication_year || '',
+        doc_publication_year: typeof fileData.document?.publication_year === 'string' ? 
+                             parseInt(fileData.document.publication_year, 10) || null : 
+                             fileData.document?.publication_year || 
+                             (typeof fileData.doc_publication_year === 'string' ? 
+                              parseInt(fileData.doc_publication_year, 10) || null : 
+                              fileData.doc_publication_year || null),
         doc_summary: fileData.document?.summary || fileData.doc_summary || '',
         total_pages: fileData.document?.total_pages || fileData.total_pages || 0,
         source: fileData.source || (fileData.url ? 'link' : 'upload'),
@@ -1576,8 +1602,9 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
                   <MessageContent 
                     content={enhancedText || message.content} 
                     messageId={message.id} 
-                    onLinkSubmit={onLinkSubmit} 
-                    hasFileAnnotations={false} 
+                    onLinkSubmit={handleLinkSubmit} 
+                    hasFileAnnotations={false}
+                    loadingLinkId={loadingLinkId}
                   />
                 </div>
               </>

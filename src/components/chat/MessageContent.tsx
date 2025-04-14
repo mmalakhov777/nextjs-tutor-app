@@ -254,9 +254,10 @@ export interface MessageContentProps {
   messageId?: string;
   onLinkSubmit?: (url: string) => Promise<void>;
   hasFileAnnotations?: boolean;
+  loadingLinkId?: string | null;
 }
 
-export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, hasFileAnnotations }: MessageContentProps) => {
+export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, hasFileAnnotations, loadingLinkId }: MessageContentProps) => {
   // Function to extract URLs from text with their surrounding context
   const extractLinks = React.useMemo(() => {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -394,7 +395,11 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
 
   // Function to handle link submission with loading state
   const handleLinkSubmitWithLoading = async (url: string) => {
-    setLinkStates(prev => ({ ...prev, [url]: { status: 'loading' } }));
+    // Don't set loading state here if the parent is already tracking it
+    if (!loadingLinkId) {
+      setLinkStates(prev => ({ ...prev, [url]: { status: 'loading' } }));
+    }
+    
     try {
       await onLinkSubmit!(url); // Use non-null assertion as it's checked before calling
       setLinkStates(prev => ({ ...prev, [url]: { status: 'added', message: 'Link added successfully' } }));
@@ -467,30 +472,14 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
       }
     }, [addedTooltipRef]);
     
-    const handleLinkSubmitWithLoading = async () => {
+    const handleAddLink = async () => {
       if (!onLinkSubmit) return;
       
       try {
-        // Show success notification
-        const notification = document.createElement('div');
-        notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm';
-        notification.textContent = 'Adding link...';
-        document.body.appendChild(notification);
-        
-        await onLinkSubmit(link.url);
-        
-        // Update notification
-        notification.textContent = 'Link added successfully';
-        setTimeout(() => notification.remove(), 2000);
+        // Use the parent component's function
+        await handleLinkSubmitWithLoading(link.url);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to add link';
-        
-        // Show error notification
-        const notification = document.createElement('div');
-        notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm';
-        notification.textContent = errorMessage;
-        document.body.appendChild(notification);
-        setTimeout(() => notification.remove(), 2000);
+        // Error is already handled by parent function
       }
     };
     
@@ -535,7 +524,7 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
         </a>
         {onLinkSubmit && linkState.status !== 'added' && ( // Don't show button if already added
           <Button
-            onClick={handleLinkSubmitWithLoading}
+            onClick={handleAddLink}
             variant="ghost"
             size="icon"
             className={cn(
@@ -741,7 +730,12 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
           <div className="flex overflow-x-auto pb-2 hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <div className="flex gap-3">
               {links.map((link, index) => {
-                const currentState = linkStates[link.url] || { status: 'idle' };
+                // Use loadingLinkId from props if available
+                const isLoading = loadingLinkId === link.url;
+                // Only use local state if not already loading from props
+                const currentState = isLoading 
+                  ? { status: 'loading' as const } 
+                  : (linkStates[link.url] || { status: 'idle' as const });
                 const isAddedTooltipCurrentlyVisible = addedTooltipVisible[link.url] || false;
                 
                 return (
