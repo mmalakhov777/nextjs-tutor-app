@@ -22,6 +22,7 @@ import HeadingExtension from '@tiptap/extension-heading';
 import BulletListExtension from '@tiptap/extension-bullet-list';
 import OrderedListExtension from '@tiptap/extension-ordered-list';
 import LinkExtension from '@tiptap/extension-link';
+import Placeholder from '@tiptap/extension-placeholder';
 import { Link as LucideLink } from 'lucide-react';
 
 // Define MSD global interface type
@@ -78,6 +79,10 @@ const TiptapEditor = ({ content, onUpdate }: { content: string, onUpdate: (html:
       OrderedListExtension,
       LinkExtension.configure({
         openOnClick: false,
+      }),
+      Placeholder.configure({
+        placeholder: 'Take notes during your conversation...',
+        emptyEditorClass: 'is-editor-empty',
       }),
     ],
     content,
@@ -194,6 +199,13 @@ const TiptapEditor = ({ content, onUpdate }: { content: string, onUpdate: (html:
           outline: none !important;
           box-shadow: none !important;
           border: none !important;
+        }
+        .ProseMirror p.is-editor-empty:first-child::before {
+          content: attr(data-placeholder);
+          float: left;
+          color: #adb5bd;
+          pointer-events: none;
+          height: 0;
         }
       `}} />
     </div>
