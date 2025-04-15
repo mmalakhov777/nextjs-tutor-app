@@ -158,6 +158,23 @@ const getFileMetadataFromLocalStorage = (fileId: string): Partial<UploadedFile> 
   }
 };
 
+// Add this function after getFileMetadataFromLocalStorage
+const removeFileMetadataFromLocalStorage = (fileId: string): void => {
+  try {
+    const storedMetadata = localStorage.getItem('uploadedFilesMetadata');
+    if (!storedMetadata) return;
+    
+    const metadataObj = JSON.parse(storedMetadata);
+    if (metadataObj[fileId]) {
+      delete metadataObj[fileId];
+      localStorage.setItem('uploadedFilesMetadata', JSON.stringify(metadataObj));
+      console.log(`File metadata removed for ${fileId}`);
+    }
+  } catch (error) {
+    console.error('Error removing file metadata from local storage:', error);
+  }
+};
+
 // New function to load and save file content after upload
 const loadAndSaveFileContent = async (fileId: string) => {
   try {
@@ -234,15 +251,6 @@ export function FileSidebar({
 
   // Get the setUploadedFiles function from the FileContext
   const { setUploadedFiles } = useFileContext();
-
-  // Auto-collapse upload area when files are uploaded
-  useEffect(() => {
-    if (uploadedFiles.length > 0 && !isUploadingFile) {
-      setIsUploadAreaExpanded(false);
-    } else if (uploadedFiles.length === 0) {
-      setIsUploadAreaExpanded(true);
-    }
-  }, [uploadedFiles.length, isUploadingFile]);
 
   // Detect mobile screen size
   useEffect(() => {
@@ -730,53 +738,55 @@ export function FileSidebar({
     // Create a set of file names that exist in uploadedFiles
     const uploadedFileNames = new Set(uploadedFiles.map(file => file.name));
     
-    // For files with errors, ALWAYS KEEP THEM VISIBLE
-    // For successful uploads, only show if not already in uploadedFiles
-    const filteredUploads = fileUploads.filter(upload => 
-      upload.status === 'error' || !uploadedFileNames.has(upload.fileName)
-    );
-    
-    // Filter out uploaded files that don't have any metadata after processing
-    // Keep files that are still processing or have error status
-    const filteredUploadedFiles = uploadedFiles.filter(file => {
-      // Always keep files that are still processing or have error status
-      if (file.status === 'processing' || file.status === 'pending' || file.status === 'error') {
+    // Filter temporary uploads more carefully
+    const filteredUploads = fileUploads.filter(upload => {
+      // Check if a corresponding completed file with metadata exists in the main list
+      const correspondingCompletedFile = uploadedFiles.find(f => 
+        f.name === upload.fileName && 
+        f.status === 'completed' &&
+        Boolean(
+          (f.doc_title && f.doc_title.trim() !== '') || 
+          (Array.isArray(f.doc_authors) && f.doc_authors.length > 0) || 
+          f.doc_publication_year || 
+          (f.doc_type && f.doc_type.trim() !== '') || 
+          (f.doc_summary && f.doc_summary.trim() !== '') || 
+          (f.total_pages && f.total_pages > 0) ||
+          f.source === 'link'
+        )
+      );
+
+      // Condition 2: Keep uploading/processing items ONLY if not yet in uploadedFiles
+      if ((upload.status === 'uploading' || upload.status === 'processing') && 
+          !uploadedFileNames.has(upload.fileName) && 
+          !correspondingCompletedFile) {
         return true;
       }
       
-      // Check if file has any meaningful metadata
-      const hasMetadata = Boolean(
-        file.doc_title || 
-        (file.doc_authors && file.doc_authors.length > 0) || 
-        file.doc_publication_year || 
-        file.doc_type || 
-        file.doc_summary || 
-        (file.total_pages && file.total_pages > 0) ||
-        file.source === 'link' // Always keep links
-      );
-      
-      return hasMetadata;
+      // Filter out everything else
+      return false;
     });
     
-    // Combine filtered uploads with filtered uploaded files for rendering
+    // Combine filtered temporary uploads with ALL uploaded files (filtering will happen inline)
     const combinedFiles: CombinedFile[] = [
       ...filteredUploads.map(upload => ({ 
         isUpload: true as const, 
         upload 
       })),
-      ...filteredUploadedFiles.map(file => ({ 
+      ...uploadedFiles.map(file => ({ // Use uploadedFiles directly here
         isUpload: false as const, 
         file 
       }))
     ];
     
-    if (combinedFiles.length === 0) return null;
+    // Debug logging removed from here
+    
+    if (combinedFiles.length === 0 && filteredUploads.length === 0) return null; // Adjusted check
     
     return (
       <div className="mt-3 sm:mt-4">
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-xs sm:text-sm font-semibold text-foreground">
-            {fileUploads.length > 0 && filteredUploadedFiles.length === 0 
+            {fileUploads.length > 0 && uploadedFiles.length === 0 // Adjusted logic slightly
               ? "Uploading Files" 
               : "Uploaded Files"}
           </h3>
@@ -816,18 +826,18 @@ export function FileSidebar({
                       {/* Upload status */}
                       <span className={`
                         ${upload.status === 'error' ? 'text-red-600' : 
-                          upload.status === 'completed' ? 'text-green-600' : 'text-amber-600'}
+                          upload.status === 'completed' /* This check is commented out below */ ? 'text-green-600' : 'text-amber-600'}
                       `}>
                         {upload.status === 'uploading' && 'Uploading...'}
                         {upload.status === 'processing' && 'Processing...'}
-                        {upload.status === 'completed' && 'Completed'}
+                        {/* Remove the display of "Completed" status for temporary uploads */}
                         {upload.status === 'error' && 'Error'}
                       </span>
 
                       {/* Show error message if available */}
                       {upload.status === 'error' && upload.errorMessage && (
                         <span className="ml-1 text-xs text-red-600">
-                         
+                          {/* Error message content might be here */}
                         </span>
                       )}
                     </div>
@@ -839,25 +849,12 @@ export function FileSidebar({
                     {(upload.status === 'uploading' || upload.status === 'processing') && (
                       <RefreshCw className="h-4 w-4 text-amber-500 animate-spin" />
                     )}
-                    {upload.status === 'completed' && (
-                      <div className="flex items-center gap-1">
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                        <Button
-                          onClick={() => removeUpload(upload.id)}
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 hover:bg-transparent opacity-0 group-hover:opacity-100 transition-opacity"
-                          aria-label="Remove upload"
-                        >
-                          <DeleteIcon className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                      </div>
-                    )}
+                    {/* Remove the completed checkmark and button for temporary uploads */}
                     {upload.status === 'error' && 
                       <div className="flex items-center gap-1">
                         <AlertTriangle className="h-4 w-4 text-red-500" />
                         <Button
-                          onClick={() => removeUpload(upload.id)}
+                          onClick={(e) => removeUpload(upload.id)}
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6 hover:bg-transparent"
@@ -871,8 +868,60 @@ export function FileSidebar({
                 </div>
               );
             } else {
-              // This is an uploaded file - use the same card layout as above
+              // This is an uploaded file - Apply filtering LOGIC HERE
               const file = item.file;
+
+              // --- START INLINE FILTER --- 
+              let shouldRender = false;
+
+              // Log file details BEFORE filtering
+              console.log(`[FileSidebar Render Check] File: ${file.id} (${file.name}), Status: ${file.status}, Source: ${file.source}, Metadata:`, {
+                  title: file.doc_title,
+                  authors: file.doc_authors,
+                  year: file.doc_publication_year,
+                  type: file.doc_type,
+                  summary: file.doc_summary,
+                  pages: file.total_pages
+              });
+
+              // Explicitly define allowed statuses before metadata check
+              const allowedStatuses: Array<string | undefined> = ['processing', 'pending', 'completed'];
+
+              // Filter out anything not in the allowed statuses immediately
+              if (!allowedStatuses.includes(file.status)) {
+                shouldRender = false; // Ensure it's false if status is invalid/undefined/error etc.
+              } else {
+                // Only proceed with checks if status is potentially valid
+                // Condition 1: Keep processing or pending files
+                if (file.status === 'processing' || file.status === 'pending') {
+                  shouldRender = true;
+                }
+                // Condition 2: For completed files, check metadata strictly
+                else if (file.status === 'completed') {
+                  const hasMetadata = Boolean(
+                    (file.doc_title && file.doc_title.trim() !== '') || 
+                    (Array.isArray(file.doc_authors) && file.doc_authors.length > 0) || 
+                    file.doc_publication_year || 
+                    (file.doc_type && file.doc_type.trim() !== '') || 
+                    (file.doc_summary && file.doc_summary.trim() !== '') || 
+                    (file.total_pages && file.total_pages > 0) ||
+                    file.source === 'link' // Always keep links
+                  );
+                  shouldRender = hasMetadata;
+                }
+                // No need for error check here, it's covered by the initial allowedStatuses check
+              }
+
+              // Log the filter result
+              console.log(`[FileSidebar Render Check] File: ${file.id} - Should Render: ${shouldRender}`);
+              
+              // --- END INLINE FILTER ---
+
+              if (!shouldRender) {
+                return null; // Don't render this file if it doesn't meet the criteria
+              }
+
+              // --- If shouldRender is true, return the Card JSX --- 
               return (
                 <div 
                   key={file.id}
@@ -984,6 +1033,16 @@ export function FileSidebar({
                         </span>
                       )}
                       
+                      {/* Add "Ready" indicator for completed files with metadata */}
+                      {file.status === 'completed' && !file.doc_publication_year && (
+                        <>
+                          {((file.name || (file.doc_type && file.doc_type !== "Unknown"))) && (
+                            <span className="text-slate-400">•</span>
+                          )}
+                          <span className="text-green-600">Ready</span>
+                        </>
+                      )}
+                      
                       {/* Show URL for link files */}
                       {file.source === 'link' && file.url && (
                         <a 
@@ -1010,6 +1069,8 @@ export function FileSidebar({
                         onClick={(e) => {
                           e.stopPropagation(); // Prevent opening the modal
                           setIsDeletingFile(file.id);
+                          // Remove from local storage first
+                          removeFileMetadataFromLocalStorage(file.id);
                           const result = onFileDeleted?.(file.id);
                           // Check if the result is a Promise-like object
                           if (result && typeof (result as any).then === 'function') {
@@ -1027,11 +1088,8 @@ export function FileSidebar({
                         aria-label="Delete file"
                         disabled={isDeletingFile === file.id}
                       >
-                        {isDeletingFile === file.id ? (
-                          <RefreshCw className="h-4 w-4 text-muted-foreground animate-spin" />
-                        ) : (
-                          <DeleteIcon className="h-4 w-4 text-muted-foreground group-hover:text-[#232323]" />
-                        )}
+                        {/* Always render DeleteIcon, disable button based on isDeletingFile */}
+                        <DeleteIcon className="h-4 w-4 text-muted-foreground group-hover:text-[#232323]" />
                       </Button>
                     )}
                   </div>
@@ -1157,98 +1215,131 @@ export function FileSidebar({
         )}
 
         <div className="mb-4 sm:mb-6">
-          {/* Collapsed upload area - just shows buttons */}
-          {!isUploadAreaExpanded && uploadedFiles.length > 0 && fileUploads.length === 0 ? (
-            <div className="flex gap-2 w-full">
+          {/* ALWAYS show the expanded area now */}
+          <div 
+            ref={dropAreaRef}
+            className={`
+              relative overflow-hidden rounded-[16px] p-6
+              flex flex-col items-center justify-center text-center
+              transition-all duration-300 ease-in-out
+              ${!defaultVectorStoreId ? 'cursor-not-allowed opacity-60' : ''}
+              ${isDragging ? 'border-primary border-2' : ''}
+            `}
+            style={{ 
+              border: isDragging ? '2px dashed var(--primary)' : '1px dashed var(--normal)',
+              background: 'var(--ultralight)',
+              transition: 'border 0.2s ease-in-out'
+            }}
+          >
+            {/* Toggle between file upload and link input */}
+            <div className="flex w-full mb-4 border-b border-light">
               <button 
-                className="flex-1 py-2 px-3 text-sm font-medium flex items-center justify-center gap-1 rounded-md border border-light hover:bg-gray-50"
-                style={{ background: 'var(--ultralight)' }}
-                onClick={() => {
-                  setIsLinkMode(false);
-                  setIsUploadAreaExpanded(true);
-                }}
-                disabled={!defaultVectorStoreId}
+                className={`flex-1 py-2 px-1 text-sm font-medium flex items-center justify-center gap-1 transition-colors
+                  ${isLinkMode 
+                    ? 'text-muted-foreground hover:text-foreground' 
+                    : 'text-foreground border-b-2 border-primary'}
+                `}
+                onClick={() => setIsLinkMode(false)}
+                disabled={!defaultVectorStoreId || fileUploads.length > 0}
               >
                 <Upload className="h-4 w-4" />
-                <span>Upload</span>
+                <span>File</span>
               </button>
               <button 
-                className="flex-1 py-2 px-3 text-sm font-medium flex items-center justify-center gap-1 rounded-md border border-light hover:bg-gray-50"
-                style={{ background: 'var(--ultralight)' }}
-                onClick={() => {
-                  setIsLinkMode(true);
-                  setIsUploadAreaExpanded(true);
-                }}
-                disabled={!defaultVectorStoreId}
+                className={`flex-1 py-2 px-1 text-sm font-medium flex items-center justify-center gap-1 transition-colors
+                  ${isLinkMode 
+                    ? 'text-foreground border-b-2 border-primary' 
+                    : 'text-muted-foreground hover:text-foreground'}
+                `}
+                onClick={() => setIsLinkMode(true)}
+                disabled={!defaultVectorStoreId || fileUploads.length > 0}
               >
                 <Link className="h-4 w-4" />
-                <span>Add Link</span>
+                <span>Link</span>
               </button>
             </div>
-          ) : (
-            <div 
-              ref={dropAreaRef}
-              className={`
-                relative overflow-hidden rounded-[16px] p-6
-                flex flex-col items-center justify-center text-center
-                transition-all duration-300 ease-in-out
-                ${!defaultVectorStoreId ? 'cursor-not-allowed opacity-60' : ''}
-                ${isDragging ? 'border-primary border-2' : ''}
-              `}
-              style={{ 
-                border: isDragging ? '2px dashed var(--primary)' : '1px dashed var(--normal)',
-                background: 'var(--ultralight)',
-                transition: 'border 0.2s ease-in-out'
-              }}
-            >
-              {/* Toggle between file upload and link input */}
-              <div className="flex w-full mb-4 border-b border-light">
-                <button 
-                  className={`flex-1 py-2 px-1 text-sm font-medium flex items-center justify-center gap-1 transition-colors
-                    ${isLinkMode 
-                      ? 'text-muted-foreground hover:text-foreground' 
-                      : 'text-foreground border-b-2 border-primary'}
-                  `}
-                  onClick={() => setIsLinkMode(false)}
-                  disabled={!defaultVectorStoreId || fileUploads.length > 0}
-                >
-                  <Upload className="h-4 w-4" />
-                  <span>File</span>
-                </button>
-                <button 
-                  className={`flex-1 py-2 px-1 text-sm font-medium flex items-center justify-center gap-1 transition-colors
-                    ${isLinkMode 
-                      ? 'text-foreground border-b-2 border-primary' 
-                      : 'text-muted-foreground hover:text-foreground'}
-                  `}
-                  onClick={() => setIsLinkMode(true)}
-                  disabled={!defaultVectorStoreId || fileUploads.length > 0}
-                >
-                  <Link className="h-4 w-4" />
-                  <span>Link</span>
-                </button>
-              </div>
 
-              {isLinkMode ? (
-                <>
+            {isLinkMode ? (
+              <>
+                <h3 className="text-base font-medium text-foreground mb-2">
+                  Add a link
+                </h3>
+                
+                <p className="text-sm text-muted-foreground mb-3">
+                  Enter a URL to analyze
+                </p>
+                
+                <div className="w-full mb-2">
+                  <input
+                    type="url"
+                    value={linkUrl}
+                    onChange={(e) => setLinkUrl(e.target.value)}
+                    placeholder="https://example.com"
+                    className="w-full p-2 text-sm border border-light rounded-md"
+                    disabled={!defaultVectorStoreId || fileUploads.length > 0}
+                  />
+                </div>
+                <button 
+                  className="
+                    w-full flex justify-center items-center gap-1 py-3 px-4
+                    rounded-[8px] border border-light
+                    text-foreground text-sm font-medium
+                    transition-colors duration-200 ease-in-out
+                    disabled:opacity-70 disabled:cursor-not-allowed
+                  "
+                  style={{ background: 'var(--superlight)' }}
+                  disabled={!defaultVectorStoreId || !linkUrl || fileUploads.length > 0}
+                  onClick={handleLinkSubmit}
+                >
+                  {fileUploads.some(upload => upload.url === linkUrl) ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" strokeWidth={2} />
+                  ) : (
+                    <Link className="h-4 w-4" strokeWidth={2} />
+                  )}
+                  <span>
+                    {fileUploads.some(upload => upload.url === linkUrl) 
+                      ? 'Processing...' 
+                      : 'Submit Link'}
+                  </span>
+                </button>
+                
+                <div className="mt-4 text-xs text-muted-foreground/70">
+                  webpages will be processed as text content
+                </div>
+              </>
+            ) : (
+              <>
+                <input 
+                  type="file"
+                  onChange={(e) => {
+                    if (e.target.files?.length) {
+                      // Convert FileList to array for multiple uploads
+                      const files = Array.from(e.target.files);
+                      handleMultipleFileUpload(files);
+                    }
+                  }}
+                  className="hidden"
+                  id="file-upload"
+                  multiple
+                  accept=".pdf,.txt,.csv,.json,.jsonl,.py,.js,.ts,.jsx,.tsx,.java,.c,.cpp,.html,.css,.xml"
+                  ref={fileInputRef}
+                />
+                
+                <div 
+                  className="w-full flex flex-col items-center justify-center text-center"
+                  style={{ 
+                    background: 'var(--ultralight)'
+                  }}
+                  onClick={defaultVectorStoreId && fileUploads.length === 0 ? handleFileButtonClick : undefined}
+                >            
                   <h3 className="text-base font-medium text-foreground mb-2">
-                    Add a link
+                    Drop your files here
                   </h3>
                   
                   <p className="text-sm text-muted-foreground mb-3">
-                    Enter a URL to analyze
+                    or browse from your computer
                   </p>
                   
-                  <div className="w-full mb-2">
-                    <input
-                      type="url"
-                      value={linkUrl}
-                      onChange={(e) => setLinkUrl(e.target.value)}
-                      placeholder="https://example.com"
-                      className="w-full p-2 text-sm border border-light rounded-md"
-                      disabled={!defaultVectorStoreId || fileUploads.length > 0}
-                    />
-                  </div>
                   <button 
                     className="
                       w-full flex justify-center items-center gap-1 py-3 px-4
@@ -1258,96 +1349,34 @@ export function FileSidebar({
                       disabled:opacity-70 disabled:cursor-not-allowed
                     "
                     style={{ background: 'var(--superlight)' }}
-                    disabled={!defaultVectorStoreId || !linkUrl || fileUploads.length > 0}
-                    onClick={handleLinkSubmit}
+                    disabled={!defaultVectorStoreId || fileUploads.length > 0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleFileButtonClick();
+                    }}
                   >
-                    {fileUploads.some(upload => upload.url === linkUrl) ? (
-                      <RefreshCw className="h-4 w-4 animate-spin" strokeWidth={2} />
-                    ) : (
-                      <Link className="h-4 w-4" strokeWidth={2} />
-                    )}
-                    <span>
-                      {fileUploads.some(upload => upload.url === linkUrl) 
-                        ? 'Processing...' 
-                        : 'Submit Link'}
-                    </span>
+                    <Upload className="h-4 w-4" strokeWidth={2} />
+                    <span>Select Files</span>
                   </button>
                   
                   <div className="mt-4 text-xs text-muted-foreground/70">
-                    webpages will be processed as text content
+                    Only PDF, TXT, CSV, JSON, and code files are supported
                   </div>
-                </>
-              ) : (
-                <>
-                  <input 
-                    type="file"
-                    onChange={(e) => {
-                      if (e.target.files?.length) {
-                        // Convert FileList to array for multiple uploads
-                        const files = Array.from(e.target.files);
-                        handleMultipleFileUpload(files);
-                      }
-                    }}
-                    className="hidden"
-                    id="file-upload"
-                    multiple
-                    accept=".pdf,.txt,.csv,.json,.jsonl,.py,.js,.ts,.jsx,.tsx,.java,.c,.cpp,.html,.css,.xml"
-                    ref={fileInputRef}
-                  />
-                  
-                  <div 
-                    className="w-full flex flex-col items-center justify-center text-center"
-                    style={{ 
-                      background: 'var(--ultralight)'
-                    }}
-                    onClick={defaultVectorStoreId && fileUploads.length === 0 ? handleFileButtonClick : undefined}
-                  >            
-                    <h3 className="text-base font-medium text-foreground mb-2">
-                      Drop your files here
-                    </h3>
-                    
-                    <p className="text-sm text-muted-foreground mb-3">
-                      or browse from your computer
-                    </p>
-                    
-                    <button 
-                      className="
-                        w-full flex justify-center items-center gap-1 py-3 px-4
-                        rounded-[8px] border border-light
-                        text-foreground text-sm font-medium
-                        transition-colors duration-200 ease-in-out
-                        disabled:opacity-70 disabled:cursor-not-allowed
-                      "
-                      style={{ background: 'var(--superlight)' }}
-                      disabled={!defaultVectorStoreId || fileUploads.length > 0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleFileButtonClick();
-                      }}
-                    >
-                      <Upload className="h-4 w-4" strokeWidth={2} />
-                      <span>Select Files</span>
-                    </button>
-                    
-                    <div className="mt-4 text-xs text-muted-foreground/70">
-                      Only PDF, TXT, CSV, JSON, and code files are supported
-                    </div>
-                  </div>
-                </>
-              )}
-              
-              {/* Collapse button when upload area is expanded and files exist */}
-              {uploadedFiles.length > 0 && fileUploads.length === 0 && (
-                <button
-                  className="absolute top-2 right-2 p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
-                  onClick={() => setIsUploadAreaExpanded(false)}
-                  title="Collapse upload area"
-                >
-                  <ChevronUp className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          )}
+                </div>
+              </>
+            )}
+            
+            {/* REMOVED: Collapse button */}
+            {/* {uploadedFiles.length > 0 && fileUploads.length === 0 && (
+              <button
+                className="absolute top-2 right-2 p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
+                onClick={() => setIsUploadAreaExpanded(false)}
+                title="Collapse upload area"
+              >
+                <ChevronUp className="h-4 w-4" />
+              </button>
+            )} */}
+          </div>
         </div>
         
         {/* Render both active uploads and uploaded files in one unified list */}

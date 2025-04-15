@@ -23,6 +23,9 @@ const getBackendUrl = () => {
   return process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5002';
 };
 
+// Create a Set to track files with 404 errors
+const notFoundFiles = new Set<string>();
+
 // Helper function to determine file type icon
 const getFileIcon = (filename: string, metadata?: any) => {
   // Check document type from metadata first
@@ -91,8 +94,8 @@ const FileAnnotations = React.memo<FileAnnotationsProps>(({
   
   // Function to fetch ONLY file type information (lightweight)
   const fetchFileTypeInfo = useCallback(async (fileId: string) => {
-    // Skip if we already have this info or it's loading
-    if (fileTypeInfo[fileId] || loadingFileTypes[fileId]) return;
+    // Skip if we already have this info or it's loading or previously returned 404
+    if (fileTypeInfo[fileId] || loadingFileTypes[fileId] || notFoundFiles.has(fileId)) return;
     
     // Mark as loading
     setLoadingFileTypes(prev => ({ ...prev, [fileId]: true }));
@@ -102,6 +105,22 @@ const FileAnnotations = React.memo<FileAnnotationsProps>(({
       const response = await fetch(`${backendUrl}/api/files/${fileId}/info`);
       
       if (!response.ok) {
+        // Check for 404 specifically
+        if (response.status === 404) {
+          // Add to notFoundFiles to prevent future retries
+          notFoundFiles.add(fileId);
+          
+          // Create a minimal entry with just the filename to prevent future requests
+          setFileTypeInfo(prev => ({ 
+            ...prev, 
+            [fileId]: {
+              name: fileId.replace('file-', ''),
+              type: 'unknown'
+            }
+          }));
+          return;
+        }
+        
         // Try basic file info endpoint as fallback
         const basicResponse = await fetch(`${backendUrl}/api/files/${fileId}`);
         if (basicResponse.ok) {
@@ -114,6 +133,19 @@ const FileAnnotations = React.memo<FileAnnotationsProps>(({
             }
           }));
         } else {
+          // Check if this is also a 404
+          if (basicResponse.status === 404) {
+            notFoundFiles.add(fileId);
+            
+            // Create a minimal entry with just the filename
+            setFileTypeInfo(prev => ({ 
+              ...prev, 
+              [fileId]: {
+                name: fileId.replace('file-', ''),
+                type: 'unknown'
+              }
+            }));
+          }
           throw new Error(`Failed to fetch file type info: ${response.status}`);
         }
       } else {
@@ -136,7 +168,7 @@ const FileAnnotations = React.memo<FileAnnotationsProps>(({
   // Fetch file type info for all citations on mount
   useEffect(() => {
     citations.forEach(citation => {
-      if (!fileMetadata[citation.file_id] && !fileTypeInfo[citation.file_id]) {
+      if (!fileMetadata[citation.file_id] && !fileTypeInfo[citation.file_id] && !notFoundFiles.has(citation.file_id)) {
         fetchFileTypeInfo(citation.file_id);
       }
     });

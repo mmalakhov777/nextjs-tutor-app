@@ -148,7 +148,7 @@ export interface ChatMessagesProps {
 export interface ChatInputProps {
   value: string;
   onChange: (value: string) => void;
-  onSend: (message: string) => void;
+  onSend: (message: string, displayMessage?: string) => void;
   disabled: boolean;
 }
 

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import React from 'react';
 import Image from 'next/image';
 import { Copy, ArrowRight, File, ChevronDown, ChevronRight, Download, Search, FileText, AlertCircle, Loader2, Trash2, Pencil, Share2, Check, Link, ExternalLink, Volume2, VolumeX, Users, X, Info, Plus, Settings, Wrench, Shield, UserCircle, Brain, Globe, Sparkles, BookOpen, Code, Lightbulb, ChevronDown as ChevronDownIcon, ChevronUp } from 'lucide-react';
@@ -241,6 +241,119 @@ const GlobalStyles = () => (
       position: relative !important;
       z-index: 10 !important;
     }
+    
+    /* Markdown-specific styling */
+    .markdown-content h1 {
+      font-size: 1.8rem;
+      font-weight: bold;
+      margin-bottom: 1rem;
+      margin-top: 1.5rem;
+    }
+    
+    .markdown-content h2 {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 0.75rem;
+      margin-top: 1.25rem;
+    }
+    
+    .markdown-content h3 {
+      font-size: 1.25rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      margin-top: 1rem;
+    }
+    
+    .markdown-content h4 {
+      font-size: 1.1rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      margin-top: 0.75rem;
+    }
+    
+    .markdown-content h5, .markdown-content h6 {
+      font-size: 1rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      margin-top: 0.75rem;
+    }
+    
+    .markdown-content ul, .markdown-content ol {
+      padding-left: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .markdown-content ul {
+      list-style-type: disc;
+    }
+    
+    .markdown-content ol {
+      list-style-type: decimal;
+    }
+    
+    .markdown-content li {
+      margin-bottom: 0.25rem;
+    }
+    
+    .markdown-content pre {
+      background-color: #f6f8fa;
+      border-radius: 0.25rem;
+      padding: 1rem;
+      overflow-x: auto;
+      margin-bottom: 1rem;
+    }
+    
+    .dark .markdown-content pre {
+      background-color: #1e1e1e;
+    }
+    
+    .markdown-content code {
+      background-color: rgba(175, 184, 193, 0.2);
+      border-radius: 0.25rem;
+      padding: 0.2em 0.4em;
+      font-family: monospace;
+    }
+    
+    .markdown-content pre code {
+      background-color: transparent;
+      padding: 0;
+    }
+    
+    .markdown-content blockquote {
+      border-left: 4px solid #dfe2e5;
+      padding-left: 1rem;
+      color: #6a737d;
+      margin-bottom: 1rem;
+    }
+    
+    .dark .markdown-content blockquote {
+      border-left-color: #444;
+      color: #aaa;
+    }
+    
+    .markdown-content table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+    
+    .markdown-content table th, .markdown-content table td {
+      border: 1px solid #dfe2e5;
+      padding: 0.5rem;
+    }
+    
+    .dark .markdown-content table th, .dark .markdown-content table td {
+      border-color: #444;
+    }
+    
+    .markdown-content table th {
+      background-color: #f6f8fa;
+      font-weight: bold;
+    }
+    
+    .dark .markdown-content table th {
+      background-color: #2d2d2d;
+    }
   `}</style>
 );
 
@@ -255,9 +368,10 @@ export interface MessageContentProps {
   onLinkSubmit?: (url: string) => Promise<void>;
   hasFileAnnotations?: boolean;
   loadingLinkId?: string | null;
+  isStreaming?: boolean;
 }
 
-export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, hasFileAnnotations, loadingLinkId }: MessageContentProps) => {
+export const MessageContent = React.memo(function MessageContent({ content, messageId, onLinkSubmit, hasFileAnnotations, loadingLinkId, isStreaming }: MessageContentProps) {
   // Function to extract URLs from text with their surrounding context
   const extractLinks = React.useMemo(() => {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -421,23 +535,6 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
       // Optionally reset to idle after a delay on error
       // setTimeout(() => setLinkStates(prev => ({ ...prev, [url]: { status: 'idle' } })), 3000);
     }
-  };
-  
-  // Function to preserve multiple spaces and proper formatting
-  const preserveWhitespace = (content: string) => {
-    if (!content) return '';
-    
-    // First handle multiple consecutive line breaks to preserve paragraph spacing
-    let processedContent = content.replace(/\n{2,}/g, match => {
-      return '\n<br/>\n';
-    });
-    
-    // Convert all instances of two or more spaces to line breaks
-    // This is the critical fix - replace double spaces with <br/> tags
-    processedContent = processedContent.replace(/( {2,})/g, '<br/>');
-    
-    // Replace single linebreaks with <br> tags for markdown conversion
-    return processedContent.replace(/\n/g, '<br/>');
   };
   
   // Function to toggle added tooltip visibility
@@ -624,104 +721,162 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
     );
   });
 
+  // State for forcing re-renders when needed
+  const [forceUpdateKey, setForceUpdateKey] = useState(0);
+  
+  // Function to handle completion of streaming to ensure proper markdown rendering
+  const handleStreamingCompletion = useCallback(() => {
+    console.log('🔄 Handling streaming completion - preparing to re-render');
+    
+    // Log messageId to verify it exists
+    console.log('🏷️ [MESSAGE ID] Current messageId:', messageId);
+    
+    // Small delay to ensure content is fully processed
+    const timerId = setTimeout(() => {
+      console.log('🔄 Re-rendering markdown after streaming completed');
+      // Force re-render by updating the key
+      setForceUpdateKey(prev => prev + 1);
+      
+      // Additional delay to ensure the re-render completes before dispatching event
+      setTimeout(() => {
+        // Try to get the rendered HTML directly from the DOM
+        let renderedHtml = '';
+        if (messageId) {
+          const markdownElement = document.querySelector(`#message-${messageId} .markdown-content`);
+          if (markdownElement) {
+            renderedHtml = markdownElement.innerHTML;
+            console.log('✅ Successfully captured rendered HTML');
+          } else {
+            console.log('⚠️ Could not find markdown element for messageId:', messageId);
+          }
+        } else {
+          console.error('❌ No messageId available for capturing HTML or dispatching event');
+        }
+        
+        // Log detail information before dispatching event
+        console.log('🛠️ [EVENT DETAILS]', {
+          messageId: messageId || 'MISSING',
+          hasContent: !!content,
+          contentLength: content?.length || 0,
+          hasRenderedHtml: !!renderedHtml,
+          renderedHtmlLength: renderedHtml?.length || 0
+        });
+        
+        const event = new CustomEvent('markdown-rendering-complete', {
+          detail: {
+            messageId,
+            content,
+            renderedHtml,
+            timestamp: new Date().toISOString()
+          }
+        });
+        console.log('📣 Dispatching markdown-rendering-complete event', { 
+          messageId, 
+          hasRenderedHtml: !!renderedHtml,
+          contentLength: content?.length || 0
+        });
+        window.dispatchEvent(event);
+      }, 200); // Increased delay to ensure React has finished rendering
+      
+    }, 500); // Increased delay for more reliable rendering
+    
+    return () => clearTimeout(timerId);
+  }, [messageId, content]);
+
+  // Helper to detect complex content that needs special handling
+  const hasComplexContent = useCallback((text: string): boolean => {
+    if (!text) return false;
+    // Check for code blocks, multi-paragraph content, or tables
+    return (
+      text.includes('```') || 
+      text.includes('\n\n') || 
+      text.includes('|---') ||
+      text.includes('<table') ||
+      text.includes('- ') // List items
+    );
+  }, []);
+
+  // Primary effect for handling streaming completion
+  useEffect(() => {
+    // Only trigger when streaming has just completed (changed from true to false)
+    if (isStreaming === false && content) {
+      console.log('🔵 Streaming just completed - triggering re-render');
+      handleStreamingCompletion();
+    }
+  }, [isStreaming, content, handleStreamingCompletion]);
+
+  // Secondary effect for handling content changes when not streaming
+  useEffect(() => {
+    // When content changes for complex content and we're not streaming
+    if (!isStreaming && content && hasComplexContent(content)) {
+      console.log('🟣 Complex content detected - triggering additional re-render');
+      handleStreamingCompletion();
+    }
+  }, [content, isStreaming, handleStreamingCompletion, hasComplexContent]);
+
+  // Final effect to ensure we re-render on component mount for already-completed messages
+  useEffect(() => {
+    // For already loaded messages (not streaming), trigger a re-render once on mount
+    if (!isStreaming && content && messageId) {
+      console.log('🟢 Non-streaming content on mount - triggering initial re-render');
+      const timer = setTimeout(() => {
+        setForceUpdateKey(prev => prev + 1);
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [messageId]);
+
   return (
     <div 
       id={messageId ? `message-${messageId}` : undefined} 
       className="prose prose-sm dark:prose-invert max-w-none message-content-container preserve-all-breaks"
     >
       <GlobalStyles />
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[
-          rehypeKatex,
-          rehypeRaw,
-          rehypeSanitize,
-          [rehypeHighlight, { detect: true, ignoreMissing: true }]
-        ]}
-        components={{
-          // Updated paragraph handling to preserve whitespace
-          p: ({ children }) => {
-            // Always render with whitespace preservation now
-            return (
-              <p className="mb-4 last:mb-0 whitespace-pre-wrap break-words preserve-breaks">{children}</p>
-            );
-          },
-          h1: ({ children }) => <h1 className="text-2xl font-bold mb-4">{children}</h1>,
-          h2: ({ children }) => <h2 className="text-xl font-bold mb-3">{children}</h2>,
-          h3: ({ children }) => <h3 className="text-lg font-bold mb-2">{children}</h3>,
-          ul: ({ children }) => <ul className="list-disc pl-6 mb-4 space-y-1">{children}</ul>,
-          ol: ({ children }) => <ol className="list-decimal pl-6 mb-4 space-y-1">{children}</ol>,
-          li: ({ children }) => <li className="pl-1">{children}</li>,
-          pre: ({ children }) => (
-            <pre className="text-sm p-4 rounded bg-secondary overflow-auto mb-4">
-              {children}
-            </pre>
-          ),
-          code: ({ node, className, children, ...props }) => {
-            // If has language class, it's a code block (already handled by pre)
-            if (className?.startsWith('language-')) {
-              return (
-                <code className={className} {...props}>
-                  {children}
-                </code>
-              );
-            }
-            
-            // It's an inline code element
-            return (
-              <code className="px-1 py-0.5 text-sm bg-muted rounded" {...props}>
-                {children}
-              </code>
-            );
-          },
-          // Improved table with proper overflow handling
-          table: ({ children }) => (
-            <div className="overflow-x-auto mb-4">
-              <table className="min-w-full divide-y divide-gray-200">
-                {children}
-              </table>
-            </div>
-          ),
-          blockquote: ({ children }) => (
-            <blockquote className="border-l-4 border-slate-300 dark:border-slate-700 pl-4 italic mb-4">
-              {children}
-            </blockquote>
-          ),
-          a: ({ node, href, children, ...props }) => {
-            if (!href) return <a {...props}>{children}</a>;
-            
-            // Modify utm_source=openai to utm_source=mystylus.com if present
-            let processedHref = href;
-            try {
-              const urlObj = new URL(href);
-              if (urlObj.searchParams.has('utm_source') && urlObj.searchParams.get('utm_source') === 'openai') {
-                urlObj.searchParams.set('utm_source', 'mystylus.com');
-                processedHref = urlObj.toString();
+      <div className="markdown-content" key={`md-${forceUpdateKey}`}>
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm, remarkMath]}
+          rehypePlugins={[
+            rehypeKatex,
+            [rehypeRaw, { passThrough: ['span', 'div'] }],
+            rehypeSanitize,
+            [rehypeHighlight, { detect: true, ignoreMissing: true }]
+          ]}
+          key={`markdown-${forceUpdateKey}`} // Explicit key naming for debugging
+          components={{
+            a: ({ node, href, children, ...props }) => {
+              if (!href) return <a {...props}>{children}</a>;
+              
+              // Modify utm_source=openai to utm_source=mystylus.com if present
+              let processedHref = href;
+              try {
+                const urlObj = new URL(href);
+                if (urlObj.searchParams.has('utm_source') && urlObj.searchParams.get('utm_source') === 'openai') {
+                  urlObj.searchParams.set('utm_source', 'mystylus.com');
+                  processedHref = urlObj.toString();
+                }
+              } catch (e) {
+                // If URL parsing fails, just use the original href
+                processedHref = href;
               }
-            } catch (e) {
-              // If URL parsing fails, just use the original href
-              processedHref = href;
-            }
-            
-            // Regular link rendering - now with bold black text styling
-            return (
-              <a 
-                href={processedHref} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="font-bold text-black dark:text-white hover:underline" 
-                {...props}
-              >
-                {children}
-              </a>
-            );
-          },
-          // Handle line breaks properly
-          br: () => <br className="line-break" />,
-        }}
-      >
-        {preserveWhitespace(content)}
-      </ReactMarkdown>
+              
+              // Regular link rendering - now with bold black text styling
+              return (
+                <a 
+                  href={processedHref} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="font-bold text-black dark:text-white hover:underline" 
+                  {...props}
+                >
+                  {children}
+                </a>
+              );
+            },
+          }}
+        >
+          {content}
+        </ReactMarkdown>
+      </div>
       
       {/* Display all links as cards outside the markdown content - always show them */}
       {links.length > 0 && linkCardsVisible && (
@@ -758,12 +913,15 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
     </div>
   );
 }, (prevProps, nextProps) => {
-  // Only re-render if these props change
-  return (
+  // Modified memo comparison function to ensure re-renders when streaming status changes
+  const shouldSkipRerender = 
     prevProps.content === nextProps.content &&
     prevProps.messageId === nextProps.messageId &&
     prevProps.hasFileAnnotations === nextProps.hasFileAnnotations &&
+    prevProps.isStreaming === nextProps.isStreaming && 
+    prevProps.loadingLinkId === nextProps.loadingLinkId &&
     // For onLinkSubmit, we only care if it goes from being defined to undefined or vice versa
-    (!!prevProps.onLinkSubmit === !!nextProps.onLinkSubmit)
-  );
+    (!!prevProps.onLinkSubmit === !!nextProps.onLinkSubmit);
+  
+  return shouldSkipRerender;
 }); 

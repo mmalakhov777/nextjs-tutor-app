@@ -79,6 +79,9 @@ const getFileBadgeColor = (filename: string, metadata?: any) => {
 // Create a Set to track in-flight requests
 const pendingRequests = new Set<string>();
 
+// Create a Set to track files with 404 errors
+const notFoundFiles = new Set<string>();
+
 const FileCitationBadges: React.FC<FileCitationBadgesProps> = ({ 
   citations,
   fileMetadata,
@@ -107,8 +110,8 @@ const FileCitationBadges: React.FC<FileCitationBadgesProps> = ({
   
   // Function to fetch ONLY file type information (lightweight)
   const fetchFileTypeInfo = useCallback(async (fileId: string) => {
-    // Skip if we already have this info or it's loading or there's a pending request
-    if (fileTypeInfo[fileId] || loadingFileTypes[fileId] || pendingRequests.has(fileId)) return;
+    // Skip if we already have this info, it's loading, has a pending request, or previously returned 404
+    if (fileTypeInfo[fileId] || loadingFileTypes[fileId] || pendingRequests.has(fileId) || notFoundFiles.has(fileId)) return;
     
     // Mark as loading and add to pending requests
     setLoadingFileTypes(prev => ({ ...prev, [fileId]: true }));
@@ -119,6 +122,22 @@ const FileCitationBadges: React.FC<FileCitationBadgesProps> = ({
       const response = await fetch(`${backendUrl}/api/files/${fileId}/info`);
       
       if (!response.ok) {
+        // Check for 404 error specifically
+        if (response.status === 404) {
+          // Add to notFoundFiles set to prevent future retries
+          notFoundFiles.add(fileId);
+          
+          // Create a minimal entry with just the filename to prevent future requests
+          setFileTypeInfo(prev => ({ 
+            ...prev, 
+            [fileId]: {
+              name: fileId.replace('file-', ''),
+              type: 'unknown'
+            }
+          }));
+          return;
+        }
+        
         // Try basic file info endpoint as fallback
         const basicResponse = await fetch(`${backendUrl}/api/files/${fileId}`);
         if (basicResponse.ok) {
@@ -131,6 +150,19 @@ const FileCitationBadges: React.FC<FileCitationBadgesProps> = ({
             }
           }));
         } else {
+          // Check if this is also a 404
+          if (basicResponse.status === 404) {
+            notFoundFiles.add(fileId);
+            
+            // Create a minimal entry with just the filename to prevent future requests
+            setFileTypeInfo(prev => ({ 
+              ...prev, 
+              [fileId]: {
+                name: fileId.replace('file-', ''),
+                type: 'unknown'
+              }
+            }));
+          }
           throw new Error(`Failed to fetch file type info: ${response.status}`);
         }
       } else {
@@ -157,7 +189,8 @@ const FileCitationBadges: React.FC<FileCitationBadgesProps> = ({
       .filter((citation: Citation) => 
         !fileMetadata[citation.file_id] && 
         !fileTypeInfo[citation.file_id] && 
-        !pendingRequests.has(citation.file_id)
+        !pendingRequests.has(citation.file_id) &&
+        !notFoundFiles.has(citation.file_id) // Add check for notFoundFiles
       );
     
     filesToFetch.forEach((citation: Citation) => {

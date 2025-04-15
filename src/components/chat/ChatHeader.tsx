@@ -7,6 +7,7 @@ import type { ChatSession, HandleHistorySelectFn } from '@/types/chat';
 import { useRef, useEffect } from 'react';
 import { LoadingSpinner } from '@/components/icons/LoadingSpinner';
 import { NewChatIcon } from '@/components/icons/NewChatIcon';
+import { useFileContext } from '@/contexts/FileContext';
 
 interface ChatHeaderProps {
   currentAgent?: string;
@@ -51,6 +52,7 @@ export function ChatHeader({
   const currentChat = chatHistory.find(chat => chat.id === currentConversationId);
   const chatTitle = currentChat?.title || "New Chat";
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { setUploadedFiles } = useFileContext();
   
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -71,6 +73,18 @@ export function ChatHeader({
     };
   }, [showHistoryDropdown, onToggleDropdown]);
   
+  // Function to clear all file metadata from local storage
+  const clearAllFileMetadata = () => {
+    try {
+      localStorage.removeItem('uploadedFilesMetadata');
+      console.log('All file metadata cleared from local storage');
+      // Also clear the uploaded files in context
+      setUploadedFiles([]);
+    } catch (error) {
+      console.error('Error clearing file metadata from local storage:', error);
+    }
+  };
+
   return (
     <div 
       className="flex justify-between items-center h-[60px] px-4 bg-white"
@@ -202,7 +216,10 @@ export function ChatHeader({
       {/* Right - New chat button */}
       <div className="w-[100px] flex justify-end">
         <button
-          onClick={onReset}
+          onClick={() => {
+            clearAllFileMetadata();
+            onReset();
+          }}
           disabled={isCreatingSession}
           title="New chat"
           style={{
