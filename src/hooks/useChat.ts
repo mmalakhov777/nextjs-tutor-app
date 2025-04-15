@@ -14,35 +14,6 @@ const getBackendUrl = () => {
   return process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5002';
 };
 
-// Add config for controlling database updates
-const ENABLE_DATABASE_UPDATES = process.env.NEXT_PUBLIC_ENABLE_DB_UPDATES !== 'false'; // Enabled by default
-
-// Add a helper function to check if the API supports message updates
-const checkApiSupport = async (chatId: string, messageId: string): Promise<boolean> => {
-  try {
-    const backendUrl = getBackendUrl();
-    // Try an OPTIONS request to see if the endpoint exists and supports POST
-    const checkResponse = await fetch(`${backendUrl}/api/chat-sessions/${chatId}/messages/${messageId}/update`, {
-      method: 'OPTIONS',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    // Get headers and ensure they're defined before checking contents
-    const allowHeader = checkResponse.headers.get('Allow') || '';
-    const corsMethodsHeader = checkResponse.headers.get('Access-Control-Allow-Methods') || '';
-    
-    // Return true if the API responds with success or has appropriate CORS headers
-    return checkResponse.ok || 
-           allowHeader.includes('POST') || 
-           corsMethodsHeader.includes('POST');
-  } catch (error) {
-    console.warn('❓❓❓ API support check failed, will still attempt update:', error);
-    return true; // Assume API might work even if check fails
-  }
-};
-
 // Add a utility function to convert Markdown to HTML
 const convertMarkdownToHtml = (markdownContent: string): string => {
   try {
@@ -272,80 +243,6 @@ export function useChat(userId: string | null) {
       // Finished processing
       setIsProcessing(false);
       
-      // Save the HTML version of the message to the database after streaming ends
-      if (ENABLE_DATABASE_UPDATES && messageId && chatId && fullResponse) {
-        try {
-          // Check if API supports message updates
-          const apiSupported = await checkApiSupport(chatId, messageId);
-          
-          if (!apiSupported) {
-            console.log('⚠️⚠️⚠️ API does not appear to support message updates - skipping');
-            return {
-              success: true,
-              conversationId,
-              message: fullResponse,
-              metadata: responseMetadata
-            };
-          }
-          
-          const backendUrl = getBackendUrl();
-          const htmlContent = convertMarkdownToHtml(fullResponse);
-          
-          // Prepare metadata
-          const messageMetadata = {
-            ...responseMetadata,
-            agent_name: agentName,
-            event_type: 'message',
-            original_markdown: fullResponse, // Store original markdown for reference
-            converted_at: new Date().toISOString()
-          };
-          
-          // DEBUG: Add very visible logging before making the request
-          console.log('🔴🔴🔴 ATTEMPTING DATABASE UPDATE REQUEST 🔴🔴🔴');
-          console.log(`POST ${backendUrl}/api/chat-sessions/${chatId}/messages/${messageId}/update`);
-          console.log('Request payload:', {
-            content: htmlContent.substring(0, 100) + '...',
-            metadata: messageMetadata
-          });
-          
-          // Make API call to update the message in the database using POST
-          const updateResponse = await fetch(`${backendUrl}/api/chat-sessions/${chatId}/messages/${messageId}/update`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              content: htmlContent, // Save the HTML version
-              metadata: messageMetadata
-            }),
-          });
-          
-          // DEBUG: Add very visible logging after the request completes
-          console.log('🟢🟢🟢 DATABASE UPDATE RESPONSE 🟢🟢🟢');
-          console.log('Status:', updateResponse.status, updateResponse.statusText);
-          try {
-            const responseData = await updateResponse.clone().json();
-            console.log('Response data:', responseData);
-          } catch (e) {
-            console.log('Could not parse response as JSON');
-          }
-          
-          if (!updateResponse.ok) {
-            console.error(`Failed to update message in database: ${updateResponse.status}`);
-            console.error('❌❌❌ Error updating message in database');
-          } else {
-            console.log('✅✅✅ Message successfully updated in database!');
-          }
-        } catch (dbError) {
-          // Add more visible error logging
-          console.error('❌❌❌ ERROR UPDATING MESSAGE IN DATABASE ❌❌❌', dbError);
-        }
-      } else {
-        // Log why we didn't attempt the update
-        console.warn('⚠️⚠️⚠️ Skipped database update - missing required data:',
-          { messageId: !!messageId, chatId: !!chatId, hasContent: !!fullResponse });
-      }
-      
       return {
         success: true,
         conversationId,
@@ -388,12 +285,7 @@ export function useChat(userId: string | null) {
     // Also clean up any remaining technical file IDs
     displayContent = displayContent.replace(/#\[file-[a-zA-Z0-9-_]+:([^\]]+)\]/g, '#$1');
 
-    // Generate a temporary ID for this message
-    const temporaryMessageId = `temp-${Date.now()}-${Math.round(Math.random() * 1000000)}`;
-    
     const newMessageForDisplay: Message = {
-      id: temporaryMessageId, // Add a temporary ID
-      sessionId: currentConversationId || undefined, // Include session ID if available
       role: 'user',
       content: displayContent, // Use the cleaned content for display
       timestamp: new Date()
@@ -429,13 +321,6 @@ export function useChat(userId: string | null) {
           
           const newSession = await sessionResponse.json();
           setCurrentConversationId(newSession.id);
-          
-          // Update the sessionId of our temporary message since we now have a conversation
-          setMessages(prev => prev.map(msg => 
-            msg.id === temporaryMessageId 
-              ? { ...msg, sessionId: newSession.id } 
-              : msg
-          ));
           
           const url = new URL(window.location.href);
           url.searchParams.set('conversation_id', newSession.id);
@@ -530,8 +415,6 @@ export function useChat(userId: string | null) {
                       
                       // Only add system message if it's NOT switching to Triage Agent
                       setMessages(prev => [...prev, {
-                        id: `system-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Add unique ID
-                        sessionId: currentConversationId!, // Include current session ID
                         role: 'system',
                         content: newAgent,
                         timestamp: new Date(),
@@ -558,14 +441,9 @@ export function useChat(userId: string | null) {
                   
                   if (!responseAdded) {
                     setMessages(prev => {
-                      // Generate a unique ID for this message
-                      const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-                      
                       // Convert markdown to HTML
                       const htmlContent = convertMarkdownToHtml(currentResponse);
                       return [...prev, { 
-                        id: messageId, // Add unique ID
-                        sessionId: currentConversationId!, // Include current session ID
                         role: 'assistant', 
                         content: htmlContent, // Store HTML directly in content
                         timestamp: new Date(),
@@ -583,16 +461,6 @@ export function useChat(userId: string | null) {
                       const newMessages = [...prev];
                       const lastMessage = newMessages[newMessages.length - 1];
                       if (lastMessage && lastMessage.role === 'assistant') {
-                        // If the message doesn't have an ID, generate one
-                        if (!lastMessage.id) {
-                          lastMessage.id = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-                        }
-                        
-                        // If message doesn't have sessionId, add it
-                        if (!lastMessage.sessionId && currentConversationId) {
-                          lastMessage.sessionId = currentConversationId;
-                        }
-                        
                         // Convert markdown to HTML
                         const htmlContent = convertMarkdownToHtml(currentResponse);
                         lastMessage.content = htmlContent; // Store HTML directly
@@ -613,14 +481,9 @@ export function useChat(userId: string | null) {
                   
                   if (!responseAdded) {
                     setMessages(prev => {
-                      // Generate a unique ID for this message
-                      const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-                      
                       // Convert markdown to HTML as tokens come in
                       const htmlContent = convertMarkdownToHtml(currentResponse);
                       return [...prev, { 
-                        id: messageId, // Add unique ID
-                        sessionId: currentConversationId!, // Include current session ID
                         role: 'assistant', 
                         content: htmlContent, // Store HTML directly
                         timestamp: new Date(),
@@ -638,16 +501,6 @@ export function useChat(userId: string | null) {
                       const newMessages = [...prev];
                       const lastMessage = newMessages[newMessages.length - 1];
                       if (lastMessage && lastMessage.role === 'assistant') {
-                        // If the message doesn't have an ID, generate one
-                        if (!lastMessage.id) {
-                          lastMessage.id = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-                        }
-                        
-                        // If message doesn't have sessionId, add it
-                        if (!lastMessage.sessionId && currentConversationId) {
-                          lastMessage.sessionId = currentConversationId;
-                        }
-                        
                         // Convert markdown to HTML as tokens come in
                         const htmlContent = convertMarkdownToHtml(currentResponse);
                         lastMessage.content = htmlContent; // Store HTML directly
@@ -705,8 +558,6 @@ export function useChat(userId: string | null) {
 
                 case 'error':
                   setMessages(prev => [...prev, { 
-                    id: `error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Add unique ID
-                    sessionId: currentConversationId!, // Include current session ID
                     role: 'error', 
                     content: data.content,
                     timestamp: new Date()
@@ -722,8 +573,6 @@ export function useChat(userId: string | null) {
     } catch (error) {
       // Minimal error handling
       setMessages(prev => [...prev, { 
-        id: `error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Add unique ID
-        sessionId: currentConversationId || undefined, // Change to undefined instead of null
         role: 'error', 
         content: 'Connection error. Please try again.',
         timestamp: new Date()

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import React from 'react';
 import Image from 'next/image';
 import { Copy, ArrowRight, File, ChevronDown, ChevronRight, Download, Search, FileText, AlertCircle, Loader2, Trash2, Pencil, Share2, Check, Link, ExternalLink, Volume2, VolumeX, Users, X, Info, Plus, Settings, Wrench, Shield, UserCircle, Brain, Globe, Sparkles, BookOpen, Code, Lightbulb, ChevronDown as ChevronDownIcon, ChevronUp } from 'lucide-react';
@@ -371,7 +371,7 @@ export interface MessageContentProps {
   isStreaming?: boolean;
 }
 
-export const MessageContent = React.memo(function MessageContent({ content, messageId, onLinkSubmit, hasFileAnnotations, loadingLinkId, isStreaming }: MessageContentProps) {
+export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, hasFileAnnotations, loadingLinkId, isStreaming }: MessageContentProps) => {
   // Function to extract URLs from text with their surrounding context
   const extractLinks = React.useMemo(() => {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -721,110 +721,20 @@ export const MessageContent = React.memo(function MessageContent({ content, mess
     );
   });
 
-  // State for forcing re-renders when needed
+  // Add state to track if we need to force a re-render after streaming
   const [forceUpdateKey, setForceUpdateKey] = useState(0);
   
-  // Function to handle completion of streaming to ensure proper markdown rendering
-  const handleStreamingCompletion = useCallback(() => {
-    console.log('🔄 Handling streaming completion - preparing to re-render');
-    
-    // Log messageId to verify it exists
-    console.log('🏷️ [MESSAGE ID] Current messageId:', messageId);
-    
-    // Small delay to ensure content is fully processed
-    const timerId = setTimeout(() => {
-      console.log('🔄 Re-rendering markdown after streaming completed');
-      // Force re-render by updating the key
-      setForceUpdateKey(prev => prev + 1);
-      
-      // Additional delay to ensure the re-render completes before dispatching event
-      setTimeout(() => {
-        // Try to get the rendered HTML directly from the DOM
-        let renderedHtml = '';
-        if (messageId) {
-          const markdownElement = document.querySelector(`#message-${messageId} .markdown-content`);
-          if (markdownElement) {
-            renderedHtml = markdownElement.innerHTML;
-            console.log('✅ Successfully captured rendered HTML');
-          } else {
-            console.log('⚠️ Could not find markdown element for messageId:', messageId);
-          }
-        } else {
-          console.error('❌ No messageId available for capturing HTML or dispatching event');
-        }
-        
-        // Log detail information before dispatching event
-        console.log('🛠️ [EVENT DETAILS]', {
-          messageId: messageId || 'MISSING',
-          hasContent: !!content,
-          contentLength: content?.length || 0,
-          hasRenderedHtml: !!renderedHtml,
-          renderedHtmlLength: renderedHtml?.length || 0
-        });
-        
-        const event = new CustomEvent('markdown-rendering-complete', {
-          detail: {
-            messageId,
-            content,
-            renderedHtml,
-            timestamp: new Date().toISOString()
-          }
-        });
-        console.log('📣 Dispatching markdown-rendering-complete event', { 
-          messageId, 
-          hasRenderedHtml: !!renderedHtml,
-          contentLength: content?.length || 0
-        });
-        window.dispatchEvent(event);
-      }, 200); // Increased delay to ensure React has finished rendering
-      
-    }, 500); // Increased delay for more reliable rendering
-    
-    return () => clearTimeout(timerId);
-  }, [messageId, content]);
-
-  // Helper to detect complex content that needs special handling
-  const hasComplexContent = useCallback((text: string): boolean => {
-    if (!text) return false;
-    // Check for code blocks, multi-paragraph content, or tables
-    return (
-      text.includes('```') || 
-      text.includes('\n\n') || 
-      text.includes('|---') ||
-      text.includes('<table') ||
-      text.includes('- ') // List items
-    );
-  }, []);
-
-  // Primary effect for handling streaming completion
+  // Force re-render when streaming ends to ensure Markdown is properly rendered
   useEffect(() => {
-    // Only trigger when streaming has just completed (changed from true to false)
-    if (isStreaming === false && content) {
-      console.log('🔵 Streaming just completed - triggering re-render');
-      handleStreamingCompletion();
-    }
-  }, [isStreaming, content, handleStreamingCompletion]);
-
-  // Secondary effect for handling content changes when not streaming
-  useEffect(() => {
-    // When content changes for complex content and we're not streaming
-    if (!isStreaming && content && hasComplexContent(content)) {
-      console.log('🟣 Complex content detected - triggering additional re-render');
-      handleStreamingCompletion();
-    }
-  }, [content, isStreaming, handleStreamingCompletion, hasComplexContent]);
-
-  // Final effect to ensure we re-render on component mount for already-completed messages
-  useEffect(() => {
-    // For already loaded messages (not streaming), trigger a re-render once on mount
-    if (!isStreaming && content && messageId) {
-      console.log('🟢 Non-streaming content on mount - triggering initial re-render');
-      const timer = setTimeout(() => {
+    if (isStreaming === false) {
+      // Small delay to ensure content is fully available
+      const timerId = setTimeout(() => {
         setForceUpdateKey(prev => prev + 1);
-      }, 200);
-      return () => clearTimeout(timer);
+      }, 100);
+      
+      return () => clearTimeout(timerId);
     }
-  }, [messageId]);
+  }, [isStreaming]);
 
   return (
     <div 
@@ -841,7 +751,6 @@ export const MessageContent = React.memo(function MessageContent({ content, mess
             rehypeSanitize,
             [rehypeHighlight, { detect: true, ignoreMissing: true }]
           ]}
-          key={`markdown-${forceUpdateKey}`} // Explicit key naming for debugging
           components={{
             a: ({ node, href, children, ...props }) => {
               if (!href) return <a {...props}>{children}</a>;
@@ -913,15 +822,13 @@ export const MessageContent = React.memo(function MessageContent({ content, mess
     </div>
   );
 }, (prevProps, nextProps) => {
-  // Modified memo comparison function to ensure re-renders when streaming status changes
-  const shouldSkipRerender = 
+  // Only re-render if these props change
+  return (
     prevProps.content === nextProps.content &&
     prevProps.messageId === nextProps.messageId &&
     prevProps.hasFileAnnotations === nextProps.hasFileAnnotations &&
     prevProps.isStreaming === nextProps.isStreaming && 
-    prevProps.loadingLinkId === nextProps.loadingLinkId &&
     // For onLinkSubmit, we only care if it goes from being defined to undefined or vice versa
-    (!!prevProps.onLinkSubmit === !!nextProps.onLinkSubmit);
-  
-  return shouldSkipRerender;
+    (!!prevProps.onLinkSubmit === !!nextProps.onLinkSubmit)
+  );
 }); 

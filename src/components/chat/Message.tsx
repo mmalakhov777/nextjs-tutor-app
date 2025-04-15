@@ -86,23 +86,6 @@ interface MessageProps {
 
 export const Message = React.memo(function Message({ message, onCopy, onDelete, onEdit, onLinkSubmit, onFileSelect, annotations: propAnnotations, currentAgent, cachedMetadata = {} }: MessageProps) {
   
-  // Add a ref to store the conversationId from URL
-  const conversationIdRef = useRef<string | null>(null);
-  
-  // Extract conversation_id from URL when component mounts
-  useEffect(() => {
-    try {
-      const url = new URL(window.location.href);
-      const conversationIdFromUrl = url.searchParams.get('conversation_id');
-      if (conversationIdFromUrl) {
-        console.log('📝 [CONVERSATION ID] Extracted from URL on mount:', conversationIdFromUrl);
-        conversationIdRef.current = conversationIdFromUrl;
-      }
-    } catch (e) {
-      console.error('Error extracting conversation_id from URL:', e);
-    }
-  }, []);
-  
   useEffect(() => {
     
   }, [message.id, propAnnotations]);
@@ -142,309 +125,6 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
   
   const isStreaming = message.role === 'assistant' && message.content === '';
   
-  // Add refs to track content changes for streaming detection
-  const contentRef = useRef(message.content);
-  const contentTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const savedToDbRef = useRef(false);
-  
-  // Implementation to detect when streaming has actually ended
-  useEffect(() => {
-    // Only track assistant messages
-    if (message.role !== 'assistant') return;
-    
-    // If streaming just started, reset saved flag
-    if (isStreaming) {
-      savedToDbRef.current = false;
-      return;
-    }
-    
-    // If content changed, consider it as still streaming
-    if (message.content !== contentRef.current) {
-      console.log('🧩 [CONTENT] Content changed, considering as still streaming');
-      contentRef.current = message.content;
-      
-      // Clear any existing timer
-      if (contentTimerRef.current) {
-        clearTimeout(contentTimerRef.current);
-        contentTimerRef.current = null;
-      }
-      
-      // Set a new timer to check if content stops changing for a period (which means streaming ended)
-      contentTimerRef.current = setTimeout(() => {
-        console.log('⏱️ [TIMER] Content stable for 1 second - streaming likely complete');
-        
-        // Only save once per message
-        if (!savedToDbRef.current && message.content && message.id && message.sessionId) {
-          console.log('🎯 [STREAMING END DETECTED] Content stabilized, saving to database!');
-          savedToDbRef.current = true;
-          
-          // NOTE: We'll wait for the markdown-rendering-complete event to save
-          // This is now commented out since we'll respond to the event instead
-          // saveMessageToDatabase(message);
-        }
-      }, 1000); // Wait 1 second of stable content to consider streaming done
-    }
-    
-    // Add event listener for markdown rendering completion
-    const handleMarkdownRenderingComplete = (event: CustomEvent) => {
-      if (savedToDbRef.current) return; // Avoid duplicate saves
-      
-      if (message.id && message.id === event.detail.messageId) {
-        console.log('📝 [MARKDOWN RENDERING COMPLETE] Received event, now saving to database', event.detail);
-        savedToDbRef.current = true;
-        
-        // Use a modified message with rendered HTML if available and ensure sessionId is set
-        const messageToSave = {
-          ...message,
-          renderedHtml: event.detail.renderedHtml, // Add the rendered HTML to the message object
-          sessionId: message.sessionId || conversationIdRef.current // Ensure sessionId is set
-        };
-        
-        if (!messageToSave.sessionId && conversationIdRef.current) {
-          console.log('📝 [MARKDOWN RENDERING COMPLETE] Adding sessionId from URL:', conversationIdRef.current);
-          messageToSave.sessionId = conversationIdRef.current;
-        }
-        
-        saveMessageToDatabase(messageToSave);
-      } else if (!event.detail.messageId && message.id && message.sessionId) {
-        // If messageId not in event (for backwards compatibility) but we have an unsaved message
-        console.log('📝 [MARKDOWN RENDERING COMPLETE] Generic event, saving to database');
-        savedToDbRef.current = true;
-        
-        // Create a copy of the message to add sessionId if needed
-        const messageToSave = { 
-          ...message,
-          sessionId: message.sessionId || conversationIdRef.current
-        };
-        
-        saveMessageToDatabase(messageToSave);
-      } else if (!event.detail.messageId && message.id && !message.sessionId && conversationIdRef.current) {
-        // If we have a message without sessionId but have one in the URL
-        console.log('📝 [MARKDOWN RENDERING COMPLETE] Generic event with URL sessionId, saving to database');
-        savedToDbRef.current = true;
-        
-        // Create a copy of the message with the sessionId from URL
-        const messageToSave = { 
-          ...message,
-          sessionId: conversationIdRef.current
-        };
-        
-        saveMessageToDatabase(messageToSave);
-      }
-    };
-    
-    window.addEventListener('markdown-rendering-complete', handleMarkdownRenderingComplete as EventListener);
-    
-    // Clean up timer and event listener on unmount
-    return () => {
-      if (contentTimerRef.current) {
-        clearTimeout(contentTimerRef.current);
-        contentTimerRef.current = null;
-      }
-      window.removeEventListener('markdown-rendering-complete', handleMarkdownRenderingComplete as EventListener);
-    };
-  }, [message.content, message.id, message.sessionId, message.role, isStreaming]);
-  
-  // Extract the database saving logic to a function for reuse
-  const saveMessageToDatabase = async (message: any) => {
-    try {
-      console.log('🔵🔵🔵 Message streaming ended - updating database with HTML version 🔵🔵🔵');
-      
-      // Get the HTML content - first check for renderedHtml from the event
-      let htmlContent = message.renderedHtml || message.content;
-      
-      // If no renderedHtml was provided, try to get it from the DOM
-      if (!message.renderedHtml) {
-        try {
-          const messageElement = document.getElementById(`message-${message.id}`);
-          const markdownElement = messageElement?.querySelector('.markdown-content');
-          
-          if (markdownElement && markdownElement.innerHTML) {
-            console.log('✅ [HTML CAPTURE] Successfully captured rendered HTML content');
-            htmlContent = markdownElement.innerHTML;
-          } else {
-            console.log('⚠️ [HTML CAPTURE] Could not find rendered Markdown element, falling back to content');
-            
-            // If we can't find the element, do our best to convert content to HTML
-            if (!htmlContent.includes('<div') && !htmlContent.includes('<p') && !htmlContent.includes('<span')) {
-              try {
-                console.log('Converting Markdown to HTML...');
-                // Create a temporary div to parse HTML content
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = htmlContent;
-                
-                // If content appears to be markdown, we might need to convert it
-                htmlContent = tempDiv.innerHTML;
-              } catch (conversionError) {
-                console.error('Error converting content to HTML:', conversionError);
-              }
-            }
-          }
-        } catch (domError) {
-          console.error('Error trying to capture DOM elements:', domError);
-          
-          // Fallback to basic conversion
-          if (!htmlContent.includes('<div') && !htmlContent.includes('<p') && !htmlContent.includes('<span')) {
-            try {
-              console.log('Fallback: Converting Markdown to HTML...');
-              const tempDiv = document.createElement('div');
-              tempDiv.innerHTML = htmlContent;
-              htmlContent = tempDiv.innerHTML;
-            } catch (conversionError) {
-              console.error('Error in fallback conversion:', conversionError);
-            }
-          }
-        }
-      } else {
-        console.log('✅ [HTML CAPTURE] Using pre-rendered HTML from event');
-      }
-      
-      // Try to get sessionId from URL if not available in message
-      let sessionId = message.sessionId;
-      if (!sessionId) {
-        // First use the conversationId we extracted on mount
-        if (conversationIdRef.current) {
-          sessionId = conversationIdRef.current;
-          console.log('📝 [SESSION ID] Using conversationId from ref:', sessionId);
-        } else {
-          // If not available, try extracting it again from the URL
-          try {
-            const url = new URL(window.location.href);
-            const conversationIdFromUrl = url.searchParams.get('conversation_id');
-            if (conversationIdFromUrl) {
-              console.log('📝 [SESSION ID] Retrieved conversation_id from URL:', conversationIdFromUrl);
-              sessionId = conversationIdFromUrl;
-            }
-          } catch (e) {
-            console.error('Error getting conversation_id from URL:', e);
-          }
-        }
-      }
-      
-      // Prepare metadata
-      const messageMetadata = {
-        ...(message.metadata || {}),
-        agent_name: message.agentName || currentAgent,
-        event_type: 'message',
-        streaming_complete: true,
-        updated_at: new Date().toISOString(),
-        has_processed_html: true
-      };
-      
-      // Make API call to update the message in the database
-      const backendUrl = getBackendUrl();
-      
-      // DEBUG: Add detailed logging before making the request
-      console.log('🔍🔍🔍 PRE-REQUEST DEBUG INFO 🔍🔍🔍');
-      console.log('Backend URL:', backendUrl);
-      console.log('Session ID (from message):', message.sessionId);
-      console.log('Session ID (with fallback):', sessionId);
-      console.log('Message ID:', message.id);
-      console.log('HTML content length:', htmlContent?.length || 0);
-      console.log('URL being used:', `${backendUrl}/api/chat-sessions/${sessionId || message.sessionId}/messages/${message.id}`);
-      
-      if (!sessionId && !message.sessionId) {
-        console.error('❌❌❌ CRITICAL ERROR: No session ID available, cannot save message');
-        return;
-      }
-      
-      if (!message.id) {
-        console.error('❌❌❌ CRITICAL ERROR: No message ID available, cannot save message');
-        return;
-      }
-      
-      console.log(`Updating message at: ${backendUrl}/api/chat-sessions/${sessionId || message.sessionId}/messages/${message.id}`);
-      
-      const updateResponse = await fetch(`${backendUrl}/api/chat-sessions/${sessionId || message.sessionId}/messages/${message.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          content: htmlContent, // Save the HTML version
-          metadata: messageMetadata
-        }),
-      });
-      
-      // Log response status and headers
-      console.log('🔄 Response status:', updateResponse.status);
-      console.log('🔄 Response status text:', updateResponse.statusText);
-      
-      if (updateResponse.ok) {
-        console.log('✅✅✅ Successfully updated message in database with HTML content');
-      } else {
-        console.error('❌ Update failed with status:', updateResponse.status);
-        throw new Error(`Failed to update message in database: ${updateResponse.status}`);
-      }
-    } catch (error) {
-      console.error('❌❌❌ Error updating message in database:', error);
-      
-      // Try fallback POST if PUT fails
-      try {
-        const backendUrl = getBackendUrl();
-        console.log('🟠 Trying fallback POST method...');
-        
-        // Try to get sessionId from URL if not available in message
-        let sessionId = message.sessionId;
-        if (!sessionId) {
-          // First use the conversationId we extracted on mount
-          if (conversationIdRef.current) {
-            sessionId = conversationIdRef.current;
-            console.log('📝 [SESSION ID] Using conversationId from ref for POST fallback:', sessionId);
-          } else {
-            // If not available, try extracting it again from the URL
-            try {
-              const url = new URL(window.location.href);
-              const conversationIdFromUrl = url.searchParams.get('conversation_id');
-              if (conversationIdFromUrl) {
-                console.log('📝 [SESSION ID] Retrieved conversation_id from URL for POST fallback:', conversationIdFromUrl);
-                sessionId = conversationIdFromUrl;
-              }
-            } catch (e) {
-              console.error('Error getting conversation_id from URL for POST fallback:', e);
-            }
-          }
-        }
-        
-        const postResponse = await fetch(`${backendUrl}/api/chat-sessions/${sessionId || message.sessionId}/messages/${message.id}/update`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            content: message.content,
-            metadata: {
-              ...(message.metadata || {}),
-              agent_name: message.agentName || currentAgent,
-              event_type: 'message',
-              streaming_complete: true,
-              updated_at: new Date().toISOString(),
-              fallback_method: 'post'
-            }
-          }),
-        });
-        
-        if (postResponse.ok) {
-          console.log('✅✅✅ Successfully updated message using POST method');
-        } else {
-          console.error('❌❌❌ Both PUT and POST methods failed');
-        }
-      } catch (postError) {
-        console.error('❌❌❌ Fallback POST also failed:', postError);
-      }
-    }
-  };
-  
-  // Keep the debug logging
-  useEffect(() => {
-    console.log(`🔍 [DEBUG] isStreaming changed to: ${isStreaming}`, {
-      messageId: message.id,
-      role: message.role,
-      hasSessionId: !!message.sessionId,
-      contentLength: message.content?.length || 0,
-      timestamp: new Date().toISOString()
-    });
-  }, [isStreaming, message.id, message.role, message.sessionId, message.content]);
   
   const handleSendMessage = (message: string) => {
     if (onLinkSubmit && message.startsWith('http')) {
@@ -852,6 +532,28 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
       return () => clearTimeout(timeoutId);
     }
   }, [shouldFetchMetadata, annotations]);
+
+  
+  useEffect(() => {
+    
+    if (!isStreaming && message.role === 'assistant' && message.content !== '' && annotations) {
+      const timeoutId = setTimeout(() => {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+      }, 300);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isStreaming, message.content, message.role, annotations]);
 
   
   const ensureAnnotationsAvailable = useCallback(async () => {
