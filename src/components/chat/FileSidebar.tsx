@@ -2,11 +2,9 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { 
-  Upload, FileText, Info, Copy, 
-  Maximize2, CheckCircle2, Clock, AlertTriangle,
-  RefreshCw, ChevronDown, ChevronRight, BookOpen,
-  Link, ExternalLink, FileIcon, Image, Code, Database, 
-  FileJson, FileType, FileCode, Globe, ChevronUp
+  Upload, Copy, 
+  RefreshCw, Link, ChevronUp,
+  AlertTriangle, CheckCircle2, Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,37 +13,20 @@ import type { FileSidebarProps, UploadedFile } from '@/types/chat';
 import { WebPageIcon } from './WebPageIcon';
 import { FileDetailModal } from './FileDetailModal';
 import { useFileContext } from '@/contexts/FileContext';
+import {
+  FileCard,
+  WebpageCard,
+  YouTubeCard,
+  UploadingFileCard,
+  UploadingWebpageCard,
+  UploadingYouTubeCard,
+  type FileUploadStatus
+} from './cards';
 
 // Add a helper function to get the backend URL at the top of the file
 const getBackendUrl = () => {
   return process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5002';
 };
-
-// YouTube icon component
-const YouTubeIcon = ({ className = "h-3 w-3 text-red-600" }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    className={className}
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    stroke="none"
-  >
-    <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
-  </svg>
-);
-
-// Define an interface for tracking file uploads
-interface FileUploadStatus {
-  id: string;
-  name: string;
-  status: 'uploading' | 'processing' | 'completed' | 'error';
-  url?: string; // Add URL for tracking link uploads
-  file?: File; // Add file object for rendering purposes
-  fileName: string; // Add original filename for deduplication
-  errorMessage: string; // Add field for error message
-}
 
 // Helper function to check if a URL is a YouTube URL
 const isYouTubeUrl = (url: string): boolean => {
@@ -57,58 +38,6 @@ const isYouTubeUrl = (url: string): boolean => {
     );
   } catch {
     return false;
-  }
-};
-
-// Helper to get the appropriate icon for a file extension
-const getFileIcon = (fileName: string, file: UploadedFile) => {
-  // Check if it's a YouTube video
-  if (file.source === 'link' && 
-      file.url && 
-      isYouTubeUrl(file.url) || 
-      file.doc_type?.toLowerCase() === 'youtube_video') {
-    return <YouTubeIcon />;
-  }
-  
-  // If it's a link or has webpage type, use the webpage icon
-  if (file.source === 'link' || 
-      file.doc_type?.toLowerCase() === 'webpage' || 
-      file.doc_type?.toLowerCase() === 'webpage') {
-    return <WebPageIcon file={file} />;
-  }
-  
-  const extension = fileName.split('.').pop()?.toLowerCase() || '';
-  
-  switch (extension) {
-    case 'pdf':
-      return <FileText className="h-3 w-3 text-red-500" />;
-    case 'doc':
-    case 'docx':
-    case 'txt':
-      return <FileText className="h-3 w-3 text-blue-500" />;
-    case 'jpg':
-    case 'jpeg':
-    case 'png':
-    case 'gif':
-    case 'webp':
-      return <Image className="h-3 w-3 text-purple-500" />;
-    case 'json':
-    case 'jsonl':
-      return <FileJson className="h-3 w-3 text-yellow-600" />;
-    case 'csv':
-      return <Database className="h-3 w-3 text-green-600" />;
-    case 'js':
-    case 'ts':
-    case 'py':
-    case 'java':
-    case 'c':
-    case 'cpp':
-    case 'html':
-    case 'css':
-    case 'xml':
-      return <FileCode className="h-3 w-3 text-emerald-600" />;
-    default:
-      return <FileIcon className="h-3 w-3 text-gray-500" />;
   }
 };
 
@@ -738,6 +667,16 @@ export function FileSidebar({
     // Create a set of file names that exist in uploadedFiles
     const uploadedFileNames = new Set(uploadedFiles.map(file => file.name));
     
+    // DEBUG LOGGING: Show all uploaded files
+    console.log('DEBUG - All Uploaded Files:', uploadedFiles.map(file => ({
+      id: file.id,
+      name: file.name,
+      source: file.source,
+      url: file.url,
+      status: file.status,
+      doc_type: file.doc_type,
+    })));
+    
     // Filter temporary uploads more carefully
     const filteredUploads = fileUploads.filter(upload => {
       // Check if a corresponding completed file with metadata exists in the main list
@@ -766,6 +705,9 @@ export function FileSidebar({
       return false;
     });
     
+    // DEBUG LOGGING: Show filtered uploads
+    console.log('DEBUG - Filtered Uploads:', filteredUploads);
+    
     // Combine filtered temporary uploads with ALL uploaded files (filtering will happen inline)
     const combinedFiles: CombinedFile[] = [
       ...filteredUploads.map(upload => ({ 
@@ -778,123 +720,91 @@ export function FileSidebar({
       }))
     ];
     
-    // Debug logging removed from here
-    
     if (combinedFiles.length === 0 && filteredUploads.length === 0) return null; // Adjusted check
     
     return (
       <div className="mt-3 sm:mt-4">
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-xs sm:text-sm font-semibold text-foreground">
-            {fileUploads.length > 0 && uploadedFiles.length === 0 // Adjusted logic slightly
+            {fileUploads.length > 0 && uploadedFiles.length === 0
               ? "Uploading Files" 
               : "Uploaded Files"}
           </h3>
         </div>
         <div className="space-y-3 w-full">
           {combinedFiles.map((item) => {
-            // Unified card component for both uploaded files and files in progress
+            // Handle uploading file cards
             if (item.isUpload) {
               const upload = item.upload;
-              const fileExtension = upload.file ? upload.name.split('.').pop()?.toLowerCase() || '' : '';
               
+              // YouTube card for YouTube links
+              if (upload.url && isYouTubeUrl(upload.url)) {
+                console.log('DEBUG - Rendering UploadingYouTubeCard for', upload);
+                return (
+                  <UploadingYouTubeCard
+                    key={`upload-${upload.id}`}
+                    upload={upload}
+                    onRemove={removeUpload}
+                  />
+                );
+              }
+              
+              // Webpage card for other links
+              if (upload.url) {
+                console.log('DEBUG - Rendering UploadingWebpageCard for', upload);
+                return (
+                  <UploadingWebpageCard
+                    key={`upload-${upload.id}`}
+                    upload={upload}
+                    onRemove={removeUpload}
+                  />
+                );
+              }
+              
+              // Default file card for file uploads
+              console.log('DEBUG - Rendering UploadingFileCard for', upload);
               return (
-                <div 
+                <UploadingFileCard
                   key={`upload-${upload.id}`}
-                  className="flex w-full max-w-full p-4 items-start gap-3 relative group"
-                  style={{
-                    borderRadius: '16px',
-                    border: '1px solid var(--superlight)',
-                    background: 'var(--ultralight)'
-                  }}
-                >
-                  <div className="flex flex-col flex-grow min-w-0 overflow-hidden">
-                    <div className="flex items-start w-full">
-                      <span className="truncate text-sm font-medium text-foreground">{upload.name}</span>
-                    </div>
-                    
-                    {/* File type and status */}
-                    <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                      {/* File format */}
-                      <span className="flex items-center gap-1">
-                        {getFileIcon(upload.name, { name: upload.name } as UploadedFile)}
-                        {fileExtension.toUpperCase().substring(0, 4) || 'FILE'}
-                      </span>
-                      
-                      <span className="text-slate-400">•</span>
-                      
-                      {/* Upload status */}
-                      <span className={`
-                        ${upload.status === 'error' ? 'text-red-600' : 
-                          upload.status === 'completed' /* This check is commented out below */ ? 'text-green-600' : 'text-amber-600'}
-                      `}>
-                        {upload.status === 'uploading' && 'Uploading...'}
-                        {upload.status === 'processing' && 'Processing...'}
-                        {/* Remove the display of "Completed" status for temporary uploads */}
-                        {upload.status === 'error' && 'Error'}
-                      </span>
-
-                      {/* Show error message if available */}
-                      {upload.status === 'error' && upload.errorMessage && (
-                        <span className="ml-1 text-xs text-red-600">
-                          {/* Error message content might be here */}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Right side actions */}
-                  <div className="flex flex-col items-end gap-2">
-                    {/* Status icon or delete button for errors */}
-                    {(upload.status === 'uploading' || upload.status === 'processing') && (
-                      <RefreshCw className="h-4 w-4 text-amber-500 animate-spin" />
-                    )}
-                    {/* Remove the completed checkmark and button for temporary uploads */}
-                    {upload.status === 'error' && 
-                      <div className="flex items-center gap-1">
-                        <AlertTriangle className="h-4 w-4 text-red-500" />
-                        <Button
-                          onClick={(e) => removeUpload(upload.id)}
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 hover:bg-transparent"
-                          aria-label="Remove upload"
-                        >
-                          <DeleteIcon className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                      </div>
-                    }
-                  </div>
-                </div>
+                  upload={upload}
+                  onRemove={removeUpload}
+                />
               );
             } else {
               // This is an uploaded file - Apply filtering LOGIC HERE
               const file = item.file;
 
+              // DEBUG LOGGING: Show detailed file info for filtering logic
+              console.log('DEBUG - Processing uploaded file for rendering:', {
+                id: file.id,
+                name: file.name,
+                source: file.source,
+                url: file.url,
+                status: file.status,
+                doc_type: file.doc_type,
+                doc_title: file.doc_title,
+                doc_authors: file.doc_authors,
+                doc_publication_year: file.doc_publication_year,
+                doc_summary: file.doc_summary?.substring(0, 20) + '...',
+                total_pages: file.total_pages
+              });
+
               // --- START INLINE FILTER --- 
               let shouldRender = false;
-
-              // Log file details BEFORE filtering
-              console.log(`[FileSidebar Render Check] File: ${file.id} (${file.name}), Status: ${file.status}, Source: ${file.source}, Metadata:`, {
-                  title: file.doc_title,
-                  authors: file.doc_authors,
-                  year: file.doc_publication_year,
-                  type: file.doc_type,
-                  summary: file.doc_summary,
-                  pages: file.total_pages
-              });
 
               // Explicitly define allowed statuses before metadata check
               const allowedStatuses: Array<string | undefined> = ['processing', 'pending', 'completed'];
 
               // Filter out anything not in the allowed statuses immediately
               if (!allowedStatuses.includes(file.status)) {
+                console.log(`DEBUG - File ${file.id} filtered out due to invalid status: ${file.status}`);
                 shouldRender = false; // Ensure it's false if status is invalid/undefined/error etc.
               } else {
                 // Only proceed with checks if status is potentially valid
                 // Condition 1: Keep processing or pending files
                 if (file.status === 'processing' || file.status === 'pending') {
                   shouldRender = true;
+                  console.log(`DEBUG - File ${file.id} will render due to status: ${file.status}`);
                 }
                 // Condition 2: For completed files, check metadata strictly
                 else if (file.status === 'completed') {
@@ -908,192 +818,99 @@ export function FileSidebar({
                     file.source === 'link' // Always keep links
                   );
                   shouldRender = hasMetadata;
+                  console.log(`DEBUG - File ${file.id} metadata check: ${hasMetadata ? 'PASS' : 'FAIL'}`);
                 }
-                // No need for error check here, it's covered by the initial allowedStatuses check
               }
 
-              // Log the filter result
-              console.log(`[FileSidebar Render Check] File: ${file.id} - Should Render: ${shouldRender}`);
-              
-              // --- END INLINE FILTER ---
-
               if (!shouldRender) {
+                console.log(`DEBUG - File ${file.id} will NOT be rendered`);
                 return null; // Don't render this file if it doesn't meet the criteria
               }
 
-              // --- If shouldRender is true, return the Card JSX --- 
+              // Handle YouTube video links
+              if ((file.source === 'link' && file.url && isYouTubeUrl(file.url)) || 
+                  file.doc_type?.toLowerCase() === 'youtube_video') {
+                console.log(`DEBUG - Rendering YouTubeCard for ${file.id} - ${file.name}`, {
+                  isYouTubeUrl: file.url ? isYouTubeUrl(file.url) : false,
+                  doc_type: file.doc_type,
+                  source: file.source
+                });
+                return (
+                  <YouTubeCard
+                    key={file.id}
+                    file={file}
+                    onDelete={(fileId) => {
+                      setIsDeletingFile(fileId);
+                      removeFileMetadataFromLocalStorage(fileId);
+                      const result = onFileDeleted?.(fileId);
+                      if (result && typeof (result as any).then === 'function') {
+                        (result as Promise<any>).finally(() => {
+                          setIsDeletingFile(null);
+                        });
+                      } else {
+                        setTimeout(() => setIsDeletingFile(null), 500);
+                      }
+                    }}
+                    onSelect={handleFileSelection}
+                    isDeletingFile={isDeletingFile}
+                  />
+                );
+              }
+              
+              // Handle regular web links - Fix webpage detection logic
+              if ((file.source === 'link' && (!file.url || !isYouTubeUrl(file.url))) ||
+                  file.doc_type?.toLowerCase() === 'webpage') {
+                console.log(`DEBUG - Rendering WebpageCard for ${file.id} - ${file.name}`, {
+                  doc_type: file.doc_type,
+                  source: file.source,
+                  url: file.url
+                });
+                return (
+                  <WebpageCard
+                    key={file.id}
+                    file={file}
+                    onDelete={(fileId) => {
+                      setIsDeletingFile(fileId);
+                      removeFileMetadataFromLocalStorage(fileId);
+                      const result = onFileDeleted?.(fileId);
+                      if (result && typeof (result as any).then === 'function') {
+                        (result as Promise<any>).finally(() => {
+                          setIsDeletingFile(null);
+                        });
+                      } else {
+                        setTimeout(() => setIsDeletingFile(null), 500);
+                      }
+                    }}
+                    onSelect={handleFileSelection}
+                    isDeletingFile={isDeletingFile}
+                  />
+                );
+              }
+              
+              // Default file card for regular files
+              console.log(`DEBUG - Rendering FileCard for ${file.id} - ${file.name}`, {
+                doc_type: file.doc_type,
+                source: file.source
+              });
               return (
-                <div 
+                <FileCard
                   key={file.id}
-                  className="flex w-full max-w-full p-4 items-start gap-3 relative group cursor-pointer hover:bg-gray-50"
-                  style={{
-                    borderRadius: '16px',
-                    border: '1px solid var(--superlight)',
-                    background: 'var(--ultralight)'
+                  file={file}
+                  onDelete={(fileId) => {
+                    setIsDeletingFile(fileId);
+                    removeFileMetadataFromLocalStorage(fileId);
+                    const result = onFileDeleted?.(fileId);
+                    if (result && typeof (result as any).then === 'function') {
+                      (result as Promise<any>).finally(() => {
+                        setIsDeletingFile(null);
+                      });
+                    } else {
+                      setTimeout(() => setIsDeletingFile(null), 500);
+                    }
                   }}
-                  onClick={() => handleFileSelection(file)}
-                >
-                  <div className="flex flex-col flex-grow min-w-0 overflow-hidden">
-                    <div className="flex items-start w-full">
-                      <span className="truncate text-sm font-medium text-foreground">
-                        {file.doc_title || file.name}
-                      </span>
-                    </div>
-                    
-                    {/* Show filename as secondary info when title is displayed */}
-                    {file.doc_title && (
-                      <div className="text-xs text-slate-500 truncate mt-0.5 mb-0.5">
-                        {file.name}
-                      </div>
-                    )}
-                    
-                    {/* File metadata - authors and type */}
-                    <div className="flex items-center gap-2 flex-wrap mt-0.5 mb-1">
-                      {file.doc_authors && file.doc_authors.length > 0 && (
-                        <span className="text-xs text-slate-700 flex items-center">
-                          {Array.isArray(file.doc_authors) 
-                            ? file.doc_authors.slice(0, 1).map((author: string) => author).join(', ')
-                            : file.doc_authors}
-                          {Array.isArray(file.doc_authors) && file.doc_authors.length > 1 && (
-                            <span className="ml-1 inline-flex items-center justify-center text-slate-800 text-[10px]"
-                              style={{
-                                borderRadius: '1000px',
-                                background: 'var(--Monochrome-Light, #E8E8E5)',
-                                display: 'flex',
-                                width: '18px',
-                                height: '18px',
-                                padding: '2px 4px 2px 2px',
-                                flexDirection: 'column',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                gap: '10px'
-                              }}>
-                              +{file.doc_authors.length - 1}
-                            </span>
-                          )}
-                        </span>
-                      )}
-                    </div>
-                    
-                    {/* File type and status on the same line */}
-                    <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
-                      {/* File format with link icon for URLs */}
-                      {file.source === 'link' ? (
-                        <span className="flex items-center gap-1">
-                          {file.url && isYouTubeUrl(file.url) || file.doc_type?.toLowerCase() === 'youtube_video' ? (
-                            <>
-                              <YouTubeIcon />
-                              YouTube
-                            </>
-                          ) : (
-                            <>
-                              <WebPageIcon file={file} />
-                              Website
-                            </>
-                          )}
-                        </span>
-                      ) : file.name && (
-                        <span className="flex items-center gap-1">
-                          {getFileIcon(file.name, file)}
-                          {file.name.split('.').pop()?.toUpperCase().substring(0, 4) || 'FILE'}
-                        </span>
-                      )}
-                      
-                      {/* Dot divider */}
-                      {file.name && file.doc_type && file.doc_type !== "Unknown" && (
-                        <span className="text-slate-400">•</span>
-                      )}
-                      
-                      {/* Document type */}
-                      {file.doc_type && file.doc_type !== "Unknown" && file.doc_type.toLowerCase() !== "youtube_video" && (
-                        <span>
-                          {file.doc_type.toLowerCase() === 'webpage' || file.doc_type.toLowerCase() === 'webpage' 
-                            ? "WEB" 
-                            : file.doc_type.substring(0, 3).toUpperCase()}
-                        </span>
-                      )}
-                      
-                      {/* Dot divider */}
-                      {((file.name || (file.doc_type && file.doc_type !== "Unknown")) && 
-                        (file.doc_publication_year || (file.status && file.status !== 'completed'))) && (
-                        <span className="text-slate-400">•</span>
-                      )}
-                      
-                      {/* Year instead of "Ready" status */}
-                      {file.doc_publication_year && (
-                        <span>
-                          {file.doc_publication_year}
-                        </span>
-                      )}
-                      
-                      {/* Only show error or processing status */}
-                      {file.status && file.status !== 'completed' && (
-                        <span className={`${file.status === 'error' ? 'text-red-600' : 'text-amber-600'}`}>
-                          {file.status === 'error' ? 'Error' : 'Processing'}
-                        </span>
-                      )}
-                      
-                      {/* Add "Ready" indicator for completed files with metadata */}
-                      {file.status === 'completed' && !file.doc_publication_year && (
-                        <>
-                          {((file.name || (file.doc_type && file.doc_type !== "Unknown"))) && (
-                            <span className="text-slate-400">•</span>
-                          )}
-                          <span className="text-green-600">Ready</span>
-                        </>
-                      )}
-                      
-                      {/* Show URL for link files */}
-                      {file.source === 'link' && file.url && (
-                        <a 
-                          href={file.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="ml-auto text-blue-500 hover:underline"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          View source
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Right side actions */}
-                  <div className="flex flex-col items-end gap-2">
-                    {/* Show spinner for processing status */}
-                    {file.status === 'pending' || file.status === 'processing' ? (
-                      <RefreshCw className="h-4 w-4 text-amber-500 animate-spin" />
-                    ) : (
-                      /* Delete button */
-                      <Button
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent opening the modal
-                          setIsDeletingFile(file.id);
-                          // Remove from local storage first
-                          removeFileMetadataFromLocalStorage(file.id);
-                          const result = onFileDeleted?.(file.id);
-                          // Check if the result is a Promise-like object
-                          if (result && typeof (result as any).then === 'function') {
-                            (result as Promise<any>).finally(() => {
-                              setIsDeletingFile(null);
-                            });
-                          } else {
-                            // If not a promise, reset state after a small delay
-                            setTimeout(() => setIsDeletingFile(null), 500);
-                          }
-                        }}
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-transparent"
-                        aria-label="Delete file"
-                        disabled={isDeletingFile === file.id}
-                      >
-                        {/* Always render DeleteIcon, disable button based on isDeletingFile */}
-                        <DeleteIcon className="h-4 w-4 text-muted-foreground group-hover:text-[#232323]" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
+                  onSelect={handleFileSelection}
+                  isDeletingFile={isDeletingFile}
+                />
               );
             }
           })}
