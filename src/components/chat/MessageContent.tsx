@@ -801,7 +801,42 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
     }
   };
 
-  // Function to handle link submission with loading state
+  // Direct method to update link state to success - for marking links as successfully added
+  const markLinkSucceeded = useCallback((url: string) => {
+    console.log("Marking link as succeeded:", url);
+    setLinkStates(prev => {
+      // Log the state transition
+      console.log("Current state before success:", prev[url]);
+      return {
+        ...prev,
+        [url]: { status: 'added', message: 'Link added successfully' }
+      };
+    });
+    
+    // Force rerender
+    setTimeout(() => {
+      console.log("Forcing rerender for success:", url);
+      setLinkStates(prev => ({ ...prev }));
+    }, 100);
+    
+    // Try to set directly in DOM
+    if (typeof document !== 'undefined') {
+      setTimeout(() => {
+        try {
+          const linkElements = document.querySelectorAll(`[data-url="${url}"]`);
+          if (linkElements.length > 0) {
+            console.log("Found success link elements to update:", linkElements.length);
+            linkElements.forEach(el => {
+              // Mark as added directly in the DOM
+              el.setAttribute('data-status', 'added');
+            });
+          }
+        } catch {}
+      }, 100);
+    }
+  }, []);
+
+  // Modify the handleLinkSubmitWithLoading function to use our direct state methods
   const handleLinkSubmitWithLoading = async (url: string): Promise<void> => {
     try {
       console.log("MessageContent attempting to submit link:", url);
@@ -816,15 +851,19 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
         
         console.log("Link successfully submitted:", url);
         
-        // Set success state 
-        setLinkStates(prev => ({ ...prev, [url]: { status: 'added', message: 'Link added successfully' } }));
+        // Use our direct method to update success state
+        markLinkSucceeded(url);
         
         // Show success notification
-        const notification = document.createElement('div');
-        notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm';
-        notification.textContent = 'Link added successfully';
-        document.body.appendChild(notification);
-        setTimeout(() => notification.remove(), 2000);
+        try {
+          const notification = document.createElement('div');
+          notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm';
+          notification.textContent = 'Link added successfully';
+          document.body.appendChild(notification);
+          setTimeout(() => {
+            try { notification.remove(); } catch {}
+          }, 2000);
+        } catch {}
       } catch (error) {
         // Trap error here to prevent it from blocking other submissions
         console.error("Link submission error:", error);
@@ -832,25 +871,19 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
         // Extract the error message
         const errorMessage = error instanceof Error ? error.message : 'Failed to add link';
         
-        // Set error state with the message
-        setLinkStates(prev => ({
-          ...prev, 
-          [url]: { status: 'error' as const, message: errorMessage }
-        }));
+        // Use our direct method to update error state
+        markLinkFailed(url, errorMessage);
         
         // Show error notification
-        const notification = document.createElement('div');
-        notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded shadow-lg z-[100] text-sm';
-        notification.textContent = errorMessage || 'Failed to add link';
-        document.body.appendChild(notification);
-        setTimeout(() => notification.remove(), 3000);
-        
-        // Also update error toasts in the LinkCard component
-        if (typeof document !== 'undefined') {
-          document.querySelectorAll('.error-toast').forEach(el => {
-            (el as HTMLElement).style.zIndex = '100';
-          });
-        }
+        try {
+          const notification = document.createElement('div');
+          notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded shadow-lg z-[100] text-sm';
+          notification.textContent = errorMessage || 'Failed to add link';
+          document.body.appendChild(notification);
+          setTimeout(() => {
+            try { notification.remove(); } catch {}
+          }, 3000);
+        } catch {}
       }
     } catch (error) {
       // This should never happen since we trap all errors above
@@ -892,6 +925,28 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
     const [errorRef, setErrorRef] = useState<HTMLDivElement | null>(null);
     // Track this specific card's loading state independently
     const [isThisCardLoading, setIsThisCardLoading] = useState(false);
+    
+    // Add debug log for error state
+    useEffect(() => {
+      if (linkState.status === 'error') {
+        console.log(`Error state for ${link.url}:`, linkState);
+      }
+      if (linkState.status === 'added') {
+        console.log(`Success state for ${link.url}:`, linkState);
+      }
+    }, [link.url, linkState]);
+    
+    // This component's loading state is completely local
+    const isCardLoading = isThisCardLoading || linkState.status === 'loading';
+    
+    // Debug visible states - using separate variables for clarity
+    const showErrorIcon = linkState.status === 'error';
+    const showSuccessIcon = linkState.status === 'added';
+    
+    // Log state changes for debugging
+    useEffect(() => {
+      console.log(`Card state for ${link.url}: ${linkState.status}, show success: ${showSuccessIcon}, show error: ${showErrorIcon}`);
+    }, [link.url, linkState.status, showSuccessIcon, showErrorIcon]);
     
     // Update ref when addedTooltipRef changes
     useEffect(() => {
@@ -1041,9 +1096,6 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
       }, 10); // Minimal timeout to detach from current execution context
     };
     
-    // This component's loading state is completely local
-    const isCardLoading = isThisCardLoading || linkState.status === 'loading';
-    
     return (
       <div 
         className="relative" 
@@ -1115,8 +1167,8 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
           )}
         </a>
         
-        {/* Show error icon if error - make it clickable like the checkmark */}
-        {linkState.status === 'error' && (
+        {/* Explicitly render for error state */}
+        {showErrorIcon && (
           <div 
             ref={setErrorRef}
             className="absolute top-1 right-1"
@@ -1185,8 +1237,8 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
           </div>
         )}
         
-        {/* Show checkmark if added - make it clickable */}
-        {linkState.status === 'added' && (
+        {/* Explicitly render for added state */}
+        {showSuccessIcon && (
           <div 
             ref={setRef}
             className="absolute top-1 right-1"
@@ -1258,6 +1310,7 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
     );
   }, (prevProps, nextProps) => {
     // Only re-render if these props change
+    // IMPORTANT: Never memoize the status to ensure updates always happen
     return (
       prevProps.link.url === nextProps.link.url &&
       prevProps.link.domain === nextProps.link.domain &&
@@ -1291,10 +1344,13 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
       if (url) {
         console.log(`Link error event received for ${url}:`, error);
         // Update the state for this specific link to show error
-        setLinkStates(prev => ({
-          ...prev,
-          [url]: { status: 'error', message: error || 'Failed to add link' }
-        }));
+        setLinkStates(prev => {
+          console.log("Setting error state for", url);
+          return {
+            ...prev,
+            [url]: { status: 'error', message: error || 'Failed to add link' }
+          };
+        });
         
         // Show error notification
         try {
@@ -1306,6 +1362,13 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
             try { notification.remove(); } catch {}
           }, 3000);
         } catch {}
+        
+        // Also update error toasts in the LinkCard component
+        if (typeof document !== 'undefined') {
+          document.querySelectorAll('.error-toast').forEach(el => {
+            (el as HTMLElement).style.zIndex = '100';
+          });
+        }
       }
     };
 
@@ -1320,10 +1383,21 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
   
   // Direct method to mark a link as failed - will be used by LinkCard
   const markLinkFailed = useCallback((url: string, errorMessage: string) => {
-    setLinkStates(prev => ({
-      ...prev,
-      [url]: { status: 'error', message: errorMessage }
-    }));
+    console.log("Marking link as failed:", url, errorMessage);
+    setLinkStates(prev => {
+      // Verify the current state and log it
+      console.log("Current state before update:", prev[url]);
+      return {
+        ...prev,
+        [url]: { status: 'error', message: errorMessage }
+      };
+    });
+    
+    // Force rerender of cards that might be stuck
+    setTimeout(() => {
+      console.log("Forcing rerender for", url);
+      setLinkStates(prev => ({ ...prev }));
+    }, 100);
   }, []);
 
   return (
