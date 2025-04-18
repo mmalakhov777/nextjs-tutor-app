@@ -840,10 +840,17 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
         
         // Show error notification
         const notification = document.createElement('div');
-        notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm';
+        notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded shadow-lg z-[100] text-sm';
         notification.textContent = errorMessage || 'Failed to add link';
         document.body.appendChild(notification);
         setTimeout(() => notification.remove(), 3000);
+        
+        // Also update error toasts in the LinkCard component
+        if (typeof document !== 'undefined') {
+          document.querySelectorAll('.error-toast').forEach(el => {
+            (el as HTMLElement).style.zIndex = '100';
+          });
+        }
       }
     } catch (error) {
       // This should never happen since we trap all errors above
@@ -987,7 +994,7 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
                     try {
                       // Show error notification
                       const notification = document.createElement('div');
-                      notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm';
+                      notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded shadow-lg z-[100] text-sm';
                       notification.textContent = errorMessage;
                       document.body.appendChild(notification);
                       setTimeout(() => {
@@ -1292,7 +1299,7 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
         // Show error notification
         try {
           const notification = document.createElement('div');
-          notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm';
+          notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded shadow-lg z-[100] text-sm';
           notification.textContent = error || 'Failed to add link';
           document.body.appendChild(notification);
           setTimeout(() => {
