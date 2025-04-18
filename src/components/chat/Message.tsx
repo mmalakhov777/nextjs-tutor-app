@@ -147,16 +147,6 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
       setLoadingLinkId(url);
       try {
         console.log("Message component submitting link:", url);
-        
-        try {
-          // Try to dispatch pre-emptive error event for this URL
-          const loadingEvent = new CustomEvent('link-loading-start', {
-            detail: { url },
-            bubbles: true
-          });
-          window.dispatchEvent(loadingEvent);
-        } catch {}
-        
         await onLinkSubmit(url);
         console.log("Link submitted successfully in Message component");
         return Promise.resolve(); // Success
@@ -181,31 +171,11 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
             cancelable: true
           });
           window.dispatchEvent(modernEvent);
-          
-          // Attempt to find and update the specific link card element directly
-          if (typeof document !== 'undefined') {
-            setTimeout(() => {
-              try {
-                // Try to find all links with this URL and update their state directly
-                const linkElements = document.querySelectorAll(`[data-url="${url}"]`);
-                if (linkElements.length > 0) {
-                  console.log("Found link elements to update:", linkElements.length);
-                  linkElements.forEach(el => {
-                    // Mark as error directly in the DOM
-                    el.setAttribute('data-status', 'error');
-                    // Add error class
-                    el.classList.add('link-error');
-                  });
-                }
-              } catch {}
-            }, 200);
-          }
         } catch (eventError) {
           console.error("Error dispatching error event:", eventError);
         }
         
-        // DO NOT propagate errors - instead, return a resolved promise
-        // This prevents blocking other link submissions
+        // Return a successful promise to prevent blocking
         return Promise.resolve();
       } finally {
         setLoadingLinkId(null);
