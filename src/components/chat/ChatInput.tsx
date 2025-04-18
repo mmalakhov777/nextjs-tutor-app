@@ -21,6 +21,7 @@ import { MistralLogo } from '@/components/icons/MistralLogo';
 import { PerplexityLogo } from '@/components/icons/PerplexityLogo';
 import { UserCircle } from 'lucide-react';
 import { saveFileMetadataToLocalStorage } from '@/utils/fileStorage';
+import { Switch } from '@/components/ui/switch';
 
 // Define a minimal Agent type locally
 type Agent = { id?: string; name: string; [key: string]: any };
@@ -151,6 +152,8 @@ const getIconTextColor = (agentName: string) => {
 // Extend ChatInputProps to include optional displayMessage parameter
 export interface ExtendedChatInputProps extends ChatInputProps {
   agents?: Agent[]; // Make agents optional
+  mode: 'chat' | 'research';
+  onModeChange: (mode: 'chat' | 'research') => void;
 }
 
 export function ChatInput({
@@ -158,14 +161,15 @@ export function ChatInput({
   onChange,
   onSend,
   disabled,
-  agents = DEFAULT_AGENTS // Use default agents if none provided
+  agents = DEFAULT_AGENTS, // Use default agents if none provided
+  mode,
+  onModeChange
 }: ExtendedChatInputProps) { // Use updated props type
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [recordingError, setRecordingError] = useState<string | null>(null);
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [isLoadingFileContent, setIsLoadingFileContent] = useState(false); // Add loading state for file content
   
   // File mention state
@@ -1128,27 +1132,17 @@ export function ChatInput({
             alignSelf: 'stretch'
           }}
         >
-          <button
-            onClick={() => setFeedbackModalOpen(true)}
-            style={{
-              display: 'flex',
-              padding: isMobile ? '6px 0' : '8px 0',
-              alignItems: 'center',
-              gap: '10px',
-              borderRadius: '8px',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              opacity: 0.6,
-              fontSize: '12px',
-              fontWeight: 400,
-              color: 'var(--Monochrome-Normal, #9B9B9B)',
-              transition: 'opacity 0.2s ease'
-            }}
-            className="hover:opacity-100"
-          >
-            Have feedback?
-          </button>
+          {/* Chat/Research Switch */}
+          <div className="flex items-center gap-3 select-none" style={{ minWidth: 120 }}>
+            <span className={`text-xs font-medium ${mode === 'chat' ? 'text-emerald-600' : 'text-gray-400'}`}>Chat</span>
+            <Switch
+              checked={mode === 'research'}
+              onCheckedChange={checked => onModeChange(checked ? 'research' : 'chat')}
+              disabled={disabled}
+              aria-label="Toggle research mode"
+            />
+            <span className={`text-xs font-medium ${mode === 'research' ? 'text-blue-600' : 'text-gray-400'}`}>Research</span>
+          </div>
           
           <div className="flex gap-2">
             {/* Recording button */}
@@ -1221,12 +1215,6 @@ export function ChatInput({
           </div>
         </div>
       </div>
-      
-      {/* Feedback Modal */}
-      <FeedbackModal
-        isOpen={feedbackModalOpen}
-        onOpenChange={setFeedbackModalOpen}
-      />
     </div>
   );
 } 

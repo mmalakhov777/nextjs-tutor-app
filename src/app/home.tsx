@@ -140,7 +140,10 @@ export default function Home({
   const [activeTab, setActiveTab] = useState<'chat' | 'files' | 'agents'>('chat');
   
   // Add state to track active sidebar tab
-  const [agentsSidebarTab, setAgentsSidebarTab] = useState<'agents' | 'notes'>('agents');
+  const [agentsSidebarTab, setAgentsSidebarTab] = useState<'agents' | 'notes' | 'scenarios'>('agents');
+
+  // Add chat/research mode state
+  const [mode, setMode] = useState<'chat' | 'research'>('chat');
 
   // Detect mobile screen size
   useEffect(() => {
@@ -1550,9 +1553,89 @@ content: HIDDEN_CONTENT
   }, [chat, userId]);
 
   // Handler to track sidebar tab changes
-  const handleAgentsSidebarTabChange = (tab: 'agents' | 'notes') => {
+  const handleAgentsSidebarTabChange = (tab: 'agents' | 'notes' | 'scenarios') => {
     setAgentsSidebarTab(tab);
   };
+
+  // Custom send handler for ChatInput
+  const handleInputSend = useCallback(async (message: string, displayMessage?: string) => {
+    if (mode === 'research') {
+      // Show loader and add user message
+      chat.setIsProcessing(true);
+      chat.setMessages(prev => [
+        ...prev,
+        {
+          role: 'user',
+          content: displayMessage || message,
+          timestamp: new Date()
+        }
+      ]);
+      chat.setCurrentMessage('');
+      chat.setShowWelcome(false);
+
+      // Call the real research backend
+      try {
+        const user_id = userId || 'anonymous';
+        const response = await fetch('https://mellow-person-production.up.railway.app/research', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            question: message,
+            user_id
+          })
+        });
+        const rawText = await response.text();
+        console.log('Raw /research response:', rawText);
+        let data;
+        try {
+          data = JSON.parse(rawText);
+        } catch (e) {
+          console.error('Failed to parse /research response as JSON:', e);
+          data = {};
+        }
+        console.log('Parsed /research data:', data);
+        const answer = data.choices?.[0]?.message?.content || 'No answer.';
+        const citations = data.citations || [];
+        const reasoning = data.choices?.[0]?.message?.reasoning;
+
+        // Compose the assistant message with markdown answer, citations, and reasoning
+        let content = answer;
+        if (citations.length > 0) {
+          // Format citation numbers as links in the content
+          citations.forEach((url: string, i: number) => {
+            // Replace each [i+1] citation with a clickable link to the URL
+            const citationRegex = new RegExp(`\\[${i + 1}\\]`, 'g');
+            content = content.replace(citationRegex, `[[${i + 1}]](${url})`);
+          });
+        }
+        if (reasoning) {
+          content += `\n\n<details><summary>Model Reasoning</summary>\n\n${reasoning}\n</details>`;
+        }
+
+        chat.setMessages(prev => [
+          ...prev,
+          {
+            role: 'assistant',
+            content,
+            timestamp: new Date()
+          }
+        ]);
+      } catch (err) {
+        chat.setMessages(prev => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: 'Sorry, there was an error contacting the research backend.',
+            timestamp: new Date()
+          }
+        ]);
+      }
+      chat.setIsProcessing(false);
+    } else {
+      // Normal chat mode
+      chat.handleSendMessage(message, displayMessage);
+    }
+  }, [mode, chat, userId]);
 
   return (
     <>
@@ -1611,6 +1694,7 @@ content: HIDDEN_CONTENT
             onAgentsUpdate={(updatedAgents) => agents.setAgents(updatedAgents)}
             onTabChange={handleAgentsSidebarTabChange}
             currentConversationId={chat.currentConversationId || undefined}
+            onSendMessage={chat.handleSendMessage}
           />
         }
         content={
@@ -1622,6 +1706,7 @@ content: HIDDEN_CONTENT
             isLoadingSession={isLoadingSession}
             isCreatingSession={isCreatingSession}
             currentAgent={chat.currentAgent}
+            mode={mode}
             onMessageChange={chat.handleMessageChange}
             onSendMessage={chat.handleSendMessage}
             onCopy={handleCopy}
@@ -1632,8 +1717,6 @@ content: HIDDEN_CONTENT
               return;
             }}
             onFileSelect={(file) => {
-              // This handles file selection from Message component
-              // Use the same approach as when selecting from the FileSidebar
               files.setSelectedFile(file);
             }}
             cachedMetadata={fileMetadataCache}
@@ -1643,16 +1726,24 @@ content: HIDDEN_CONTENT
           <ChatInput
             value={chat.currentMessage}
             onChange={chat.handleMessageChange}
-            onSend={chat.handleSendMessage}
+            onSend={handleInputSend}
             disabled={chat.isProcessing || isLoadingSession || isCreatingSession}
+            mode={mode}
+            onModeChange={setMode}
           />
         }
         isMobile={isMobile}
         activeTab={activeTab}
         isLoading={isLoadingSession || isCreatingSession}
-        loadingMessage={isCreatingSession ? 'Creating new conversation...' : 'Loading conversation...'}
+        loadingMessage={
+          chat.isProcessing && mode === 'research'
+            ? 'Researching...'
+            : isCreatingSession
+              ? 'Creating new conversation...'
+              : 'Loading conversation...'
+        }
         onTabChange={setActiveTab}
-        rightSidebarWide={agentsSidebarTab === 'notes'}
+        rightSidebarWide={agentsSidebarTab === 'notes' || agentsSidebarTab === 'scenarios'}
       />
 
       <AnalysisModal

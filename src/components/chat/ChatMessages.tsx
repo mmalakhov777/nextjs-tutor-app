@@ -4,6 +4,7 @@ import type { Message as MessageType } from '@/types/chat';
 import { Message } from './Message';
 import { WelcomeIcon } from '@/components/icons/WelcomeIcon';
 import { LoadingIndicator } from './LoadingIndicator';
+import ResearchLoadingIndicator from './ResearchLoadingIndicator';
 
 // Inline WelcomeMessage component since the import is missing
 const WelcomeMessage = ({ size = 'large' }: { size?: 'small' | 'large' }) => {
@@ -51,6 +52,7 @@ interface ExtendedChatMessagesProps extends Omit<ChatMessagesProps, 'messages'> 
   onLinkSubmit?: (url: string) => Promise<void>;
   onFileSelect?: (file: UploadedFile) => void;
   cachedMetadata?: Record<string, any>;
+  mode: 'chat' | 'research';
 }
 
 // Define a type for processed messages
@@ -63,6 +65,7 @@ export function ChatMessages({
   messages,
   isProcessing,
   showWelcome,
+  mode,
   onCopy,
   onEdit,
   onDelete,
@@ -254,7 +257,11 @@ export function ChatMessages({
               </div>
             ))}
             
-            {shouldShowLoading && renderLoadingIndicator()}
+            {shouldShowLoading && (
+              mode === 'research'
+                ? <ResearchLoadingIndicator />
+                : renderLoadingIndicator()
+            )}
 
             <div ref={messagesEndRef} />
             

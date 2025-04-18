@@ -1,10 +1,10 @@
-import { Users, X, Info, Plus, Settings, Wrench, Shield, UserCircle, Brain, Globe, Sparkles, Search, BookOpen, Code, Lightbulb, ChevronDown, ChevronUp, MessageSquare, FileText, Bold, Italic, List, Heading, Underline, ListOrdered } from 'lucide-react';
+import { Users, X, Info, Plus, Settings, Wrench, Shield, UserCircle, Brain, Globe, Sparkles, Search, BookOpen, Code, Lightbulb, ChevronDown, ChevronUp, MessageSquare, FileText, Bold, Italic, List, Heading, Underline, ListOrdered, Edit3, TrendingUp, BarChart2, PenTool, LayoutTemplate, Video, FileImage, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { AgentsSidebarProps } from '@/types/chat';
 import Link from 'next/link';
-import { useEffect, useState, memo, useImperativeHandle, forwardRef, useCallback } from 'react';
+import { useEffect, useState, memo, useImperativeHandle, forwardRef, useCallback, useRef } from 'react';
 import { GrokXLogo } from '@/components/icons/GrokXLogo';
 import { TriageAgentLogo } from '@/components/icons/TriageAgentLogo';
 import { ClaudeCreativeLogo } from '@/components/icons/ClaudeCreativeLogo';
@@ -13,17 +13,7 @@ import { MistralLogo } from '@/components/icons/MistralLogo';
 import { PerplexityLogo } from '@/components/icons/PerplexityLogo';
 import React from 'react';
 import { Textarea } from '@/components/ui/textarea';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import BoldExtension from '@tiptap/extension-bold';
-import ItalicExtension from '@tiptap/extension-italic';
-import UnderlineExtension from '@tiptap/extension-underline';
-import HeadingExtension from '@tiptap/extension-heading';
-import BulletListExtension from '@tiptap/extension-bullet-list';
-import OrderedListExtension from '@tiptap/extension-ordered-list';
-import LinkExtension from '@tiptap/extension-link';
-import Placeholder from '@tiptap/extension-placeholder';
-import { Link as LucideLink } from 'lucide-react';
+import TiptapEditor from '@/components/editors/TiptapEditor';
 
 // Define MSD global interface type
 declare global {
@@ -55,8 +45,9 @@ declare global {
 // Update the AgentsSidebarProps interface
 interface ExtendedAgentsSidebarProps extends AgentsSidebarProps {
   onAgentsUpdate?: (updatedAgents: any[]) => void;
-  onTabChange?: (tab: 'agents' | 'notes') => void;
+  onTabChange?: (tab: 'agents' | 'notes' | 'scenarios') => void;
   currentConversationId?: string; // Add the current conversation ID
+  onSendMessage?: (message: string) => void; // Add prop for sending messages
 }
 
 // Define a ref type for the component
@@ -64,155 +55,8 @@ export interface AgentsSidebarRef {
   refreshMessageCount: () => Promise<void>;
 }
 
-// Create a minimalist Tiptap editor component
-const TiptapEditor = ({ content, onUpdate }: { content: string, onUpdate: (html: string) => void }) => {
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      BoldExtension,
-      ItalicExtension,
-      UnderlineExtension,
-      HeadingExtension.configure({
-        levels: [1, 2, 3],
-      }),
-      BulletListExtension,
-      OrderedListExtension,
-      LinkExtension.configure({
-        openOnClick: false,
-      }),
-      Placeholder.configure({
-        placeholder: 'Take notes during your conversation...',
-        emptyEditorClass: 'is-editor-empty',
-      }),
-    ],
-    content,
-    onUpdate: ({ editor }) => {
-      onUpdate(editor.getHTML());
-    },
-  });
+// Remove the TiptapEditor component definition from here as it's now imported
 
-  // Toggle link dialog - define this hook before any conditional returns
-  const setLink = useCallback(() => {
-    if (!editor) return;
-    
-    const previousUrl = editor.getAttributes('link').href;
-    const url = window.prompt('URL', previousUrl);
-
-    // cancelled
-    if (url === null) {
-      return;
-    }
-
-    // empty
-    if (url === '') {
-      editor.chain().focus().extendMarkRange('link').unsetLink().run();
-      return;
-    }
-
-    // update link
-    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
-  }, [editor]);
-
-  if (!editor) {
-    return null;
-  }
-
-  return (
-    <div className="flex flex-col h-full">
-      <div className="border-b border-gray-200 flex items-center gap-1 px-2 py-1">
-        <button
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          className={`p-1 rounded ${editor.isActive('bold') ? 'bg-gray-100' : ''} hover:bg-gray-50`}
-          title="Bold"
-        >
-          <Bold className="h-4 w-4" />
-        </button>
-        <button
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={`p-1 rounded ${editor.isActive('italic') ? 'bg-gray-100' : ''} hover:bg-gray-50`}
-          title="Italic"
-        >
-          <Italic className="h-4 w-4" />
-        </button>
-        <button
-          onClick={() => editor.chain().focus().toggleUnderline().run()}
-          className={`p-1 rounded ${editor.isActive('underline') ? 'bg-gray-100' : ''} hover:bg-gray-50`}
-          title="Underline"
-        >
-          <Underline className="h-4 w-4" />
-        </button>
-        <div className="w-px h-4 bg-gray-300 mx-1" />
-        <button
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          className={`p-1 rounded ${editor.isActive('heading', { level: 1 }) ? 'bg-gray-100' : ''} hover:bg-gray-50`}
-          title="Heading 1"
-        >
-          <Heading className="h-4 w-4" />
-        </button>
-        <div className="w-px h-4 bg-gray-300 mx-1" />
-        <button
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={`p-1 rounded ${editor.isActive('bulletList') ? 'bg-gray-100' : ''} hover:bg-gray-50`}
-          title="Bullet List"
-        >
-          <List className="h-4 w-4" />
-        </button>
-        <button
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          className={`p-1 rounded ${editor.isActive('orderedList') ? 'bg-gray-100' : ''} hover:bg-gray-50`}
-          title="Numbered List"
-        >
-          <ListOrdered className="h-4 w-4" />
-        </button>
-        <div className="w-px h-4 bg-gray-300 mx-1" />
-        <button
-          onClick={setLink}
-          className={`p-1 rounded ${editor.isActive('link') ? 'bg-gray-100' : ''} hover:bg-gray-50`}
-          title="Link"
-        >
-          <LucideLink className="h-4 w-4" />
-        </button>
-      </div>
-      <div 
-        className="flex-grow w-full h-full cursor-text"
-        onClick={() => editor.chain().focus().run()}
-      >
-        <EditorContent 
-          editor={editor} 
-          className="w-full h-full overflow-y-auto"
-          style={{
-            height: 'calc(100vh - 100px)',
-            padding: '16px',
-            outline: 'none',
-          }}
-        />
-      </div>
-      <style dangerouslySetInnerHTML={{ __html: `
-        .ProseMirror {
-          min-height: calc(100vh - 100px);
-          height: 100%;
-          outline: none !important;
-          box-shadow: none !important;
-          border: none !important;
-        }
-        .ProseMirror:focus {
-          outline: none !important;
-          box-shadow: none !important;
-          border: none !important;
-        }
-        .ProseMirror p.is-editor-empty:first-child::before {
-          content: attr(data-placeholder);
-          float: left;
-          color: #adb5bd;
-          pointer-events: none;
-          height: 0;
-        }
-      `}} />
-    </div>
-  );
-};
-
-// Use React.memo to prevent unnecessary re-renders
 const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarProps>(function AgentsSidebar({
   agents,
   isLoadingAgents,
@@ -223,7 +67,8 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   userId,
   onAgentsUpdate,
   onTabChange,
-  currentConversationId
+  currentConversationId,
+  onSendMessage
 }, ref) {
   const [searchParams, setSearchParams] = useState('');
   const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
@@ -239,11 +84,15 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   const [isLoadingMessageCount, setIsLoadingMessageCount] = useState<boolean>(false);
   const [hasSubscription, setHasSubscription] = useState<boolean>(false);
   const [isCheckingSubscription, setIsCheckingSubscription] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<'agents' | 'notes'>('agents');
+  const [activeTab, setActiveTab] = useState<'agents' | 'notes' | 'scenarios'>('agents');
   const [noteContent, setNoteContent] = useState<string>('');
   const [isSavingNotes, setIsSavingNotes] = useState<boolean>(false);
   const [isLoadingNotes, setIsLoadingNotes] = useState<boolean>(false);
   const [lastSavedNoteContent, setLastSavedNoteContent] = useState<string>('');
+  const [expandedScenario, setExpandedScenario] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState<number>(0);
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const [triggeredActions, setTriggeredActions] = useState<{[key: string]: boolean}>({});
   
   // Debug state to override subscription status
   const [debugOverrideSubscription, setDebugOverrideSubscription] = useState<boolean | null>(null);
@@ -252,6 +101,10 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   // Constants
   const MESSAGE_LIMIT = 10;
   const NOTES_AUTOSAVE_DELAY = 2000; // Autosave delay in milliseconds
+  
+  // Add tooltip functionality
+  const [isTooltipVisible, setIsTooltipVisible] = useState<boolean>(false);
+  const tooltipRef = useRef<HTMLDivElement>(null);
   
   // Set up debug commands in window object for testing
   useEffect(() => {
@@ -998,33 +851,457 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   }, []);
 
   // Update the activeTab setter to also call the onTabChange prop
-  const handleTabChange = (tab: 'agents' | 'notes') => {
+  const handleTabChange = (tab: 'agents' | 'notes' | 'scenarios') => {
     setActiveTab(tab);
     if (onTabChange) {
       onTabChange(tab);
     }
   };
 
-  return (
-    <div className={`${isMobile ? 'w-full' : activeTab === 'notes' ? 'w-96 border-r' : 'w-64 border-r'} bg-white h-full flex flex-col transition-all duration-300 ease-in-out`}>
+  // Define scenario cards data
+  const scenarioCards = [
+    {
+      id: 'poem-writing',
+      title: 'Poem Writing',
+      description: 'Create beautiful poems in various styles',
+      icon: <PenTool className="h-5 w-5" />,
+      color: '#FED770',
+      steps: [
+        {
+          title: 'Choose poem style',
+          description: 'Select the type of poem you want to write',
+          actions: [
+            { label: 'Help me choose a poem style', prompt: 'I want to write a poem. Can you explain different poem styles and help me choose one?' },
+            { label: 'I want to write a sonnet', prompt: 'I want to write a sonnet. What structure should I follow?' },
+            { label: 'I want to create a haiku', prompt: 'I want to create a haiku. Can you explain the format and give me some examples?' }
+          ]
+        },
+        {
+          title: 'Select theme',
+          description: 'Choose what your poem will be about',
+          actions: [
+            { label: 'Suggest themes for my poem', prompt: 'Can you suggest some powerful themes for my poem?' },
+            { label: 'I want to write about nature', prompt: 'I want to write a poem about nature. What aspects of nature work well in poetry?' },
+            { label: 'Help me explore emotions in poetry', prompt: 'How can I effectively express emotions in my poem?' }
+          ]
+        },
+        {
+          title: 'Develop imagery',
+          description: 'Create vivid images and metaphors',
+          actions: [
+            { label: 'Help with poetic imagery', prompt: 'How can I create strong imagery in my poem?' },
+            { label: 'Suggest metaphors for my theme', prompt: 'Can you suggest some metaphors related to my poem theme?' },
+            { label: 'Tips for sensory descriptions', prompt: 'Give me tips for incorporating sensory details in poetry' }
+          ]
+        },
+        {
+          title: 'Finalize structure',
+          description: 'Refine rhythm, rhyme, and overall structure',
+          actions: [
+            { label: 'Help with rhythm and flow', prompt: 'How can I improve the rhythm and flow of my poem?' },
+            { label: 'Suggestions for better line breaks', prompt: 'Can you give advice on effective line breaks in poetry?' },
+            { label: 'Tips for a powerful ending', prompt: 'How can I create a strong ending for my poem?' }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'marketing',
+      title: 'Marketing & Advertising',
+      description: 'Generate marketing copy and advertising ideas',
+      icon: <Mail className="h-5 w-5" />,
+      color: '#BADA55',
+      steps: [
+        {
+          title: 'Identify audience',
+          description: 'Define who your target customers or readers are'
+        },
+        {
+          title: 'Set marketing goals',
+          description: 'Determine what you want to achieve with this content'
+        },
+        {
+          title: 'Choose channel',
+          description: 'Select where this content will appear (social, email, etc.)'
+        },
+        {
+          title: 'Adapt to brand voice',
+          description: 'Ensure content matches your brand personality and style'
+        }
+      ]
+    },
+    {
+      id: 'research',
+      title: 'Research & Analysis',
+      description: 'Analyze data, trends, and provide insights',
+      icon: <BarChart2 className="h-5 w-5" />,
+      color: '#6CB4EE',
+      steps: [
+        {
+          title: 'Define research topic',
+          description: 'Specify the subject you want to investigate'
+        },
+        {
+          title: 'Set research scope',
+          description: 'Determine the breadth and depth of your analysis'
+        },
+        {
+          title: 'Request specific insights',
+          description: 'Ask for particular data points or trends you need'
+        },
+        {
+          title: 'Summarize findings',
+          description: 'Get a condensed version of the most important insights'
+        }
+      ]
+    },
+    {
+      id: 'content-planning',
+      title: 'Content Planning',
+      description: 'Create outlines and content strategies',
+      icon: <LayoutTemplate className="h-5 w-5" />,
+      color: '#FF7F50',
+      steps: [
+        {
+          title: 'Set content goals',
+          description: 'Define what you want your content to achieve'
+        },
+        {
+          title: 'Identify key topics',
+          description: 'List the main subjects your content should cover'
+        },
+        {
+          title: 'Create content structure',
+          description: 'Organize how information will be presented'
+        },
+        {
+          title: 'Plan distribution',
+          description: 'Decide how and when content will be shared'
+        }
+      ]
+    },
+    {
+      id: 'visual-ideas',
+      title: 'Visual Content Ideas',
+      description: 'Generate concepts for visual projects',
+      icon: <FileImage className="h-5 w-5" />,
+      color: '#D8BFD8',
+      steps: [
+        {
+          title: 'Define visual medium',
+          description: 'Choose what type of visual content you need'
+        },
+        {
+          title: 'Set style guidelines',
+          description: 'Specify color schemes, themes, and visual preferences'
+        },
+        {
+          title: 'Describe key message',
+          description: 'Clarify what your visual content should communicate'
+        },
+        {
+          title: 'Review concepts',
+          description: 'Evaluate ideas against your brand and goals'
+        }
+      ]
+    },
+    {
+      id: 'video-scripts',
+      title: 'Video & Script Writing',
+      description: 'Create scripts and dialogue for videos',
+      icon: <Video className="h-5 w-5" />,
+      color: '#F08080',
+      steps: [
+        {
+          title: 'Define video purpose',
+          description: 'Decide what you want your video to achieve'
+        },
+        {
+          title: 'Set video length',
+          description: 'Determine how long your video will be'
+        },
+        {
+          title: 'Structure your script',
+          description: 'Organize your video into clear sections'
+        },
+        {
+          title: 'Refine dialogue',
+          description: 'Polish the language to be clear and engaging'
+        }
+      ]
+    }
+  ];
+
+  // Handler for step action buttons
+  const handleStepAction = (prompt: string, actionIndex: number) => {
+    // In a real implementation, this would trigger the chat with the prompt
+    console.log('Action prompt:', prompt);
+    
+    // Create a unique ID for this action button
+    const actionId = `step_${currentStep}_action_${actionIndex}`;
+    
+    // Mark this action as triggered
+    setTriggeredActions(prev => ({
+      ...prev,
+      [actionId]: true
+    }));
+    
+    // Mark current step as completed
+    if (!completedSteps.includes(currentStep)) {
+      setCompletedSteps([...completedSteps, currentStep]);
+    }
+
+    // Send the prompt to the chat as a user message
+    if (onSendMessage) {
+      onSendMessage(prompt);
+    }
+  };
+  
+  // Function to advance to the next step
+  const handleNextStep = () => {
+    const scenario = scenarioCards.find(s => s.id === expandedScenario);
+    if (scenario && currentStep < scenario.steps.length - 1) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+  
+  // Function to go to a specific step
+  const goToStep = (stepIndex: number) => {
+    if (stepIndex <= Math.max(...completedSteps) + 1 || stepIndex === 0) {
+      setCurrentStep(stepIndex);
+    }
+  };
+  
+  // Function to handle back button to all scenarios
+  const handleBackToScenarios = () => {
+    setExpandedScenario(null);
+    setCurrentStep(0);
+    setCompletedSteps([]);
+    
+    // Make sure the activeTab is still set to scenarios
+    if (activeTab !== 'scenarios') {
+      handleTabChange('scenarios');
+    }
+  };
+
+  // Function to render a fully expanded scenario card
+  const renderExpandedScenarioCard = (scenario: any) => {
+    return (
+      <>
+        {/* Header section */}
+        <div className="flex gap-3 items-center mb-5">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900">{scenario.title}</h2>
+            <p className="text-slate-600">{scenario.description}</p>
+          </div>
+        </div>
+        
+        {/* Steps section */}
+        <div className="mb-auto space-y-4">
+          {scenario.steps.map((step: any, index: number) => {
+            const isCurrentStep = index === currentStep;
+            const isCompleted = completedSteps.includes(index);
+            const isAccessible = index <= Math.max(...completedSteps, 0) + 1;
+            
+            return (
+              <div 
+                key={index} 
+                className={`p-4 rounded-lg border transition-all duration-200 ${
+                  isCurrentStep 
+                    ? 'border-[#70D6FF] bg-[#E5F7FF]' 
+                    : isCompleted 
+                      ? 'border-green-200 bg-green-50' 
+                      : isAccessible 
+                        ? 'border-slate-200 bg-white cursor-pointer hover:border-slate-300' 
+                        : 'border-slate-200 bg-slate-50 opacity-70'
+                }`}
+                onClick={() => isAccessible && goToStep(index)}
+              >
+                <div className="flex items-start">
+                  <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center mr-3 text-sm font-medium ${
+                    isCompleted 
+                      ? 'bg-green-500 text-white' 
+                      : isCurrentStep 
+                        ? 'bg-[#232323] text-white' 
+                        : isAccessible 
+                          ? 'bg-white border border-slate-300 text-slate-700' 
+                          : 'bg-slate-200 text-slate-500'
+                  }`}>
+                    {isCompleted ? '✓' : index + 1}
+                  </div>
+                  <div className="w-full">
+                    <h4 className="font-medium text-slate-900">{step.title}</h4>
+                    <p className="text-sm text-slate-600 mb-3">{step.description}</p>
+                    
+                    {/* Step-specific action buttons - only show for current step */}
+                    {isCurrentStep && step.actions && step.actions.length > 0 && (
+                      <div className="space-y-2 mt-3">
+                        {step.actions.map((action: any, actionIndex: number) => {
+                          // Create a unique ID for this button
+                          const actionId = `step_${index}_action_${actionIndex}`;
+                          const isTriggered = triggeredActions[actionId];
+                          
+                          return (
+                            <button 
+                              key={actionIndex}
+                              className={`w-full px-4 py-2 ${isTriggered ? 'bg-slate-100 text-slate-500' : 'bg-white text-slate-700 hover:bg-slate-50'} border border-slate-200 rounded-lg text-left text-sm flex items-center transition-colors`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!isTriggered) {
+                                  handleStepAction(action.prompt, actionIndex);
+                                }
+                              }}
+                              disabled={isTriggered}
+                              style={{
+                                opacity: isTriggered ? 0.7 : 1,
+                                cursor: isTriggered ? 'default' : 'pointer'
+                              }}
+                            >
+                              <MessageSquare className="h-4 w-4 mr-2 text-slate-500" />
+                              {action.label}
+                            </button>
+                          );
+                        })}
+                        
+                        {/* Next step button - only show if actions were taken */}
+                        {(isCompleted || completedSteps.includes(index)) && index < scenario.steps.length - 1 && (
+                          <button 
+                            className="w-full text-white text-sm font-medium transition-colors mt-3"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleNextStep();
+                            }}
+                            style={{
+                              display: 'flex',
+                              padding: '12px 16px',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px',
+                              borderRadius: '8px',
+                              background: 'var(--Monochrome-Black, #232323)'
+                            }}
+                          >
+                            Continue to next step
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </>
+    );
+  };
+
+  // Function to handle scenario card expansion
+  const toggleScenarioExpand = (scenarioId: string) => {
+    if (expandedScenario === scenarioId) {
+      setExpandedScenario(null);
+    } else {
+      setExpandedScenario(scenarioId);
+    }
+  };
+
+  // Function to render all scenario cards
+  const renderScenarioCards = () => {
+    // If there's an expanded scenario, only show that one
+    if (expandedScenario) {
+      const scenario = scenarioCards.find(s => s.id === expandedScenario);
+      if (scenario) {
+        return renderExpandedScenarioCard(scenario);
+      }
+    }
+    
+    // Otherwise show all cards
+    return null;
+  };
+
+  // Function to render a scenario card
+  const renderScenarioCard = (scenario: any) => {
+    return (
       <div 
-        className={`sticky top-0 z-10 flex justify-between items-center h-[60px] px-4 ${isMobile ? 'hidden' : ''} bg-white`}
+        key={scenario.id}
+        className="cursor-pointer transition-all duration-200"
+        style={{
+          display: 'flex',
+          padding: '24px',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          gap: '16px',
+          alignSelf: 'stretch',
+          borderRadius: '16px',
+          border: '1px solid var(--Monochrome-Light, #E8E8E5)',
+          background: '#FFF',
+        }}
+        onClick={() => toggleScenarioExpand(scenario.id)}
+      >
+        <div className="flex flex-col w-full">
+          <div className="flex justify-between items-center w-full">
+            <h3 className="font-semibold text-slate-900 mb-1">{scenario.title}</h3>
+            <ChevronDown className="h-4 w-4 text-slate-500" />
+          </div>
+          <p className="text-sm text-slate-600">{scenario.description}</p>
+        </div>
+      </div>
+    );
+  };
+
+  // Add effect for handling clicks outside tooltip
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (tooltipRef.current && !tooltipRef.current.contains(event.target as Node)) {
+        setIsTooltipVisible(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Add an effect to auto-hide the tooltip after 3 seconds
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout | null = null;
+    
+    if (isTooltipVisible) {
+      timeoutId = setTimeout(() => {
+        setIsTooltipVisible(false);
+      }, 3000);
+    }
+    
+    // Clean up timeout when component unmounts or tooltip visibility changes
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isTooltipVisible]);
+
+  return (
+    <div className={`${isMobile ? 'w-full' : activeTab === 'notes' || activeTab === 'scenarios' ? 'w-96 border-r' : 'w-64 border-r'} bg-white h-full flex flex-col transition-all duration-300 ease-in-out`}>
+      <div 
+        className={`sticky top-0 z-10 flex items-center h-[60px] px-4 ${isMobile ? 'hidden' : ''} bg-white`}
         style={{ 
           borderBottom: '1px solid var(--light)',
           alignSelf: 'stretch',
           minHeight: '60px'
         }}
       >
-        <div className="flex w-full gap-4">
+        <div className="flex" style={{ width: 'auto' }}>
           <button 
             onClick={() => handleTabChange('agents')} 
             style={{
               color: activeTab === 'agents' ? 'var(--Monochrome-Black, #232323)' : 'var(--Monochrome-Deep, #6C6C6C)',
               textAlign: 'center',
-              fontSize: '20px',
+              fontSize: '19px',
               fontStyle: 'normal',
               fontWeight: 500,
-              lineHeight: '28px'
+              lineHeight: '24px',
+              marginRight: '12px'
             }}
           >
             Agents
@@ -1034,15 +1311,81 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
             style={{
               color: activeTab === 'notes' ? 'var(--Monochrome-Black, #232323)' : 'var(--Monochrome-Deep, #6C6C6C)',
               textAlign: 'center',
-              fontSize: '20px',
+              fontSize: '19px',
               fontStyle: 'normal',
               fontWeight: 500,
-              lineHeight: '28px'
+              lineHeight: '24px',
+              marginRight: '12px'
             }}
           >
             Notes
           </button>
+          <div className="relative">
+            {/* Calculate the disabled state ahead of time */}
+            {(() => {
+              // Only disable if we're on the scenarios tab AND have a started scenario
+              const isDisabled = activeTab === 'scenarios' && 
+                                expandedScenario && 
+                                (currentStep > 0 || completedSteps.length > 0);
+              
+              return (
+                <>
+                  <button 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (isDisabled) {
+                        // FORCE show tooltip
+                        console.log("SHOWING TOOLTIP ON CLICK!");
+                        setIsTooltipVisible(true);
+                      } else {
+                        // Only allow going back to scenarios list if there's no progress
+                        if (expandedScenario && (currentStep === 0 && completedSteps.length === 0)) {
+                          handleBackToScenarios();
+                        } else if (!expandedScenario) {
+                          handleTabChange('scenarios');
+                        } else if (activeTab !== 'scenarios') {
+                          // If we're not on scenarios tab, allow switching to it even with a started scenario
+                          handleTabChange('scenarios');
+                        }
+                      }
+                    }}
+                    disabled={false} // Never disable the button to ensure click events work
+                    style={{
+                      color: activeTab === 'scenarios' ? 'var(--Monochrome-Black, #232323)' : 'var(--Monochrome-Deep, #6C6C6C)',
+                      textAlign: 'center',
+                      fontSize: '19px',
+                      fontStyle: 'normal',
+                      fontWeight: 500,
+                      lineHeight: '24px',
+                      opacity: isDisabled ? 0.5 : 1,
+                      cursor: isDisabled ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {activeTab === 'scenarios' && expandedScenario ? 'All Scenarios' : 'Scenarios'}
+                  </button>
+                  
+                  {/* Tooltip positioned below the button and centered in sidebar */}
+                  {isTooltipVisible && (
+                    <div 
+                      className="absolute z-50 bg-gray-900 text-white text-sm p-2 rounded-lg shadow-lg"
+                      style={{
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        top: '30px',
+                        width: 'auto',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      Please create new chat to start new scenario
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
         </div>
+        
+        <div className="flex-grow"></div>
         
         {/* Add save indicator for notes */}
         {activeTab === 'notes' && (
@@ -1228,7 +1571,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
             </div>
           )}
         </div>
-      ) : (
+      ) : activeTab === 'notes' ? (
         <div className="overflow-y-auto h-full flex flex-col">
           {isLoadingNotes ? (
             <div className="flex justify-center items-center h-full">
@@ -1239,6 +1582,24 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
               content={noteContent} 
               onUpdate={handleNoteUpdate} 
             />
+          )}
+        </div>
+      ) : (
+        <div className={`${isMobile ? 'p-2' : 'p-3 sm:p-4'} pt-4 sm:pt-6 overflow-y-auto h-full flex flex-col`}>
+          {!expandedScenario && (
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold mb-3">AI Task Scenarios</h2>
+              <p className="text-sm text-slate-600 mb-3">Choose a scenario to see detailed instructions and best practices.</p>
+            </div>
+          )}
+          {expandedScenario ? (
+            <div className="h-full overflow-y-auto">
+              {renderScenarioCards()}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {scenarioCards.map(scenario => renderScenarioCard(scenario))}
+            </div>
           )}
         </div>
       )}
