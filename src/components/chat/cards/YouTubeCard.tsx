@@ -4,6 +4,23 @@ import { DeleteIcon } from '@/components/icons';
 import type { UploadedFile } from '@/types/chat';
 import { LoadingSpinner } from '@/components/icons/LoadingSpinner';
 
+// Helper function to remove file metadata from local storage
+const removeFileMetadataFromLocalStorage = (fileId: string): void => {
+  try {
+    const storedMetadata = localStorage.getItem('uploadedFilesMetadata');
+    if (!storedMetadata) return;
+    
+    const metadataObj = JSON.parse(storedMetadata);
+    if (metadataObj[fileId]) {
+      delete metadataObj[fileId];
+      localStorage.setItem('uploadedFilesMetadata', JSON.stringify(metadataObj));
+      console.log(`File metadata removed for ${fileId}`);
+    }
+  } catch (error) {
+    console.error('Error removing file metadata from local storage:', error);
+  }
+};
+
 interface YouTubeCardProps {
   file: UploadedFile;
   onDelete: (fileId: string) => void;
@@ -128,6 +145,7 @@ export const YouTubeCard = ({ file, onDelete, onSelect, isDeletingFile }: YouTub
           <Button
             onClick={(e) => {
               e.stopPropagation(); // Prevent opening the modal
+              removeFileMetadataFromLocalStorage(file.id); // Clean up localStorage first
               onDelete(file.id);
             }}
             variant="ghost"
