@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { DeleteIcon } from '@/components/icons';
 import type { UploadedFile } from '@/types/chat';
 import { WebPageIcon } from '../WebPageIcon';
+import { LoadingSpinner } from '@/components/icons/LoadingSpinner';
 
 interface WebpageCardProps {
   file: UploadedFile;
@@ -12,6 +13,57 @@ interface WebpageCardProps {
 }
 
 export const WebpageCard = ({ file, onDelete, onSelect, isDeletingFile }: WebpageCardProps) => {
+  // Function to extract domain from URL
+  const extractDomain = (url: string): string => {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.hostname.replace(/^www\./, '');
+    } catch (e) {
+      return "Website";
+    }
+  };
+  
+  // First try to get domain directly from metadata if available
+  // Then fallback to extracting from URL
+  // This is based on DB structure where domain is stored in metadata.domain
+  const getDomain = (): string => {
+    // Check if domain is directly available in metadata
+    if (file.metadata && typeof file.metadata === 'object' && 'domain' in file.metadata) {
+      const domain = file.metadata.domain as string;
+      return domain.replace(/^www\./, '');
+    }
+    
+    // Check if we have a URL to extract domain from
+    if (file.url) {
+      return extractDomain(file.url);
+    }
+    
+    // Check if URL is in metadata.original_url
+    if (file.metadata && typeof file.metadata === 'object' && 'original_url' in file.metadata) {
+      const url = file.metadata.original_url as string;
+      return extractDomain(url);
+    }
+    
+    // Fallback
+    return "Website";
+  };
+  
+  // Get domain using all possible sources
+  const domain = getDomain();
+  
+  // Get URL from all possible sources
+  const getUrl = (): string => {
+    if (file.url) return file.url;
+    
+    if (file.metadata && typeof file.metadata === 'object' && 'original_url' in file.metadata) {
+      return file.metadata.original_url as string;
+    }
+    
+    return "";
+  };
+  
+  const url = getUrl();
+  
   return (
     <div 
       className="flex w-full max-w-full p-4 items-start gap-3 relative group cursor-pointer hover:bg-gray-50"
@@ -31,7 +83,7 @@ export const WebpageCard = ({ file, onDelete, onSelect, isDeletingFile }: Webpag
         
         {/* URL as secondary info */}
         <div className="text-xs text-slate-500 truncate mt-0.5 mb-0.5">
-          {file.url || "Webpage"}
+          {url || domain}
         </div>
         
         {/* File metadata - authors */}
@@ -64,13 +116,13 @@ export const WebpageCard = ({ file, onDelete, onSelect, isDeletingFile }: Webpag
         
         {/* File type and status on the same line */}
         <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
-          {/* Web icon */}
+          {/* Web icon and webpage label */}
           <span className="flex items-center gap-1">
             <WebPageIcon file={file} />
-            Website
+            <span>Webpage</span>
           </span>
           
-          {/* Dot divider */}
+          {/* Year if available */}
           {file.doc_publication_year && (
             <>
               <span className="text-slate-400">•</span>
@@ -95,19 +147,6 @@ export const WebpageCard = ({ file, onDelete, onSelect, isDeletingFile }: Webpag
               <span className="text-green-600">Ready</span>
             </>
           )}
-          
-          {/* External link button */}
-          {file.url && (
-            <a 
-              href={file.url} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="ml-auto text-blue-500 hover:underline flex items-center gap-1"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <span>View source</span>
-            </a>
-          )}
         </div>
       </div>
       
@@ -116,6 +155,11 @@ export const WebpageCard = ({ file, onDelete, onSelect, isDeletingFile }: Webpag
         {/* Show spinner for processing status */}
         {file.status === 'pending' || file.status === 'processing' ? (
           <RefreshCw className="h-4 w-4 text-amber-500 animate-spin" />
+        ) : isDeletingFile === file.id ? (
+          /* Show loading spinner while deleting - match delete button size */
+          <div className="h-6 w-6 flex items-center justify-center">
+            <LoadingSpinner className="h-4 w-4" color="#70D6FF" />
+          </div>
         ) : (
           /* Delete button */
           <Button

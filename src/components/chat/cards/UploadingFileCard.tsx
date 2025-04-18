@@ -2,6 +2,7 @@ import { RefreshCw, AlertTriangle, FileText, FileIcon, Image, FileJson, FileCode
 import { Button } from '@/components/ui/button';
 import { DeleteIcon } from '@/components/icons';
 import type { UploadedFile } from '@/types/chat';
+import { LoadingSpinner } from '@/components/icons/LoadingSpinner';
 
 // Define an interface for tracking file uploads
 export interface FileUploadStatus {
@@ -12,6 +13,7 @@ export interface FileUploadStatus {
   file?: File;
   fileName: string;
   errorMessage: string;
+  metadata?: Record<string, any>;
 }
 
 interface UploadingFileCardProps {
@@ -86,7 +88,7 @@ export const UploadingFileCard = ({ upload, onRemove }: UploadingFileCardProps) 
           {/* Upload status */}
           <span className={`
             ${upload.status === 'error' ? 'text-red-600' : 
-              upload.status === 'completed' ? 'text-green-600' : 'text-amber-600'}
+              upload.status === 'completed' ? 'text-green-600' : 'text-blue-500'}
           `}>
             {upload.status === 'uploading' && 'Uploading...'}
             {upload.status === 'processing' && 'Processing...'}
@@ -106,7 +108,9 @@ export const UploadingFileCard = ({ upload, onRemove }: UploadingFileCardProps) 
       <div className="flex flex-col items-end gap-2">
         {/* Status icon or delete button for errors */}
         {(upload.status === 'uploading' || upload.status === 'processing') && (
-          <RefreshCw className="h-4 w-4 text-amber-500 animate-spin" />
+          <div className="h-6 w-6 flex items-center justify-center">
+            <LoadingSpinner className="h-4 w-4" color="#70D6FF" />
+          </div>
         )}
         {upload.status === 'error' && 
           <div className="flex items-center gap-1">

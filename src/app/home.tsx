@@ -1224,6 +1224,9 @@ export default function Home({
       // Call the chat reset handler first
       await chat.handleReset();
       
+      // Clear file metadata cache in memory
+      setFileMetadataCache({});
+      
       // If user is set, create a new session
       if (userId) {
         await initializeConversation(userId);

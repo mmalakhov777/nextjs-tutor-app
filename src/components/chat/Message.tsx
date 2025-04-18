@@ -146,13 +146,44 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
     if (onLinkSubmit) {
       setLoadingLinkId(url);
       try {
+        console.log("Message component submitting link:", url);
         await onLinkSubmit(url);
+        console.log("Link submitted successfully in Message component");
+        return Promise.resolve(); // Success
       } catch (error) {
-        console.error("Error submitting link:", error);
+        console.error("Error submitting link in Message component:", error);
+        
+        // Use a custom event to signal an error without blocking the promise chain
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        try {
+          // Create and dispatch event in a way that works in all browsers
+          const errorEvent = document.createEvent('CustomEvent');
+          errorEvent.initCustomEvent('link-submission-error', true, true, { 
+            url, 
+            error: errorMessage 
+          });
+          window.dispatchEvent(errorEvent);
+          
+          // Fallback - also try new CustomEvent syntax
+          const modernEvent = new CustomEvent('link-submission-error', {
+            detail: { url, error: errorMessage },
+            bubbles: true,
+            cancelable: true
+          });
+          window.dispatchEvent(modernEvent);
+        } catch (eventError) {
+          console.error("Error dispatching error event:", eventError);
+        }
+        
+        // Return a successful promise to prevent blocking
+        return Promise.resolve();
       } finally {
         setLoadingLinkId(null);
       }
     }
+    
+    // Always return a resolved promise
+    return Promise.resolve();
   };
   
   

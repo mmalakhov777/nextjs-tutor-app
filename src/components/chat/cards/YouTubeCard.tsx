@@ -2,6 +2,7 @@ import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DeleteIcon } from '@/components/icons';
 import type { UploadedFile } from '@/types/chat';
+import { LoadingSpinner } from '@/components/icons/LoadingSpinner';
 
 interface YouTubeCardProps {
   file: UploadedFile;
@@ -109,19 +110,6 @@ export const YouTubeCard = ({ file, onDelete, onSelect, isDeletingFile }: YouTub
               <span className="text-green-600">Ready</span>
             </>
           )}
-          
-          {/* Watch on YouTube link */}
-          {file.url && (
-            <a 
-              href={file.url} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="ml-auto text-red-600 hover:underline flex items-center gap-1"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <span>Watch on YouTube</span>
-            </a>
-          )}
         </div>
       </div>
       
@@ -130,6 +118,11 @@ export const YouTubeCard = ({ file, onDelete, onSelect, isDeletingFile }: YouTub
         {/* Show spinner for processing status */}
         {file.status === 'pending' || file.status === 'processing' ? (
           <RefreshCw className="h-4 w-4 text-amber-500 animate-spin" />
+        ) : isDeletingFile === file.id ? (
+          /* Show loading spinner while deleting - match delete button size */
+          <div className="h-6 w-6 flex items-center justify-center">
+            <LoadingSpinner className="h-4 w-4" color="#70D6FF" />
+          </div>
         ) : (
           /* Delete button */
           <Button

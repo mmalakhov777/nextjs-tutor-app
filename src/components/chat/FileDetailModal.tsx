@@ -76,6 +76,29 @@ const getFileMetadataFromLocalStorage = (fileId: string): Partial<UploadedFile> 
   }
 };
 
+// Helper function to extract domain from URL
+const extractDomain = (url: string): string => {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.hostname.replace(/^www\./, '');
+  } catch (e) {
+    return "Website";
+  }
+};
+
+// Helper function to get URL from file object
+const getFileUrl = (file: UploadedFile): string => {
+  // First check if URL is directly available
+  if (file.url) return file.url;
+  
+  // Then check if URL is in metadata.original_url
+  if (file.metadata && typeof file.metadata === 'object' && 'original_url' in file.metadata) {
+    return file.metadata.original_url as string;
+  }
+  
+  return "";
+};
+
 // FileDetailModal component to show detailed file information
 export const FileDetailModal = ({ 
   file, 
@@ -107,6 +130,9 @@ export const FileDetailModal = ({
     const d = new Date(date);
     return d.toLocaleString();
   };
+  
+  // Get the URL using the helper function
+  const fileUrl = getFileUrl(enhancedFile);
   
   // Function to get file content from backend if it's not already in the file object
   // Check localStorage first, then backend
@@ -322,16 +348,17 @@ content: ${content}
       <div className="flex-1 overflow-y-auto">
         <div className="flex flex-col items-center gap-10 p-6 md:px-16 lg:px-24 xl:px-[314px] pb-10 self-stretch">
           {/* URL for web links */}
-          {enhancedFile.url && (
+          {fileUrl && (
             <div className="mb-6 w-full">
               <a 
-                href={enhancedFile.url} 
+                href={fileUrl} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className={`text-blue-500 hover:underline flex items-center gap-2 ${textValueStyle}`}
               >
                 <Globe className="h-4 w-4 text-blue-500" />
-                {enhancedFile.url}
+                {fileUrl}
+                <ExternalLink className="h-3 w-3 text-blue-500" />
               </a>
             </div>
           )}

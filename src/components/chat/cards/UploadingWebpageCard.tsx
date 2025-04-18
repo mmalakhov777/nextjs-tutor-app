@@ -2,6 +2,7 @@ import { RefreshCw, AlertTriangle, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DeleteIcon } from '@/components/icons';
 import type { FileUploadStatus } from './UploadingFileCard';
+import { LoadingSpinner } from '@/components/icons/LoadingSpinner';
 
 interface UploadingWebpageCardProps {
   upload: FileUploadStatus;
@@ -14,13 +15,23 @@ export const UploadingWebpageCard = ({ upload, onRemove }: UploadingWebpageCardP
     if (!url) return "Website";
     try {
       const urlObj = new URL(url);
-      return urlObj.hostname;
+      return urlObj.hostname.replace(/^www\./, '');
     } catch {
       return "Website";
     }
   };
 
-  const domain = getDomain(upload.url);
+  // Get domain from URL or metadata if available
+  const domain = (() => {
+    // Check if domain is directly available in metadata
+    if (upload.metadata && typeof upload.metadata === 'object' && 'domain' in upload.metadata) {
+      const domain = upload.metadata.domain as string;
+      return domain.replace(/^www\./, '');
+    }
+    
+    // Otherwise extract from URL
+    return getDomain(upload.url);
+  })();
   
   return (
     <div 
@@ -50,7 +61,7 @@ export const UploadingWebpageCard = ({ upload, onRemove }: UploadingWebpageCardP
           {/* Type */}
           <span className="flex items-center gap-1">
             <Globe className="h-3 w-3 text-blue-500" />
-            Website
+            <span>Webpage</span>
           </span>
           
           <span className="text-slate-400">•</span>
@@ -58,7 +69,7 @@ export const UploadingWebpageCard = ({ upload, onRemove }: UploadingWebpageCardP
           {/* Upload status */}
           <span className={`
             ${upload.status === 'error' ? 'text-red-600' : 
-              upload.status === 'completed' ? 'text-green-600' : 'text-amber-600'}
+              upload.status === 'completed' ? 'text-green-600' : 'text-blue-500'}
           `}>
             {upload.status === 'uploading' && 'Uploading...'}
             {upload.status === 'processing' && 'Processing...'}
@@ -78,7 +89,9 @@ export const UploadingWebpageCard = ({ upload, onRemove }: UploadingWebpageCardP
       <div className="flex flex-col items-end gap-2">
         {/* Status icon or delete button for errors */}
         {(upload.status === 'uploading' || upload.status === 'processing') && (
-          <RefreshCw className="h-4 w-4 text-amber-500 animate-spin" />
+          <div className="h-6 w-6 flex items-center justify-center">
+            <LoadingSpinner className="h-4 w-4" color="#70D6FF" />
+          </div>
         )}
         {upload.status === 'error' && 
           <div className="flex items-center gap-1">

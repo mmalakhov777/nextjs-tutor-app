@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import React from 'react';
 import Image from 'next/image';
 import { Copy, ArrowRight, File, ChevronDown, ChevronRight, Download, Search, FileText, AlertCircle, Loader2, Trash2, Pencil, Share2, Check, Link, ExternalLink, Volume2, VolumeX, Users, X, Info, Plus, Settings, Wrench, Shield, UserCircle, Brain, Globe, Sparkles, BookOpen, Code, Lightbulb, ChevronDown as ChevronDownIcon, ChevronUp } from 'lucide-react';
@@ -11,6 +11,7 @@ import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import rehypeHighlight from 'rehype-highlight';
+import { LoadingSpinner } from '@/components/icons/LoadingSpinner';
 
 // Global favicon cache to prevent redundant fetches
 const faviconCache: Record<string, string> = {};
@@ -235,11 +236,12 @@ const GlobalStyles = () => (
       min-height: 50px !important;
       overflow: visible !important;
       transition: none !important;
+      z-index: 1 !important;
     }
     /* Additional style to keep link cards visible */
     .link-cards-visible {
       position: relative !important;
-      z-index: 10 !important;
+      z-index: 1 !important;
     }
     
     /* Markdown-specific styling */
@@ -354,6 +356,14 @@ const GlobalStyles = () => (
     .dark .markdown-content table th {
       background-color: #2d2d2d;
     }
+    
+    .hover-trigger .hidden-action {
+      display: none;
+    }
+    
+    .hover-trigger:hover .hidden-action {
+      display: flex;
+    }
   `}</style>
 );
 
@@ -414,12 +424,26 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
       } else if (bracketMatch) {
         title = bracketMatch[1];
       } else {
-        // Get domain name as fallback title
-        try {
-          const urlObj = new URL(processedUrl);
-          title = urlObj.hostname.replace(/^www\./, '');
-        } catch (e) {
-          title = processedUrl;
+        // Try to extract a title from words before the link
+        const words = beforeUrl.split(/\s+/);
+        if (words.length >= 3) {
+          // Take last 3-5 words as potential title
+          const titleWords = words.slice(Math.max(0, words.length - 5));
+          if (titleWords.join(' ').length > 5) {
+            title = titleWords.join(' ');
+            // Remove leading articles, conjunctions, etc.
+            title = title.replace(/^(and|the|a|an|in|for|to|of|on|by|with)\s+/i, '');
+          }
+        }
+        
+        // If no good title, use domain name
+        if (!title || title.length < 4) {
+          try {
+            const urlObj = new URL(processedUrl);
+            title = urlObj.hostname.replace(/^www\./, '');
+          } catch (e) {
+            title = processedUrl;
+          }
         }
       }
       
@@ -467,7 +491,35 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
   const [linkStates, setLinkStates] = useState<Record<string, LinkState>>({});
   const [addedTooltipVisible, setAddedTooltipVisible] = useState<Record<string, boolean>>({}); // State for added tooltips
   const addedTooltipRefs = useRef<Record<string, HTMLDivElement | null>>({}); // Refs for added tooltips
+  const [errorTooltipVisible, setErrorTooltipVisible] = useState<Record<string, boolean>>({});
+  const errorTooltipRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [linkCardsVisible, setLinkCardsVisible] = useState(true); // New state to control link cards visibility
+
+  // Check for failed links in the FileSidebar and sync states
+  useEffect(() => {
+    const checkForFailedLinks = () => {
+      // Look for elements with error classes in the FileSidebar that match our links
+      const failedLinkElements = document.querySelectorAll('.file-upload-error');
+      
+      failedLinkElements.forEach(element => {
+        const url = element.getAttribute('data-url');
+        const errorMessage = element.getAttribute('data-error') || 'Failed to process link';
+        
+        if (url && links.some(link => link.url === url)) {
+          console.log("Found failed link in FileSidebar:", url, errorMessage);
+          // Update our state
+          setLinkStates(prev => ({
+            ...prev,
+            [url]: { status: 'error', message: errorMessage }
+          }));
+        }
+      });
+    };
+    
+    // Run once after a delay to allow FileSidebar to render
+    const timeoutId = setTimeout(checkForFailedLinks, 500);
+    return () => clearTimeout(timeoutId);
+  }, [links]);
 
   // Add an effect to ensure link cards remain visible
   useEffect(() => {
@@ -494,9 +546,17 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
   // Close added tooltip when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Close success tooltips
       Object.keys(addedTooltipRefs.current).forEach(url => {
         if (addedTooltipRefs.current[url] && !addedTooltipRefs.current[url]!.contains(event.target as Node)) {
           setAddedTooltipVisible(prev => ({ ...prev, [url]: false }));
+        }
+      });
+      
+      // Close error tooltips
+      Object.keys(errorTooltipRefs.current).forEach(url => {
+        if (errorTooltipRefs.current[url] && !errorTooltipRefs.current[url]!.contains(event.target as Node)) {
+          setErrorTooltipVisible(prev => ({ ...prev, [url]: false }));
         }
       });
     };
@@ -507,33 +567,287 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
     };
   }, []);
 
-  // Function to handle link submission with loading state
-  const handleLinkSubmitWithLoading = async (url: string) => {
-    // Don't set loading state here if the parent is already tracking it
-    if (!loadingLinkId) {
-      setLinkStates(prev => ({ ...prev, [url]: { status: 'loading' } }));
+  // Add a function to validate if a link exists in the FileSidebar's uploaded files
+  const checkLinkExistsInSidebar = (url: string) => {
+    try {
+      // Try to find the link in the FileSidebar - it might be in various elements
+      // 1. Check for elements with data-file-url attribute
+      const fileUrlElements = document.querySelectorAll('[data-file-url]');
+      for (const element of fileUrlElements) {
+        const fileUrl = element.getAttribute('data-file-url');
+        if (fileUrl === url) {
+          return true;
+        }
+      }
+      
+      // 2. Check for elements with data-url attribute
+      const urlElements = document.querySelectorAll('[data-url]');
+      for (const element of urlElements) {
+        const dataUrl = element.getAttribute('data-url');
+        if (dataUrl === url) {
+          return true;
+        }
+      }
+      
+      // 3. Check for link text in file list elements
+      try {
+        const hostname = new URL(url).hostname;
+        const fileElements = document.querySelectorAll('.file-card, .webpage-card, .youtube-card');
+        for (const element of fileElements) {
+          const text = element.textContent || '';
+          if (text.includes(hostname) || text.includes(url)) {
+            return true;
+          }
+        }
+      } catch (e) {
+        // URL parsing error, ignore
+      }
+      
+      return false;
+    } catch (error) {
+      console.error("Error checking if link exists in sidebar:", error);
+      return false;
+    }
+  };
+
+  // Add a helper function to format the title nicely
+  const formatLinkTitle = (link: { url: string; domain: string; title: string; extension: string; context?: string }): string => {
+    // First extract a better title if possible
+    let title = link.title;
+    
+    // Try to get a better title from the URL and context
+    if (link.url) {
+      const betterTitle = extractBetterTitle(link.url, link.context || '');
+      if (betterTitle && betterTitle.length > 3) {
+        title = betterTitle;
+      }
     }
     
+    // Remove dates and common prefixes/suffixes
+    title = title
+      .replace(/\b\d{1,2}\/\d{1,2}\/\d{2,4}\b|\b\d{4}-\d{2}-\d{2}\b|\b\d{2}-\d{2}-\d{4}\b/, '')
+      .replace(/^(breaking|exclusive|just in|update):/i, '')
+      .replace(/ \| [^|]+$/, '') // Remove pipe and text after it (common in news titles)
+      .replace(/ [-–] [^-–]+$/, ''); // Remove dash and text after it
+    
+    // Capitalize first letter of each word
+    const capitalized = title
+      .replace(/\b\w/g, c => c.toUpperCase())
+      .replace(/\bAnd\b/g, 'and')
+      .replace(/\bThe\b/g, 'The')
+      .replace(/\bOf\b/g, 'of')
+      .replace(/\bIn\b/g, 'in')
+      .replace(/\bTo\b/g, 'to');
+    
+    // Trim and limit length
+    const trimmed = capitalized.trim();
+    if (trimmed.length > 30) {
+      return trimmed.substring(0, 30) + '...';
+    }
+    
+    return trimmed;
+  };
+
+  // Add a helper function to extract better titles from URLs
+  const extractBetterTitle = (url: string, context: string): string => {
     try {
-      await onLinkSubmit!(url); // Use non-null assertion as it's checked before calling
-      setLinkStates(prev => ({ ...prev, [url]: { status: 'added', message: 'Link added successfully' } }));
-      // Show success notification
-      const notification = document.createElement('div');
-      notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm';
-      notification.textContent = 'Link added successfully';
-      document.body.appendChild(notification);
-      setTimeout(() => notification.remove(), 2000);
+      const urlObj = new URL(url);
+      const hostname = urlObj.hostname.replace(/^www\./, '');
+      
+      // Special handling for Reuters URLs
+      if (hostname === 'reuters.com') {
+        // Extract title from path segments
+        const pathSegments = urlObj.pathname.split('/').filter(segment => segment.length > 0);
+        
+        // Handle specific Reuters URL patterns
+        if (pathSegments.includes('take-five')) {
+          return "Global Markets Themes";
+        }
+        
+        if (pathSegments.includes('world')) {
+          return "World News";
+        }
+        
+        if (pathSegments.includes('business')) {
+          return "Business News";
+        }
+        
+        if (pathSegments.length >= 3) {
+          // Convert the last meaningful segment to a readable title
+          const lastSegment = pathSegments[pathSegments.length - 1]
+            .replace(/-/g, ' ')
+            .replace(/\d{4}-\d{2}-\d{2}/, '') // Remove date patterns
+            .replace(/graphic/, '') // Remove "graphic" word
+            .replace(/\d+$/, ''); // Remove trailing numbers
+            
+          if (lastSegment && lastSegment.trim().length > 3) {
+            return lastSegment.trim();
+          }
+          
+          // If the last segment wasn't useful, try the second-to-last
+          if (pathSegments.length > 3) {
+            const secondLastSegment = pathSegments[pathSegments.length - 2].replace(/-/g, ' ');
+            if (secondLastSegment && secondLastSegment.length > 3) {
+              return secondLastSegment;
+            }
+          }
+        }
+      }
+      
+      // Special handling for New York Times
+      if (hostname === 'nytimes.com' || hostname.includes('nyt.com')) {
+        const pathSegments = urlObj.pathname.split('/').filter(segment => segment.length > 0);
+        
+        if (pathSegments.includes('opinion')) {
+          return "NYT Opinion";
+        }
+        
+        if (pathSegments.includes('technology')) {
+          return "NYT Technology";
+        }
+        
+        if (pathSegments.length >= 2) {
+          // NYT articles often have a descriptive last segment
+          const lastSegment = pathSegments[pathSegments.length - 1].replace(/-/g, ' ');
+          if (lastSegment && lastSegment.length > 3 && !lastSegment.match(/^\d+$/)) {
+            return "NYT: " + lastSegment;
+          }
+        }
+      }
+      
+      // Special handling for BBC
+      if (hostname.includes('bbc.com') || hostname.includes('bbc.co.uk')) {
+        const pathSegments = urlObj.pathname.split('/').filter(segment => segment.length > 0);
+        // BBC news articles often end with a descriptive slug
+        if (pathSegments.length >= 2 && pathSegments[0] === 'news') {
+          const lastSegment = pathSegments[pathSegments.length - 1].replace(/-/g, ' ');
+          if (lastSegment && lastSegment.length > 3 && !lastSegment.match(/^\d+$/)) {
+            return "BBC: " + lastSegment;
+          }
+        }
+      }
+      
+      // Special handling for The Guardian
+      if (hostname.includes('theguardian.com')) {
+        const pathSegments = urlObj.pathname.split('/').filter(segment => segment.length > 0);
+        if (pathSegments.includes('world')) {
+          return "Guardian World News";
+        }
+        
+        if (pathSegments.includes('technology')) {
+          return "Guardian Tech";
+        }
+        
+        if (pathSegments.length >= 3) {
+          // Guardian articles typically end with a descriptive slug
+          const lastSegment = pathSegments[pathSegments.length - 1].replace(/-/g, ' ');
+          if (lastSegment && lastSegment.length > 3 && !lastSegment.match(/^\d+$/)) {
+            return "Guardian: " + lastSegment;
+          }
+        }
+      }
+      
+      // For Wikipedia, use the last path segment which is usually the article name
+      if (hostname === 'en.wikipedia.org' && urlObj.pathname.startsWith('/wiki/')) {
+        const articleName = urlObj.pathname.replace('/wiki/', '').replace(/_/g, ' ');
+        if (articleName.length > 0) {
+          return "Wiki: " + decodeURIComponent(articleName);
+        }
+      }
+      
+      // Handle GitHub repositories
+      if (hostname === 'github.com') {
+        const pathSegments = urlObj.pathname.split('/').filter(segment => segment.length > 0);
+        if (pathSegments.length >= 2) {
+          return `GitHub: ${pathSegments[0]}/${pathSegments[1]}`;
+        }
+      }
+      
+      // Handle YouTube videos
+      if (hostname.includes('youtube.com') || hostname === 'youtu.be') {
+        return "YouTube Video";
+      }
+      
+      // For other URLs, try to find a title-like phrase in the context
+      const beforeUrl = context.split(url)[0].trim();
+      const sentenceBeforeUrl = beforeUrl.split(/[.!?]\s*/).pop() || '';
+      
+      // Check for quotes or bracketed text that might contain a title
+      const quoteMatch = sentenceBeforeUrl.match(/["']([^"']+)["']\s*$/);
+      const bracketMatch = sentenceBeforeUrl.match(/\[([^\]]+)\]\s*$/);
+      
+      if (quoteMatch) {
+        return quoteMatch[1];
+      } else if (bracketMatch) {
+        return bracketMatch[1];
+      }
+      
+      // If still no title, try to extract from URL pathname
+      const pathTitle = urlObj.pathname
+        .split('/')
+        .pop()
+        ?.replace(/[_-]/g, ' ')
+        .replace(/\.\w+$/, ''); // Remove file extension
+      
+      if (pathTitle && pathTitle.length > 3) {
+        return pathTitle;
+      }
+      
+      // Fallback to domain with proper capitalization
+      return hostname.split('.')[0].charAt(0).toUpperCase() + hostname.split('.')[0].slice(1);
+    } catch (e) {
+      // If URL parsing fails, return a default title
+      return 'Link';
+    }
+  };
+
+  // Function to handle link submission with loading state
+  const handleLinkSubmitWithLoading = async (url: string): Promise<void> => {
+    try {
+      console.log("MessageContent attempting to submit link:", url);
+      
+      if (!onLinkSubmit) {
+        throw new Error("No link submission function provided");
+      }
+      
+      // Call the link submission function - but catch errors locally
+      try {
+        await onLinkSubmit(url);
+        
+        console.log("Link successfully submitted:", url);
+        
+        // Set success state 
+        setLinkStates(prev => ({ ...prev, [url]: { status: 'added', message: 'Link added successfully' } }));
+        
+        // Show success notification
+        const notification = document.createElement('div');
+        notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm';
+        notification.textContent = 'Link added successfully';
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 2000);
+      } catch (error) {
+        // Trap error here to prevent it from blocking other submissions
+        console.error("Link submission error:", error);
+        
+        // Extract the error message
+        const errorMessage = error instanceof Error ? error.message : 'Failed to add link';
+        
+        // Set error state with the message
+        setLinkStates(prev => ({
+          ...prev, 
+          [url]: { status: 'error' as const, message: errorMessage }
+        }));
+        
+        // Show error notification
+        const notification = document.createElement('div');
+        notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm';
+        notification.textContent = errorMessage || 'Failed to add link';
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 3000);
+      }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to add link';
-      setLinkStates(prev => ({ ...prev, [url]: { status: 'error', message: errorMessage } }));
-      // Show error notification
-      const notification = document.createElement('div');
-      notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm';
-      notification.textContent = errorMessage;
-      document.body.appendChild(notification);
-      setTimeout(() => notification.remove(), 2000);
-      // Optionally reset to idle after a delay on error
-      // setTimeout(() => setLinkStates(prev => ({ ...prev, [url]: { status: 'idle' } })), 3000);
+      // This should never happen since we trap all errors above
+      console.error("Unexpected error in handleLinkSubmitWithLoading:", error);
     }
   };
   
@@ -542,25 +856,35 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
     setAddedTooltipVisible(prev => ({ ...prev, [url]: !prev[url] }));
   };
   
-  // Create a separate memoized LinkCard component to prevent re-renders
+  // NEW: Add a function to toggle error tooltip visibility
+  const toggleErrorTooltip = (url: string) => {
+    setErrorTooltipVisible(prev => ({ ...prev, [url]: !prev[url] }));
+  };
+  
+  // The key component that manages link cards
   const LinkCard = React.memo(({ 
-    link, 
-    onLinkSubmit, 
+    link,
     linkState, 
-    isAddedTooltipVisible, 
-    toggleAddedTooltip, 
+    isAddedTooltipVisible,
+    isErrorTooltipVisible,
+    toggleAddedTooltip,
+    toggleErrorTooltip,
     addedTooltipRef,
     index 
   }: { 
     link: { url: string; domain: string; title: string; extension: string };
-    onLinkSubmit?: (url: string) => Promise<void>;
     linkState: LinkState;
     isAddedTooltipVisible: boolean;
+    isErrorTooltipVisible: boolean;
     toggleAddedTooltip: (url: string) => void;
+    toggleErrorTooltip: (url: string) => void;
     addedTooltipRef: HTMLDivElement | null;
     index: number;
   }) => {
     const [ref, setRef] = useState<HTMLDivElement | null>(null);
+    const [errorRef, setErrorRef] = useState<HTMLDivElement | null>(null);
+    // Track this specific card's loading state independently
+    const [isThisCardLoading, setIsThisCardLoading] = useState(false);
     
     // Update ref when addedTooltipRef changes
     useEffect(() => {
@@ -569,24 +893,161 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
       }
     }, [addedTooltipRef]);
     
-    const handleAddLink = async () => {
-      if (!onLinkSubmit) return;
-      
-      try {
-        // Use the parent component's function
-        await handleLinkSubmitWithLoading(link.url);
-      } catch (error) {
-        // Error is already handled by parent function
+    // Store error tooltip ref
+    useEffect(() => {
+      if (errorRef) {
+        errorTooltipRefs.current[link.url] = errorRef;
       }
+    }, [errorRef, link.url]);
+    
+    // Completely isolated submission handler for this specific card
+    const handleAddLink = () => { // No async here - completely detached
+      if (isThisCardLoading || !onLinkSubmit) return;
+      
+      // Visual feedback immediately
+      setIsThisCardLoading(true);
+      setLinkStates(prev => ({
+        ...prev,
+        [link.url]: { status: 'loading' }
+      }));
+      
+      // TRUE fire-and-forget pattern - no waiting at all
+      setTimeout(() => {
+        // Temporarily override console.error to prevent error propagation
+        const originalConsoleError = console.error;
+        console.error = (...args) => {
+          // Swallow all errors related to link submission
+          if (args.length > 0 && 
+              typeof args[0] === 'string' && 
+              (args[0].includes('link') || args[0].includes('URL') || args[0].includes('Error'))) {
+            // Log to a different method to avoid console pollution
+            console.debug('[Suppressed Error]', ...args);
+            return;
+          }
+          // Otherwise use the original
+          originalConsoleError.apply(console, args);
+        };
+        
+        try {
+          // Create a self-executing function that doesn't propagate errors
+          (function() {
+            // Clone the URL to avoid any potential reference issues
+            const urlToProcess = String(link.url);
+            
+            // Store the promise but don't await it
+            let processPromise = null;
+            
+            try {
+              // Call onLinkSubmit but don't await or catch directly
+              processPromise = onLinkSubmit(urlToProcess);
+              
+              // Set a timeout to handle the loading state properly
+              // even if the promise never resolves or rejects
+              setTimeout(() => {
+                try {
+                  setIsThisCardLoading(false);
+                } catch {}
+              }, 15000); // 15 second max timeout
+              
+              // Set up handlers without awaiting
+              processPromise
+                .then(() => {
+                  try {
+                    // Success handler
+                    setLinkStates(prev => ({
+                      ...prev,
+                      [urlToProcess]: { status: 'added', message: 'Link added successfully' }
+                    }));
+                    
+                    try {
+                      // Show success notification
+                      const notification = document.createElement('div');
+                      notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm';
+                      notification.textContent = 'Link added successfully';
+                      document.body.appendChild(notification);
+                      setTimeout(() => {
+                        try { notification.remove(); } catch {}
+                      }, 2000);
+                    } catch {}
+                  } catch {}
+                })
+                .catch((error) => {
+                  try {
+                    // Error handler
+                    let errorMessage = 'Failed to add link';
+                    try {
+                      if (error instanceof Error) {
+                        errorMessage = error.message || errorMessage;
+                      }
+                    } catch {}
+                    
+                    // Update error state with the direct method
+                    markLinkFailed(urlToProcess, errorMessage);
+                    
+                    try {
+                      // Show error notification
+                      const notification = document.createElement('div');
+                      notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm';
+                      notification.textContent = errorMessage;
+                      document.body.appendChild(notification);
+                      setTimeout(() => {
+                        try { notification.remove(); } catch {}
+                      }, 3000);
+                    } catch {}
+                  } catch {}
+                })
+                .finally(() => {
+                  try {
+                    // Always reset loading state
+                    setIsThisCardLoading(false);
+                  } catch {}
+                  
+                  try {
+                    // Restore original console.error
+                    console.error = originalConsoleError;
+                  } catch {}
+                });
+            } catch (e) {
+              // Even if setting up the promise handlers fails
+              try {
+                setIsThisCardLoading(false);
+                markLinkFailed(urlToProcess, 'Failed to process link');
+              } catch {}
+              
+              try {
+                // Restore original console.error
+                console.error = originalConsoleError;
+              } catch {}
+            }
+          })(); // Self-executing function
+        } catch (e) {
+          // Outer catch for truly unexpected errors
+          try {
+            setIsThisCardLoading(false);
+          } catch {}
+          
+          try {
+            // Restore original console.error
+            console.error = originalConsoleError;
+          } catch {}
+        }
+      }, 10); // Minimal timeout to detach from current execution context
     };
     
+    // This component's loading state is completely local
+    const isCardLoading = isThisCardLoading || linkState.status === 'loading';
+    
     return (
-      <div key={`link-card-${link.url}-${index}`} className="relative group">
+      <div 
+        className="relative" 
+        data-url={link.url} 
+        data-status={linkState.status}
+      >
         <a 
           href={link.url} 
           target="_blank" 
           rel="noopener noreferrer" 
-          className="no-underline block flex-shrink-0"
+          className="no-underline block flex-shrink-0 relative hover-trigger"
           onClick={(e) => {
             e.preventDefault();
             window.open(link.url, '_blank', 'noopener,noreferrer');
@@ -607,48 +1068,126 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
             <div className="flex flex-col flex-grow min-w-0 overflow-hidden">
               <div className="flex items-start w-full">
                 <span className="truncate text-sm font-medium text-foreground">
-                  {link.domain || 'link'}
+                  {formatLinkTitle(link)}
                 </span>
               </div>
               
               <div className="flex flex-wrap gap-2 mt-2">
                 <span className="text-xs text-muted-foreground">
-                  webpage
+                  {link.domain || 'webpage'}
                 </span>
               </div>
             </div>
           </div>
+        
+          {onLinkSubmit && linkState.status !== 'added' && linkState.status !== 'error' && (
+            <div
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleAddLink();
+              }}
+              className={cn(
+                "absolute top-1 right-1 h-6 w-6 rounded-full flex items-center justify-center cursor-pointer hidden-action",
+                isCardLoading && "opacity-100 cursor-not-allowed bg-white/90",
+                !isCardLoading && linkState.status === 'idle' && "bg-[#232323] hover:bg-[#363636]"
+              )}
+              title={
+                isCardLoading ? "Adding..." :
+                "Add to files"
+              }
+              style={{ pointerEvents: isCardLoading ? 'none' : 'auto' }}
+            >
+              {isCardLoading && (
+                <div className="flex items-center justify-center">
+                  <LoadingSpinner className="h-4 w-4" color="#70D6FF" />
+                </div>
+              )}
+              {!isCardLoading && linkState.status === 'idle' && <Plus className="h-3 w-3 text-white" />}
+            </div>
+          )}
         </a>
-        {onLinkSubmit && linkState.status !== 'added' && ( // Don't show button if already added
-          <Button
-            onClick={handleAddLink}
-            variant="ghost"
-            size="icon"
-            className={cn(
-              "absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white",
-              linkState.status === 'loading' && "opacity-100 cursor-not-allowed",
-              linkState.status === 'error' && "opacity-100"
-            )}
-            title={
-              linkState.status === 'loading' ? "Adding..." :
-              linkState.status === 'error' ? `Error: ${linkState.message}` :
-              "Add to files"
-            }
-            disabled={linkState.status === 'loading'}
+        
+        {/* Show error icon if error - make it clickable like the checkmark */}
+        {linkState.status === 'error' && (
+          <div 
+            ref={setErrorRef}
+            className="absolute top-1 right-1"
           >
-            {linkState.status === 'loading' && <Loader2 className="h-3 w-3 text-blue-500 animate-spin" />}
-            {linkState.status === 'error' && <AlertCircle className="h-3 w-3 text-red-500" />}
-            {linkState.status === 'idle' && <Plus className="h-3 w-3 text-blue-500" />}
-          </Button>
+            <div 
+              className="h-6 w-6 flex items-center justify-center rounded-full bg-red-100 hover:bg-red-200 transition-colors cursor-pointer"
+              onClick={() => toggleErrorTooltip(link.url)}
+            >
+              <AlertCircle className="h-3 w-3 text-red-600" />
+            </div>
+            {/* Error Tooltip with fixed positioning */}
+            {isErrorTooltipVisible && (
+              <div 
+                className="fixed transform -translate-x-1/2 transition-opacity duration-200" 
+                style={{ 
+                  zIndex: 99999,
+                  width: '200px',
+                  // Position will be calculated and set by useEffect
+                  left: '50%',
+                  bottom: '30px' // Default fallback
+                }}
+                ref={(el) => {
+                  if (el && errorRef) {
+                    // Calculate position relative to the error icon
+                    const rect = errorRef.getBoundingClientRect();
+                    el.style.left = `${rect.left + rect.width/2}px`;
+                    el.style.bottom = `${window.innerHeight - rect.top + 10}px`;
+                  }
+                }}
+              >
+                <div className="relative">
+                  {/* Arrow */}
+                  <div className="w-2 h-2 bg-[#232323] transform rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2" style={{ zIndex: 100000 }}></div>
+
+                  {/* Tooltip content */}
+                  <div
+                    style={{
+                      zIndex: 100000,
+                      display: "flex",
+                      padding: "8px 12px",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      borderRadius: "12px",
+                      background: "var(--Monochrome-Black, #232323)",
+                      boxShadow: "0px 0px 20px 0px rgba(203, 203, 203, 0.20)",
+                      position: "relative",
+                      textAlign: "center"
+                    }}
+                  >
+                    <div
+                      className="w-full"
+                      style={{
+                        color: "var(--Monochrome-White, #FFF)",
+                        fontSize: "12px",
+                        fontStyle: "normal",
+                        fontWeight: "400",
+                        lineHeight: "16px"
+                      }}
+                    >
+                      {linkState.message || "Failed to process link"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         )}
+        
         {/* Show checkmark if added - make it clickable */}
         {linkState.status === 'added' && (
           <div 
             ref={setRef}
-            className="absolute top-1 right-1 cursor-pointer"
-            onClick={() => toggleAddedTooltip(link.url)}
+            className="absolute top-1 right-1"
           >
-            <div className="h-6 w-6 flex items-center justify-center rounded-full bg-green-100 hover:bg-green-200 transition-colors">
+            <div 
+              className="h-6 w-6 flex items-center justify-center rounded-full bg-green-100 hover:bg-green-200 transition-colors cursor-pointer"
+              onClick={() => toggleAddedTooltip(link.url)}
+            >
               <Check className="h-3 w-3 text-green-600" />
             </div>
             {/* Added Tooltip with fixed positioning */}
@@ -656,7 +1195,7 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
               <div 
                 className="fixed transform -translate-x-1/2 transition-opacity duration-200" 
                 style={{ 
-                  zIndex: 9999,
+                  zIndex: 99999,
                   width: '200px',
                   // Position will be calculated and set by useEffect
                   left: '50%',
@@ -673,12 +1212,12 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
               >
                 <div className="relative">
                   {/* Arrow */}
-                  <div className="w-2 h-2 bg-[#232323] transform rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2" style={{ zIndex: 101 }}></div>
+                  <div className="w-2 h-2 bg-[#232323] transform rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2" style={{ zIndex: 100000 }}></div>
 
                   {/* Tooltip content */}
                   <div
                     style={{
-                      zIndex: 100, // Ensure tooltip is above other elements
+                      zIndex: 100000,
                       display: "flex",
                       padding: "8px 12px",
                       flexDirection: "column",
@@ -717,6 +1256,7 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
       prevProps.link.domain === nextProps.link.domain &&
       prevProps.linkState.status === nextProps.linkState.status &&
       prevProps.isAddedTooltipVisible === nextProps.isAddedTooltipVisible &&
+      prevProps.isErrorTooltipVisible === nextProps.isErrorTooltipVisible &&
       prevProps.index === nextProps.index
     );
   });
@@ -735,6 +1275,49 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
       return () => clearTimeout(timerId);
     }
   }, [isStreaming]);
+
+  // Add a useEffect to listen for custom error events
+  useEffect(() => {
+    // Listen for custom error events from Message component
+    const handleLinkError = (event: any) => {
+      const { url, error } = event.detail;
+      if (url) {
+        console.log(`Link error event received for ${url}:`, error);
+        // Update the state for this specific link to show error
+        setLinkStates(prev => ({
+          ...prev,
+          [url]: { status: 'error', message: error || 'Failed to add link' }
+        }));
+        
+        // Show error notification
+        try {
+          const notification = document.createElement('div');
+          notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm';
+          notification.textContent = error || 'Failed to add link';
+          document.body.appendChild(notification);
+          setTimeout(() => {
+            try { notification.remove(); } catch {}
+          }, 3000);
+        } catch {}
+      }
+    };
+
+    // Add event listener
+    window.addEventListener('link-submission-error', handleLinkError);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('link-submission-error', handleLinkError);
+    };
+  }, []);
+  
+  // Direct method to mark a link as failed - will be used by LinkCard
+  const markLinkFailed = useCallback((url: string, errorMessage: string) => {
+    setLinkStates(prev => ({
+      ...prev,
+      [url]: { status: 'error', message: errorMessage }
+    }));
+  }, []);
 
   return (
     <div 
@@ -789,35 +1372,35 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
       
       {/* Display all links as cards outside the markdown content - always show them */}
       {links.length > 0 && linkCardsVisible && (
-        <div className="my-3 relative link-cards-container" style={{ opacity: 1, display: 'block' }}>
-          {/* Restore horizontal scrolling but ensure tooltips are visible */}
-          <div className="flex overflow-x-auto pb-2 hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            <div className="flex gap-3">
-              {links.map((link, index) => {
-                // Use loadingLinkId from props if available
-                const isLoading = loadingLinkId === link.url;
-                // Only use local state if not already loading from props
-                const currentState = isLoading 
-                  ? { status: 'loading' as const } 
-                  : (linkStates[link.url] || { status: 'idle' as const });
-                const isAddedTooltipCurrentlyVisible = addedTooltipVisible[link.url] || false;
-                
-                return (
-                  <LinkCard
-                    key={`link-card-${link.url}-${index}`}
-                    link={link}
-                    onLinkSubmit={onLinkSubmit}
-                    linkState={currentState}
-                    isAddedTooltipVisible={isAddedTooltipCurrentlyVisible}
-                    toggleAddedTooltip={toggleAddedTooltip}
-                    addedTooltipRef={addedTooltipRefs.current[link.url]}
-                    index={index}
-                  />
-                );
-              })}
+        <>
+          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2 mt-4">Add source to session context</h3>
+          <div className="my-3 relative link-cards-container" style={{ opacity: 1, display: 'block', zIndex: 1 }}>
+            {/* Restore horizontal scrolling but ensure tooltips are visible */}
+            <div className="flex overflow-x-auto pb-2 hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              <div className="flex gap-3">
+                {links.map((link, index) => {
+                  // Get this link's state; default to idle
+                  const currentState = linkStates[link.url] || { status: 'idle' as const };
+                  const isAddedTooltipCurrentlyVisible = addedTooltipVisible[link.url] || false;
+                  const isErrorTooltipCurrentlyVisible = errorTooltipVisible[link.url] || false;
+                  return (
+                    <LinkCard
+                      key={`link-card-${link.url}-${index}`}
+                      link={link}
+                      linkState={currentState}
+                      isAddedTooltipVisible={isAddedTooltipCurrentlyVisible}
+                      isErrorTooltipVisible={isErrorTooltipCurrentlyVisible}
+                      toggleAddedTooltip={toggleAddedTooltip}
+                      toggleErrorTooltip={toggleErrorTooltip}
+                      addedTooltipRef={addedTooltipRefs.current[link.url]}
+                      index={index}
+                    />
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

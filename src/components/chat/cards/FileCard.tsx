@@ -7,6 +7,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { DeleteIcon } from '@/components/icons';
 import type { UploadedFile } from '@/types/chat';
+import { LoadingSpinner } from '@/components/icons/LoadingSpinner';
 
 interface FileCardProps {
   file: UploadedFile;
@@ -161,7 +162,14 @@ export const FileCard = ({ file, onDelete, onSelect, isDeletingFile }: FileCardP
       <div className="flex flex-col items-end gap-2">
         {/* Show spinner for processing status */}
         {file.status === 'pending' || file.status === 'processing' ? (
-          <RefreshCw className="h-4 w-4 text-amber-500 animate-spin" />
+          <div className="flex items-center gap-1">
+            <RefreshCw className="h-4 w-4 text-amber-500 animate-spin" />
+          </div>
+        ) : isDeletingFile === file.id ? (
+          /* Show loading spinner while deleting */
+          <div className="h-6 w-6 flex items-center justify-center">
+            <LoadingSpinner className="h-4 w-4" color="#70D6FF" />
+          </div>
         ) : (
           /* Delete button */
           <Button

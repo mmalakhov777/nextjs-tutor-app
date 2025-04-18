@@ -76,7 +76,14 @@ export function ChatHeader({
   // Function to clear all file metadata from local storage
   const clearAllFileMetadata = () => {
     try {
+      // Remove uploadedFilesMetadata
       localStorage.removeItem('uploadedFilesMetadata');
+      // Remove all fileMap_* keys
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('fileMap_')) {
+          localStorage.removeItem(key);
+        }
+      });
       console.log('All file metadata cleared from local storage');
       // Also clear the uploaded files in context
       setUploadedFiles([]);
