@@ -21,7 +21,6 @@ import { MistralLogo } from '@/components/icons/MistralLogo';
 import { PerplexityLogo } from '@/components/icons/PerplexityLogo';
 import { UserCircle } from 'lucide-react';
 import { saveFileMetadataToLocalStorage } from '@/utils/fileStorage';
-import { Switch } from '@/components/ui/switch';
 
 // Define a minimal Agent type locally
 type Agent = { id?: string; name: string; [key: string]: any };
@@ -1132,16 +1131,72 @@ export function ChatInput({
             alignSelf: 'stretch'
           }}
         >
-          {/* Chat/Research Switch */}
-          <div className="flex items-center gap-3 select-none" style={{ minWidth: 120 }}>
-            <span className={`text-xs font-medium ${mode === 'chat' ? 'text-emerald-600' : 'text-gray-400'}`}>Chat</span>
-            <Switch
-              checked={mode === 'research'}
-              onCheckedChange={checked => onModeChange(checked ? 'research' : 'chat')}
-              disabled={disabled}
-              aria-label="Toggle research mode"
-            />
-            <span className={`text-xs font-medium ${mode === 'research' ? 'text-blue-600' : 'text-gray-400'}`}>Research</span>
+          {/* Chat/Research Slider Toggle */}
+          <div style={{ padding: '4px 8px' }}>
+            <div
+              className="relative flex items-center select-none"
+              style={{
+                minWidth: 140,
+                height: 36,
+                background: '#F2F2ED',
+                borderRadius: 10,
+                boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                border: '1px solid #E8E8E5',
+                padding: 2,
+              }}
+            >
+              {/* Sliding background */}
+              <div
+                className="absolute top-0 left-0 h-full w-1/2 transition-all duration-200"
+                style={{
+                  transform: mode === 'chat' ? 'translateX(0%)' : 'translateX(100%)',
+                  background: '#E8E8E5',
+                  borderRadius: 10,
+                  width: '50%',
+                  zIndex: 1,
+                }}
+              />
+              {/* Chat option */}
+              <div
+                className="flex-1 z-10 flex items-center justify-center cursor-pointer text-sm font-medium"
+                style={{
+                  height: '100%',
+                  color: mode === 'chat' ? '#232323' : '#CBCBCB',
+                  fontWeight: mode === 'chat' ? 600 : 500,
+                  opacity: mode === 'chat' ? 1 : 0.5,
+                  background: 'transparent',
+                  transition: 'color 0.2s, opacity 0.2s',
+                  position: 'relative',
+                  userSelect: 'none',
+                }}
+                onClick={() => !disabled && onModeChange('chat')}
+                aria-pressed={mode === 'chat'}
+                tabIndex={0}
+                role="button"
+              >
+                Chat
+              </div>
+              {/* Research option */}
+              <div
+                className="flex-1 z-10 flex items-center justify-center cursor-pointer text-sm font-medium"
+                style={{
+                  height: '100%',
+                  color: mode === 'research' ? '#232323' : '#CBCBCB',
+                  fontWeight: mode === 'research' ? 600 : 500,
+                  opacity: mode === 'research' ? 1 : 0.5,
+                  background: 'transparent',
+                  transition: 'color 0.2s, opacity 0.2s',
+                  position: 'relative',
+                  userSelect: 'none',
+                }}
+                onClick={() => !disabled && onModeChange('research')}
+                aria-pressed={mode === 'research'}
+                tabIndex={0}
+                role="button"
+              >
+                Research
+              </div>
+            </div>
           </div>
           
           <div className="flex gap-2">
