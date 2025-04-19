@@ -756,7 +756,7 @@ export function FileSidebar({
           <h3 className="text-xs sm:text-sm font-semibold text-foreground">
             {/* Counter showing files used out of maximum */}
             <span className="text-xs sm:text-sm font-semibold text-foreground">
-              {uploadedFiles.length + fileUploads.filter(upload => upload.status !== 'error').length}/50 files
+              {uploadedFiles.length + fileUploads.filter(upload => upload.status !== 'error').length}/50 files in session context
             </span>
           </h3>
         </div>
