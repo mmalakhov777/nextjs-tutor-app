@@ -819,6 +819,21 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
         // Set success state 
         setLinkStates(prev => ({ ...prev, [url]: { status: 'added', message: 'Link added successfully' } }));
         
+        // Dispatch event to update the virtual upload in sidebar to completed
+        try {
+          const uploadCompleteEvent = new CustomEvent('link-upload-completed', {
+            detail: { 
+              url: url,
+              status: 'completed'
+            },
+            bubbles: true,
+            cancelable: true
+          });
+          window.dispatchEvent(uploadCompleteEvent);
+        } catch (eventError) {
+          console.error("Error dispatching link completion event:", eventError);
+        }
+        
         // Show success notification
         const notification = document.createElement('div');
         notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-50 text-sm';
@@ -837,6 +852,22 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
           ...prev, 
           [url]: { status: 'error' as const, message: errorMessage }
         }));
+        
+        // Dispatch event to update the virtual upload in sidebar to error
+        try {
+          const uploadErrorEvent = new CustomEvent('link-upload-error', {
+            detail: { 
+              url: url,
+              status: 'error',
+              errorMessage: errorMessage
+            },
+            bubbles: true,
+            cancelable: true
+          });
+          window.dispatchEvent(uploadErrorEvent);
+        } catch (eventError) {
+          console.error("Error dispatching link error event:", eventError);
+        }
         
         // Show error notification
         const notification = document.createElement('div');
@@ -918,6 +949,25 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
         [link.url]: { status: 'loading' }
       }));
       
+      // Dispatch a custom event to notify the FileSidebar to create a temporary upload item
+      try {
+        // Create an event with the link details to show in sidebar
+        const addLinkEvent = new CustomEvent('link-upload-started', {
+          detail: { 
+            url: link.url,
+            name: formatLinkTitle(link),
+            domain: link.domain,
+            uploadId: `link-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            timestamp: new Date().toISOString()
+          },
+          bubbles: true,
+          cancelable: true
+        });
+        window.dispatchEvent(addLinkEvent);
+      } catch (eventError) {
+        console.error("Error dispatching link upload event:", eventError);
+      }
+      
       // TRUE fire-and-forget pattern - no waiting at all
       setTimeout(() => {
         // Temporarily override console.error to prevent error propagation
@@ -966,6 +1016,21 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
                       [urlToProcess]: { status: 'added', message: 'Link added successfully' }
                     }));
                     
+                    // Dispatch event to update the virtual upload in sidebar to completed
+                    try {
+                      const uploadCompleteEvent = new CustomEvent('link-upload-completed', {
+                        detail: { 
+                          url: urlToProcess,
+                          status: 'completed'
+                        },
+                        bubbles: true,
+                        cancelable: true
+                      });
+                      window.dispatchEvent(uploadCompleteEvent);
+                    } catch (eventError) {
+                      console.error("Error dispatching link completion event:", eventError);
+                    }
+                    
                     try {
                       // Show success notification
                       const notification = document.createElement('div');
@@ -990,6 +1055,22 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
                     
                     // Update error state with the direct method
                     markLinkFailed(urlToProcess, errorMessage);
+                    
+                    // Dispatch event to update the virtual upload in sidebar to error
+                    try {
+                      const uploadErrorEvent = new CustomEvent('link-upload-error', {
+                        detail: { 
+                          url: urlToProcess,
+                          status: 'error',
+                          errorMessage: errorMessage
+                        },
+                        bubbles: true,
+                        cancelable: true
+                      });
+                      window.dispatchEvent(uploadErrorEvent);
+                    } catch (eventError) {
+                      console.error("Error dispatching link error event:", eventError);
+                    }
                     
                     try {
                       // Show error notification

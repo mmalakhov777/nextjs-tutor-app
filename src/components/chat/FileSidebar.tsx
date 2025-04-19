@@ -944,6 +944,93 @@ export function FileSidebar({
     }
   };
 
+  // Add event listener for link uploads coming from the chat
+  useEffect(() => {
+    // Handle when a link upload starts from the chat area
+    const handleLinkUploadStarted = (event: CustomEvent) => {
+      const { url, name, domain, uploadId, timestamp } = event.detail;
+      
+      console.log("Received link upload started event:", event.detail);
+      
+      // Create a new virtual upload entry
+      const newUpload: FileUploadStatus = {
+        id: uploadId,
+        name: name || domain,
+        url: url,
+        status: 'processing',
+        fileName: name || domain,
+        errorMessage: '',
+        metadata: {
+          domain,
+          source: 'chat_link'
+        }
+      };
+      
+      // Add to uploads list
+      setFileUploads(prevUploads => [newUpload, ...prevUploads]);
+    };
+    
+    // Handle when a link upload completes
+    const handleLinkUploadCompleted = (event: CustomEvent) => {
+      const { url, status } = event.detail;
+      
+      console.log("Received link upload completed event:", event.detail);
+      
+      // Update the upload entry with completed status
+      setFileUploads(prevUploads => 
+        prevUploads.map(upload => {
+          if (upload.url === url) {
+            return {
+              ...upload,
+              status: 'completed'
+            };
+          }
+          return upload;
+        })
+      );
+      
+      // After a while, remove the upload entry as the file should appear in the files list
+      setTimeout(() => {
+        setFileUploads(prevUploads => 
+          prevUploads.filter(upload => upload.url !== url)
+        );
+      }, 3000);
+    };
+    
+    // Handle when a link upload errors
+    const handleLinkUploadError = (event: CustomEvent) => {
+      const { url, status, errorMessage } = event.detail;
+      
+      console.log("Received link upload error event:", event.detail);
+      
+      // Update the upload entry with error status
+      setFileUploads(prevUploads => 
+        prevUploads.map(upload => {
+          if (upload.url === url) {
+            return {
+              ...upload,
+              status: 'error',
+              errorMessage: errorMessage || 'Failed to process link'
+            };
+          }
+          return upload;
+        })
+      );
+    };
+    
+    // Add event listeners
+    window.addEventListener('link-upload-started', handleLinkUploadStarted as EventListener);
+    window.addEventListener('link-upload-completed', handleLinkUploadCompleted as EventListener);
+    window.addEventListener('link-upload-error', handleLinkUploadError as EventListener);
+    
+    // Clean up listeners on unmount
+    return () => {
+      window.removeEventListener('link-upload-started', handleLinkUploadStarted as EventListener);
+      window.removeEventListener('link-upload-completed', handleLinkUploadCompleted as EventListener);
+      window.removeEventListener('link-upload-error', handleLinkUploadError as EventListener);
+    };
+  }, []);
+
   return (
     <div className={`${isMobile ? 'w-full' : 'w-64 border-r'} bg-white border-light h-full flex flex-col`}>
       <div 
