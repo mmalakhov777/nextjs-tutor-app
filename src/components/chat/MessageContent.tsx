@@ -379,9 +379,10 @@ export interface MessageContentProps {
   hasFileAnnotations?: boolean;
   loadingLinkId?: string | null;
   isStreaming?: boolean;
+  isResearchResponse?: boolean;
 }
 
-export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, hasFileAnnotations, loadingLinkId, isStreaming }: MessageContentProps) => {
+export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, hasFileAnnotations, loadingLinkId, isStreaming, isResearchResponse = false }: MessageContentProps) => {
   // Function to extract URLs from text with their surrounding context
   const extractLinks = React.useMemo(() => {
     // First, look for regular URLs
@@ -1487,6 +1488,7 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
     <div 
       id={messageId ? `message-${messageId}` : undefined} 
       className="prose prose-sm dark:prose-invert max-w-none message-content-container preserve-all-breaks"
+      style={{ position: 'relative' }}
     >
       <GlobalStyles />
       <div className="markdown-content" key={`md-${forceUpdateKey}`}>
@@ -1576,6 +1578,7 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
     prevProps.hasFileAnnotations === nextProps.hasFileAnnotations &&
     prevProps.isStreaming === nextProps.isStreaming && 
     // For onLinkSubmit, we only care if it goes from being defined to undefined or vice versa
-    (!!prevProps.onLinkSubmit === !!nextProps.onLinkSubmit)
+    (!!prevProps.onLinkSubmit === !!nextProps.onLinkSubmit) &&
+    prevProps.isResearchResponse === nextProps.isResearchResponse
   );
 }); 

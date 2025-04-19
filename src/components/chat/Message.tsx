@@ -68,8 +68,10 @@ interface MessageProps {
     metadata?: {
       agent_name?: string;
       event_type?: string;
+      provider?: string;
     };
     currentAgent?: string;
+    provider?: string;
   };
   onCopy: (content: string) => void;
   onDelete?: (message: MessageType) => void;
@@ -1196,6 +1198,66 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
   }, [propAnnotations, syntheticAnnotations, message.metadata?.has_citations, message.citations]);
 
   
+  // Add a comprehensive helper function for research response detection
+  const isResearchResponse = useCallback((message: MessageType & any): boolean => {
+    // Check for explicit Research agent_name or agentName
+    if (message.metadata?.agent_name === 'Research' || 
+        message.metadata?.agent_name === 'Research Agent' ||
+        message.agentName === 'Research' || 
+        message.agentName === 'Research Agent') {
+      return true;
+    }
+    
+    // Check for provider-based detection (Perplexity, Bing, etc.)
+    if (message.provider === 'Perplexity' || 
+        message.metadata?.provider === 'Perplexity') {
+      return true;
+    }
+    
+    // Check for web citations
+    if (message.citations && 
+        Array.isArray(message.citations) && 
+        message.citations.some((citation: any) => 
+          citation.startsWith('http') || 
+          citation.includes('www.')
+        )) {
+      return true;
+    }
+    
+    // Check for URL annotations
+    if (message.annotations && 
+        Array.isArray(message.annotations) && 
+        message.annotations.some((annotation: any) => 
+          annotation.type === 'url_citation' || 
+          (annotation.url_citation && annotation.url_citation.url)
+        )) {
+      return true;
+    }
+    
+    // Check for content that appears to be a research response
+    if (typeof message.content === 'string' && 
+        (message.content.includes('## Top News Headlines') || 
+         (message.content.includes('[') && message.content.includes(']') && 
+          message.content.includes('http')))) {
+      return true;
+    }
+    
+    return false;
+  }, []);
+
+  useEffect(() => {
+    // Debug logs for research responses
+    if (isResearchResponse(message)) {
+      console.log('DEBUG - Research Response Detected:', {
+        messageId: message.id,
+        agentName: message.agentName,
+        metadataAgentName: message.metadata?.agent_name,
+        provider: message.provider || message.metadata?.provider
+      });
+    }
+  }, [message, isResearchResponse]);
+
+  
   if (message.role === 'system' && message.agentName) {
     return (
       <div className="flex items-center gap-2 py-1 px-3 my-2 rounded-md text-gray-200 text-xs font-mono max-w-[90%] shadow-md">
@@ -1639,13 +1701,14 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
                   </div>
                 )}
                 <div className={`message-content ${enhancedText ? 'enhanced-content preserve-whitespace' : ''}`}>
-                  <MessageContent 
-                    content={enhancedText || message.content} 
-                    messageId={message.id} 
-                    onLinkSubmit={handleLinkSubmit} 
-                    hasFileAnnotations={false}
+                  <MessageContent
+                    content={enhancedText || message.content}
+                    messageId={message.id}
+                    onLinkSubmit={handleLinkSubmit}
+                    hasFileAnnotations={hasStableFileAnnotations}
                     loadingLinkId={loadingLinkId}
                     isStreaming={isStreaming}
+                    isResearchResponse={isResearchResponse(message)}
                   />
                 </div>
               </>
@@ -1685,11 +1748,30 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
                 
                 
                 <div className="flex items-center gap-2">
-                  {message.role === 'assistant' && (
+                  {message.role === 'assistant' && 
+                  // Show either AgentBadge or Research label in the same position
+                  !isResearchResponse(message) ? (
                     <AgentBadge 
                       agentName={message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant'}
                       isStreaming={isStreaming}
                     />
+                  ) : message.role === 'assistant' && isResearchResponse(message) && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      height: '24px',
+                      padding: '0 10px',
+                      backgroundColor: 'transparent',
+                      color: '#232323',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      borderRadius: '1000px',
+                      border: '1px solid #E8E8E5',
+                      letterSpacing: '0.5px'
+                    }}>
+                      Research
+                    </div>
                   )}
                   
                   <MessageActions
