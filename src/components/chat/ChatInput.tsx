@@ -1132,36 +1132,38 @@ export function ChatInput({
           }}
         >
           {/* Chat/Research Slider Toggle */}
-          <div style={{ padding: '4px 8px' }}>
+          <div>
             <div
               className="relative flex items-center select-none"
               style={{
-                minWidth: 140,
+                minWidth: 200,
                 height: 36,
                 background: '#F8F8F6',
                 borderRadius: 10,
                 boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
                 border: 'none',
-                padding: 2,
+                padding: 0,
+                paddingRight: 2,
               }}
             >
-              {/* Sliding background - now with dynamic width/positioning */}
+              {/* Sliding background - with smooth transition */}
               <div
-                className="absolute top-0 left-0 h-full transition-all duration-200"
+                className="absolute top-0 h-full transition-all duration-300"
                 style={{
-                  transform: mode === 'chat' ? 'translateX(0)' : 'translateX(100%)',
-                  background: '#E8E8E5',
+                  left: 2,
+                  background: '#F2F2ED',
                   borderRadius: 10,
-                  width: mode === 'chat' ? 'calc(50% - 10px)' : 'calc(50% + 10px)', /* Adjusting for text length difference */
-                  left: mode === 'chat' ? '2px' : '50%',
+                  border: '1px solid #E8E8E5',
+                  width: mode === 'chat' ? 'calc(40% - 10px)' : 'calc(60% + 10px)',
+                  transform: mode === 'chat' ? 'translateX(0)' : `translateX(calc(66.7% - 20px))`, 
                   zIndex: 1,
                 }}
               />
-              {/* Chat option - now with content-based width */}
+              {/* Chat option - with centered text */}
               <div
                 className="z-10 flex items-center justify-center cursor-pointer text-sm font-medium"
                 style={{
-                  width: 'calc(50% - 10px)', /* Make Chat button smaller */
+                  width: 'calc(40% - 10px)', /* Make Chat button smaller */
                   height: '100%',
                   color: '#232323',
                   fontWeight: mode === 'chat' ? 600 : 500,
@@ -1170,20 +1172,33 @@ export function ChatInput({
                   transition: 'color 0.2s, opacity 0.2s',
                   position: 'relative',
                   userSelect: 'none',
-                  padding: '0 10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
                 }}
                 onClick={() => !disabled && onModeChange('chat')}
                 aria-pressed={mode === 'chat'}
                 tabIndex={0}
                 role="button"
               >
-                Chat
+                <span style={{ 
+                  display: 'block', 
+                  textAlign: 'center', 
+                  width: '100%',
+                  position: 'absolute',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  paddingLeft: '4px'
+                }}>
+                  Chat
+                </span>
               </div>
-              {/* Research option - now with content-based width */}
+              {/* Research option - with centered text */}
               <div
                 className="z-10 flex items-center justify-center cursor-pointer text-sm font-medium"
                 style={{
-                  width: 'calc(50% + 10px)', /* Make Research button larger */
+                  width: 'calc(60% + 10px)', /* Make Web Research button larger */
                   height: '100%',
                   color: '#232323',
                   fontWeight: mode === 'research' ? 600 : 500,
@@ -1192,14 +1207,30 @@ export function ChatInput({
                   transition: 'color 0.2s, opacity 0.2s',
                   position: 'relative',
                   userSelect: 'none',
-                  padding: '0 10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                  margin: '0 auto',
+                  padding: 0,
+                  left: 0,
                 }}
                 onClick={() => !disabled && onModeChange('research')}
                 aria-pressed={mode === 'research'}
                 tabIndex={0}
                 role="button"
               >
-                Research
+                <span style={{ 
+                  display: 'block', 
+                  textAlign: 'center', 
+                  width: '100%',
+                  position: 'absolute',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  paddingLeft: '7px'
+                }}>
+                  Web Research
+                </span>
               </div>
             </div>
           </div>
