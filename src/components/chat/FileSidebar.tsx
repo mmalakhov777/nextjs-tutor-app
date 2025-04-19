@@ -347,11 +347,29 @@ export function FileSidebar({
       return;
     }
     
+    // Check if the total number of files and uploads exceeds 50
+    const totalCount = uploadedFiles.length + fileUploads.filter(upload => upload.status !== 'error').length;
+    const remainingSlots = 50 - totalCount;
+    
+    if (totalCount >= 50) {
+      setNotification('Maximum file limit reached (50). Please remove some files before adding more.');
+      setTimeout(() => setNotification(null), 3000);
+      return;
+    }
+    
+    // Limit the number of files to be processed
+    const filesToProcess = files.slice(0, remainingSlots);
+    
+    if (files.length > remainingSlots) {
+      setNotification(`Only ${remainingSlots} files added. Maximum file limit (50) would be exceeded.`);
+      setTimeout(() => setNotification(null), 3000);
+    }
+    
     // Filter files into supported and unsupported
     const supportedFiles: File[] = [];
     const unsupportedFiles: File[] = [];
     
-    files.forEach(file => {
+    filesToProcess.forEach(file => {
       if (isFileFormatSupported(file.name)) {
         supportedFiles.push(file);
       } else {
@@ -499,6 +517,14 @@ export function FileSidebar({
   const handleLinkSubmit = async () => {
     if (!linkUrl || !defaultVectorStoreId || !onLinkSubmit) {
       setNotification(defaultVectorStoreId ? 'No URL entered' : 'No vector store available');
+      setTimeout(() => setNotification(null), 3000);
+      return;
+    }
+
+    // Check if the total number of files and uploads exceeds 50
+    const totalCount = uploadedFiles.length + fileUploads.filter(upload => upload.status !== 'error').length;
+    if (totalCount >= 50) {
+      setNotification('Maximum file limit reached (50). Please remove some files before adding more.');
       setTimeout(() => setNotification(null), 3000);
       return;
     }
@@ -728,9 +754,10 @@ export function FileSidebar({
       <div className="mt-3 sm:mt-4">
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-xs sm:text-sm font-semibold text-foreground">
-            {fileUploads.length > 0 && uploadedFiles.length === 0
-              ? "Uploading Files" 
-              : "Uploaded Files"}
+            {/* Counter showing files used out of maximum */}
+            <span className="text-xs text-muted-foreground">
+              {uploadedFiles.length + fileUploads.filter(upload => upload.status !== 'error').length}/50 files
+            </span>
           </h3>
         </div>
         <div className="space-y-3 w-full">
