@@ -69,7 +69,7 @@ const saveFileMetadataToLocalStorage = (file: UploadedFile) => {
     // Save back to local storage
     localStorage.setItem('uploadedFilesMetadata', JSON.stringify(metadataObj));
   } catch (error) {
-    console.error('Error saving file metadata to local storage:', error);
+    // Error saving file metadata to local storage
   }
 };
 
@@ -82,7 +82,7 @@ const getFileMetadataFromLocalStorage = (fileId: string): Partial<UploadedFile> 
     const metadataObj = JSON.parse(storedMetadata);
     return metadataObj[fileId] || null;
   } catch (error) {
-    console.error('Error getting file metadata from local storage:', error);
+    // Error getting file metadata from local storage
     return null;
   }
 };
@@ -97,10 +97,9 @@ const removeFileMetadataFromLocalStorage = (fileId: string): void => {
     if (metadataObj[fileId]) {
       delete metadataObj[fileId];
       localStorage.setItem('uploadedFilesMetadata', JSON.stringify(metadataObj));
-      console.log(`File metadata removed for ${fileId}`);
     }
   } catch (error) {
-    console.error('Error removing file metadata from local storage:', error);
+    // Error removing file metadata from local storage
   }
 };
 
@@ -122,7 +121,7 @@ const loadAndSaveFileContent = async (fileId: string) => {
     const response = await fetch(`${backendUrl}/api/files/${fileId}/content`);
     
     if (!response.ok) {
-      console.warn(`Could not load content for file ${fileId}: ${response.status}`);
+      // Could not load content for file
       return;
     }
     
@@ -136,11 +135,10 @@ const loadAndSaveFileContent = async (fileId: string) => {
       if (updatedMetadataObj[fileId]) {
         updatedMetadataObj[fileId].file_content = content;
         localStorage.setItem('uploadedFilesMetadata', JSON.stringify(updatedMetadataObj));
-        console.log(`File content saved for ${fileId}`);
       }
     }
   } catch (error) {
-    console.error('Error loading file content:', error);
+    // Error loading file content
   }
 };
 
@@ -423,7 +421,6 @@ export function FileSidebar({
           try {
             await loadAndSaveFileContent(uploadedFile.id);
           } catch (contentError) {
-            console.warn(`Could not load content for ${uploadedFile.id}: ${contentError}`);
             // Continue anyway - this is not critical
           }
           
@@ -440,8 +437,6 @@ export function FileSidebar({
           );
         }
       } catch (error) {
-        console.warn(`Error uploading file ${file.name}:`, error);
-        
         // Mark this file as error but continue with others
         setFileUploads(prev => 
           prev.map(upload => 
@@ -574,8 +569,6 @@ export function FileSidebar({
           setFileUploads(prev => prev.filter(upload => upload.url !== linkUrl));
         }, 2000);
       } catch (error) {
-        console.error('Error processing link:', error);
-        
         // Get error message
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         
@@ -607,7 +600,6 @@ export function FileSidebar({
       if (error instanceof TypeError) {
         setNotification('Please enter a valid URL');
       } else {
-        console.error('Error submitting link:', error);
         setNotification(error instanceof Error ? `Error: ${error.message}` : 'Error submitting link');
       }
       setTimeout(() => setNotification(null), 3000);
@@ -667,16 +659,6 @@ export function FileSidebar({
     // Create a set of file names that exist in uploadedFiles
     const uploadedFileNames = new Set(uploadedFiles.map(file => file.name));
     
-    // DEBUG LOGGING: Show all uploaded files
-    console.log('DEBUG - All Uploaded Files:', uploadedFiles.map(file => ({
-      id: file.id,
-      name: file.name,
-      source: file.source,
-      url: file.url,
-      status: file.status,
-      doc_type: file.doc_type,
-    })));
-    
     // Filter temporary uploads more carefully
     const filteredUploads = fileUploads.filter(upload => {
       // Check if a corresponding completed file with metadata exists in the main list
@@ -704,9 +686,6 @@ export function FileSidebar({
       // Filter out everything else
       return false;
     });
-    
-    // DEBUG LOGGING: Show filtered uploads
-    console.log('DEBUG - Filtered Uploads:', filteredUploads);
     
     // Combine filtered temporary uploads with ALL uploaded files (filtering will happen inline)
     const combinedFiles: CombinedFile[] = [
@@ -739,7 +718,6 @@ export function FileSidebar({
               
               // YouTube card for YouTube links
               if (upload.url && isYouTubeUrl(upload.url)) {
-                console.log('DEBUG - Rendering UploadingYouTubeCard for', upload);
                 return (
                   <UploadingYouTubeCard
                     key={`upload-${upload.id}`}
@@ -751,7 +729,6 @@ export function FileSidebar({
               
               // Webpage card for other links
               if (upload.url) {
-                console.log('DEBUG - Rendering UploadingWebpageCard for', upload);
                 return (
                   <UploadingWebpageCard
                     key={`upload-${upload.id}`}
@@ -762,7 +739,6 @@ export function FileSidebar({
               }
               
               // Default file card for file uploads
-              console.log('DEBUG - Rendering UploadingFileCard for', upload);
               return (
                 <UploadingFileCard
                   key={`upload-${upload.id}`}
@@ -774,21 +750,6 @@ export function FileSidebar({
               // This is an uploaded file - Apply filtering LOGIC HERE
               const file = item.file;
 
-              // DEBUG LOGGING: Show detailed file info for filtering logic
-              console.log('DEBUG - Processing uploaded file for rendering:', {
-                id: file.id,
-                name: file.name,
-                source: file.source,
-                url: file.url,
-                status: file.status,
-                doc_type: file.doc_type,
-                doc_title: file.doc_title,
-                doc_authors: file.doc_authors,
-                doc_publication_year: file.doc_publication_year,
-                doc_summary: file.doc_summary?.substring(0, 20) + '...',
-                total_pages: file.total_pages
-              });
-
               // --- START INLINE FILTER --- 
               let shouldRender = false;
 
@@ -797,14 +758,12 @@ export function FileSidebar({
 
               // Filter out anything not in the allowed statuses immediately
               if (!allowedStatuses.includes(file.status)) {
-                console.log(`DEBUG - File ${file.id} filtered out due to invalid status: ${file.status}`);
                 shouldRender = false; // Ensure it's false if status is invalid/undefined/error etc.
               } else {
                 // Only proceed with checks if status is potentially valid
                 // Condition 1: Keep processing or pending files
                 if (file.status === 'processing' || file.status === 'pending') {
                   shouldRender = true;
-                  console.log(`DEBUG - File ${file.id} will render due to status: ${file.status}`);
                 }
                 // Condition 2: For completed files, check metadata strictly
                 else if (file.status === 'completed') {
@@ -818,23 +777,16 @@ export function FileSidebar({
                     file.source === 'link' // Always keep links
                   );
                   shouldRender = hasMetadata;
-                  console.log(`DEBUG - File ${file.id} metadata check: ${hasMetadata ? 'PASS' : 'FAIL'}`);
                 }
               }
 
               if (!shouldRender) {
-                console.log(`DEBUG - File ${file.id} will NOT be rendered`);
                 return null; // Don't render this file if it doesn't meet the criteria
               }
 
               // Handle YouTube video links
               if ((file.source === 'link' && file.url && isYouTubeUrl(file.url)) || 
                   file.doc_type?.toLowerCase() === 'youtube_video') {
-                console.log(`DEBUG - Rendering YouTubeCard for ${file.id} - ${file.name}`, {
-                  isYouTubeUrl: file.url ? isYouTubeUrl(file.url) : false,
-                  doc_type: file.doc_type,
-                  source: file.source
-                });
                 return (
                   <YouTubeCard
                     key={file.id}
@@ -860,11 +812,6 @@ export function FileSidebar({
               // Handle regular web links - Fix webpage detection logic
               if ((file.source === 'link' && (!file.url || !isYouTubeUrl(file.url))) ||
                   file.doc_type?.toLowerCase() === 'webpage') {
-                console.log(`DEBUG - Rendering WebpageCard for ${file.id} - ${file.name}`, {
-                  doc_type: file.doc_type,
-                  source: file.source,
-                  url: file.url
-                });
                 return (
                   <WebpageCard
                     key={file.id}
@@ -888,10 +835,6 @@ export function FileSidebar({
               }
               
               // Default file card for regular files
-              console.log(`DEBUG - Rendering FileCard for ${file.id} - ${file.name}`, {
-                doc_type: file.doc_type,
-                source: file.source
-              });
               return (
                 <FileCard
                   key={file.id}
@@ -950,8 +893,6 @@ export function FileSidebar({
     const handleLinkUploadStarted = (event: CustomEvent) => {
       const { url, name, domain, uploadId, timestamp } = event.detail;
       
-      console.log("Received link upload started event:", event.detail);
-      
       // Create a new virtual upload entry
       const newUpload: FileUploadStatus = {
         id: uploadId,
@@ -973,8 +914,6 @@ export function FileSidebar({
     // Handle when a link upload completes
     const handleLinkUploadCompleted = (event: CustomEvent) => {
       const { url, status } = event.detail;
-      
-      console.log("Received link upload completed event:", event.detail);
       
       // Update the upload entry with completed status
       setFileUploads(prevUploads => 
@@ -1000,8 +939,6 @@ export function FileSidebar({
     // Handle when a link upload errors
     const handleLinkUploadError = (event: CustomEvent) => {
       const { url, status, errorMessage } = event.detail;
-      
-      console.log("Received link upload error event:", event.detail);
       
       // Update the upload entry with error status
       setFileUploads(prevUploads => 

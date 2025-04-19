@@ -384,15 +384,80 @@ export interface MessageContentProps {
 export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, hasFileAnnotations, loadingLinkId, isStreaming }: MessageContentProps) => {
   // Function to extract URLs from text with their surrounding context
   const extractLinks = React.useMemo(() => {
+    // First, look for regular URLs
     const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const urls = content.match(urlRegex) || [];
     
-    if (urls.length === 0) return { text: content, links: [] };
+    // Regular Markdown-style links
+    const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    
+    // Special case for consecutive Markdown links with numbered references
+    // This handles cases like: [text](url1)[[number]](url2)
+    const numberedRefRegex = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)(?:\s*)\[\[(\d+)\]\]\((https?:\/\/[^)]+)\)/g;
+    
+    // Collect all URLs from all patterns
+    let allUrls: string[] = [];
+    let markdownMatches: Array<{text: string, url: string}> = [];
+    
+    // Extract regular URLs
+    const regularUrls = content.match(urlRegex) || [];
+    allUrls = [...regularUrls];
+    
+    // Extract special case of numbered references first
+    // This ensures we handle both URLs in the pattern [text](url1)[[number]](url2)
+    let numberedMatch;
+    while ((numberedMatch = numberedRefRegex.exec(content)) !== null) {
+      const [fullMatch, text, url1, numberRef, url2] = numberedMatch;
+      
+      // Add both URLs with appropriate context
+      if (url1.startsWith('http')) {
+        allUrls.push(url1);
+        markdownMatches.push({text, url: url1});
+      }
+      
+      if (url2.startsWith('http')) {
+        allUrls.push(url2);
+        markdownMatches.push({text: `Reference ${numberRef}`, url: url2});
+      }
+    }
+    
+    // Extract regular Markdown-style links
+    let match;
+    while ((match = markdownLinkRegex.exec(content)) !== null) {
+      const [fullMatch, text, url] = match;
+      
+      // Skip if we've already processed this exact match in the numbered reference pattern
+      // This check prevents duplicates when we have [text](url1)[[number]](url2)
+      if (content.includes(`${fullMatch}[[`)) {
+        const afterMatch = content.substring(match.index + fullMatch.length);
+        if (afterMatch.match(/^\s*\[\[\d+\]\]\(/)) {
+          continue; // Skip this match as it's part of a numbered reference pattern
+        }
+      }
+      
+      // Only add if it's a URL (some markdown links might be anchors or other non-URL formats)
+      if (url.startsWith('http')) {
+        allUrls.push(url);
+        markdownMatches.push({text, url});
+      }
+    }
+    
+    if (allUrls.length === 0) return { text: content, links: [] };
+    
+    // Create a mapping of URLs to their context text from markdown links
+    const markdownTextMap = new Map<string, string>();
+    markdownMatches.forEach(({text, url}) => {
+      markdownTextMap.set(url, text);
+    });
     
     // Extract URLs with context
-    const links = urls.map(url => {
+    const processedUrls = new Set<string>(); // Track processed URLs to avoid duplicates
+    const links = allUrls.map(url => {
       // Clean up the URL if it has trailing punctuation
       const cleanUrl = url.replace(/[.,;:!?)]+$/, '');
+      
+      // Skip if we've already processed this URL
+      if (processedUrls.has(cleanUrl)) return null;
+      processedUrls.add(cleanUrl);
       
       // Replace utm_source=openai with utm_source=mystylus.com if present
       let processedUrl = cleanUrl;
@@ -411,39 +476,44 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
       const sentences = content.split(/(?<=[.!?])\s+/);
       const sentenceWithUrl = sentences.find(s => s.includes(cleanUrl)) || '';
       
-      // Try to extract a title-like text before the URL
-      const beforeUrl = sentenceWithUrl.split(cleanUrl)[0].trim();
+      // Use markdown text if available, otherwise try to extract from context
+      let title = markdownTextMap.get(cleanUrl) || '';
       
-      // Look for text in quotes, between brackets, or take the last 5-7 words
-      let title = '';
-      const quoteMatch = beforeUrl.match(/['"]([^'"]+)['"]\s*$/);
-      const bracketMatch = beforeUrl.match(/\[([^\]]+)\]\s*$/);
-      
-      if (quoteMatch) {
-        title = quoteMatch[1];
-      } else if (bracketMatch) {
-        title = bracketMatch[1];
-      } else {
-        // Try to extract a title from words before the link
-        const words = beforeUrl.split(/\s+/);
-        if (words.length >= 3) {
-          // Take last 3-5 words as potential title
-          const titleWords = words.slice(Math.max(0, words.length - 5));
-          if (titleWords.join(' ').length > 5) {
-            title = titleWords.join(' ');
-            // Remove leading articles, conjunctions, etc.
-            title = title.replace(/^(and|the|a|an|in|for|to|of|on|by|with)\s+/i, '');
+      // If no title from markdown, try to extract from context
+      if (!title) {
+        // Try to extract a title-like text before the URL
+        const beforeUrl = sentenceWithUrl.split(cleanUrl)[0].trim();
+        
+        // Look for text in quotes, between brackets, or take the last 5-7 words
+        const quoteMatch = beforeUrl.match(/['"]([^'"]+)['"]\s*$/);
+        const bracketMatch = beforeUrl.match(/\[([^\]]+)\]\s*$/);
+        
+        if (quoteMatch) {
+          title = quoteMatch[1];
+        } else if (bracketMatch) {
+          title = bracketMatch[1];
+        } else {
+          // Try to extract a title from words before the link
+          const words = beforeUrl.split(/\s+/);
+          if (words.length >= 3) {
+            // Take last 3-5 words as potential title
+            const titleWords = words.slice(Math.max(0, words.length - 5));
+            if (titleWords.join(' ').length > 5) {
+              title = titleWords.join(' ');
+              // Remove leading articles, conjunctions, etc.
+              title = title.replace(/^(and|the|a|an|in|for|to|of|on|by|with)\s+/i, '');
+            }
           }
         }
-        
-        // If no good title, use domain name
-        if (!title || title.length < 4) {
-          try {
-            const urlObj = new URL(processedUrl);
-            title = urlObj.hostname.replace(/^www\./, '');
-          } catch (e) {
-            title = processedUrl;
-          }
+      }
+      
+      // If no good title, use domain name
+      if (!title || title.length < 4) {
+        try {
+          const urlObj = new URL(processedUrl);
+          title = urlObj.hostname.replace(/^www\./, '');
+        } catch (e) {
+          title = processedUrl;
         }
       }
       
@@ -477,7 +547,13 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
         })(),
         extension
       };
-    });
+    }).filter(Boolean) as Array<{
+      url: string;
+      title: string;
+      context: string;
+      domain: string;
+      extension: string;
+    }>;
     
     // Remove duplicate links
     const uniqueLinks = links.filter((link, index, self) => 
