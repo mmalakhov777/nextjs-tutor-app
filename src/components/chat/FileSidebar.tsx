@@ -175,6 +175,7 @@ export function FileSidebar({
   
   // Track multiple file uploads with their progress
   const [fileUploads, setFileUploads] = useState<FileUploadStatus[]>([]);
+  const [linkTempState, setLinkTempState] = useState<{ isAdded: boolean, url: string }>({ isAdded: false, url: '' });
 
   // Get the setUploadedFiles function from the FileContext
   const { setUploadedFiles } = useFileContext();
@@ -533,9 +534,22 @@ export function FileSidebar({
         }
       ]);
 
+      // Show temporary "Added!" in button
+      const currentLinkUrl = linkUrl;
+      const tempButtonRef = { isAdded: true, url: currentLinkUrl };
+      setLinkTempState(tempButtonRef);
+      
+      // Clear the input immediately to allow adding more links
+      setLinkUrl('');
+      
+      // Reset button after a brief delay
+      setTimeout(() => {
+        setLinkTempState(prev => prev.url === tempButtonRef.url ? { isAdded: false, url: '' } : prev);
+      }, 1000);
+
       try {
         // Call the onLinkSubmit function
-        await onLinkSubmit(linkUrl);
+        await onLinkSubmit(currentLinkUrl);
         
         // Update status to processing
         setFileUploads(prev => 
@@ -546,27 +560,17 @@ export function FileSidebar({
           )
         );
         
-        // Show success notification
-        setNotification('Link submitted successfully');
-        setTimeout(() => setNotification(null), 3000);
-        
-        // Clear the input
-        setLinkUrl('');
-        
         // Find the newly added link in uploadedFiles
         // Wait a short time for the link to be processed and added to uploadedFiles
         setTimeout(() => {
           const addedLink = uploadedFiles.find(file => 
-            file.source === 'link' && file.url === linkUrl
+            file.source === 'link' && file.url === currentLinkUrl
           );
           
           if (addedLink) {
             // Link was added successfully, fetch and save its content
             loadAndSaveFileContent(addedLink.id);
           }
-          
-          // Immediately mark as completed and remove from fileUploads
-          setFileUploads(prev => prev.filter(upload => upload.url !== linkUrl));
         }, 2000);
       } catch (error) {
         // Get error message
@@ -575,7 +579,7 @@ export function FileSidebar({
         // Mark as error but keep it visible
         setFileUploads(prev => 
           prev.map(upload => 
-            upload.id === uploadId 
+            upload.id === uploadId && upload.url === currentLinkUrl
               ? { 
                   ...upload, 
                   status: 'error',
@@ -588,8 +592,6 @@ export function FileSidebar({
         // Show error notification
         setNotification(`Error: ${errorMessage}`);
         setTimeout(() => setNotification(null), 3000);
-        
-        // NEVER auto-remove error uploads - let user dismiss them
       }
       
       if (onRefreshFiles) {
@@ -659,11 +661,28 @@ export function FileSidebar({
     // Create a set of file names that exist in uploadedFiles
     const uploadedFileNames = new Set(uploadedFiles.map(file => file.name));
     
+    // Create a set of URLs from uploadedFiles to check for duplicates
+    const uploadedFileUrls = new Set(
+      uploadedFiles
+        .filter(file => file.source === 'link' && file.url)
+        .map(file => file.url)
+    );
+    
     // Filter temporary uploads more carefully
     const filteredUploads = fileUploads.filter(upload => {
+      // Skip error uploads altogether - never show them
+      if (upload.status === 'error') {
+        return false;
+      }
+      
+      // Always filter out temporary uploads if their URL exists in completed files
+      if (upload.url && uploadedFileUrls.has(upload.url)) {
+        return false; // Skip this temporary upload as we already have a completed entry
+      }
+
       // Check if a corresponding completed file with metadata exists in the main list
       const correspondingCompletedFile = uploadedFiles.find(f => 
-        f.name === upload.fileName && 
+        (f.name === upload.fileName || (upload.url && f.url === upload.url)) && 
         f.status === 'completed' &&
         Boolean(
           (f.doc_title && f.doc_title.trim() !== '') || 
@@ -676,7 +695,11 @@ export function FileSidebar({
         )
       );
 
-      // Condition 2: Keep uploading/processing items ONLY if not yet in uploadedFiles
+      if (correspondingCompletedFile) {
+        return false; // Skip this upload as we have a completed version
+      }
+
+      // Keep uploading/processing items ONLY if not yet in uploadedFiles
       if ((upload.status === 'uploading' || upload.status === 'processing') && 
           !uploadedFileNames.has(upload.fileName) && 
           !correspondingCompletedFile) {
@@ -968,6 +991,52 @@ export function FileSidebar({
     };
   }, []);
 
+  // Add this useEffect to clean up duplicate uploads when files are successfully processed
+  useEffect(() => {
+    if (uploadedFiles.length > 0) {
+      // Create a set of URLs from all completed files
+      const completedFileUrls = new Set(
+        uploadedFiles
+          .filter(file => file.source === 'link' && file.url && file.status === 'completed')
+          .map(file => file.url)
+      );
+      
+      // Remove any temporary uploads that correspond to completed files
+      if (completedFileUrls.size > 0) {
+        setFileUploads(prev => 
+          prev.filter(upload => {
+            // If this is a link upload and we have a completed file with the same URL, remove it
+            if (upload.url && completedFileUrls.has(upload.url)) {
+              return false; // Remove this temporary upload
+            }
+            return true; // Keep other uploads
+          })
+        );
+      }
+    }
+  }, [uploadedFiles]);
+
+  // New useEffect to auto-remove error uploads after a short delay
+  useEffect(() => {
+    // Check if there are any uploads with error status
+    const errorUploads = fileUploads.filter(upload => upload.status === 'error');
+    
+    if (errorUploads.length > 0) {
+      // Show a notification for the first error
+      if (errorUploads[0].errorMessage) {
+        setNotification(`Error: ${errorUploads[0].errorMessage}`);
+        setTimeout(() => setNotification(null), 3000);
+      }
+      
+      // Automatically remove error uploads after a short delay
+      const timer = setTimeout(() => {
+        setFileUploads(prev => prev.filter(upload => upload.status !== 'error'));
+      }, 500); // Remove after 500ms
+      
+      return () => clearTimeout(timer);
+    }
+  }, [fileUploads]);
+
   return (
     <div className={`${isMobile ? 'w-full' : 'w-64 border-r'} bg-white border-light h-full flex flex-col`}>
       <div 
@@ -1081,7 +1150,7 @@ export function FileSidebar({
                     : 'text-foreground border-b-2 border-primary'}
                 `}
                 onClick={() => setIsLinkMode(false)}
-                disabled={!defaultVectorStoreId || fileUploads.length > 0}
+                disabled={!defaultVectorStoreId}
               >
                 <Upload className="h-4 w-4" />
                 <span>File</span>
@@ -1093,7 +1162,7 @@ export function FileSidebar({
                     : 'text-muted-foreground hover:text-foreground'}
                 `}
                 onClick={() => setIsLinkMode(true)}
-                disabled={!defaultVectorStoreId || fileUploads.length > 0}
+                disabled={!defaultVectorStoreId}
               >
                 <Link className="h-4 w-4" />
                 <span>Link</span>
@@ -1117,7 +1186,7 @@ export function FileSidebar({
                     onChange={(e) => setLinkUrl(e.target.value)}
                     placeholder="https://example.com"
                     className="w-full p-2 text-sm border border-light rounded-md"
-                    disabled={!defaultVectorStoreId || fileUploads.length > 0}
+                    disabled={!defaultVectorStoreId}
                   />
                 </div>
                 <button 
@@ -1129,18 +1198,16 @@ export function FileSidebar({
                     disabled:opacity-70 disabled:cursor-not-allowed
                   "
                   style={{ background: 'var(--superlight)' }}
-                  disabled={!defaultVectorStoreId || !linkUrl || fileUploads.length > 0}
+                  disabled={!defaultVectorStoreId || !linkUrl}
                   onClick={handleLinkSubmit}
                 >
-                  {fileUploads.some(upload => upload.url === linkUrl) ? (
-                    <RefreshCw className="h-4 w-4 animate-spin" strokeWidth={2} />
+                  {linkTempState.isAdded ? (
+                    <CheckCircle2 className="h-4 w-4 text-green-500" strokeWidth={2} />
                   ) : (
                     <Link className="h-4 w-4" strokeWidth={2} />
                   )}
                   <span>
-                    {fileUploads.some(upload => upload.url === linkUrl) 
-                      ? 'Processing...' 
-                      : 'Submit Link'}
+                    {linkTempState.isAdded ? 'Added!' : 'Submit Link'}
                   </span>
                 </button>
                 
