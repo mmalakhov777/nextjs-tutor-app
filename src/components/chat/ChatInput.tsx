@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState } from 'react';
-import { Send, Loader2, Square, File, AtSign } from 'lucide-react';
+import { Send, Loader2, Square, File, AtSign, AlertCircle } from 'lucide-react';
 import type { ChatInputProps, UploadedFile } from '@/types/chat';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -768,11 +768,21 @@ export function ChatInput({
       setIsLoadingFileContent(false); // Reset loading state
       // Send both the processed message with metadata and the display message
       onSend(processedMessage, displayMessage);
+      
+      // Reset to chat mode after sending
+      if (mode === 'research') {
+        onModeChange('chat');
+      }
     } catch (error) {
       console.error("Error processing file mentions:", error);
       setIsLoadingFileContent(false); // Reset loading state on error
       // Send original message as fallback
       onSend(value, value); // Send same message for both when error occurs
+      
+      // Reset to chat mode after sending, even on error
+      if (mode === 'research') {
+        onModeChange('chat');
+      }
     }
   };
 
@@ -824,23 +834,6 @@ export function ChatInput({
     return message + metadataSection;
   };
 
-  // Add CSS for styling inline file mentions
-  const fileStyles = `
-    .chat-input::placeholder {
-      color: #9ca3af;
-    }
-    
-    .file-mention { /* Style for # mentions */
-      background-color: #e0f2fe; 
-      color: #0369a1;
-      border-radius: 4px;
-      padding: 1px 3px;
-      margin: 0 1px;
-      display: inline-block;
-      font-size: 0.9em;
-    }
-  `;
-  
   // Function to apply styling based on mentions
   const getStylingClass = () => {
      // Check for both file (#) and agent (@) mentions
@@ -931,9 +924,109 @@ export function ChatInput({
     }
   };
 
+  const [isResearchDisabled, setIsResearchDisabled] = useState(false); // Add state for research disabled
+  const [showResearchTooltip, setShowResearchTooltip] = useState(false); // Tooltip for research disabled
+  const researchIconRef = useRef<HTMLSpanElement>(null);
+
+  // Close tooltip on outside click
+  useEffect(() => {
+    if (!showResearchTooltip) return;
+    function handleClick(e: MouseEvent) {
+      if (researchIconRef.current && !researchIconRef.current.contains(e.target as Node)) {
+        setShowResearchTooltip(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showResearchTooltip]);
+
+  // Check text for @ or # symbols to disable research mode
+  useEffect(() => {
+    // If text contains @ or #, disable research mode and switch to chat
+    if (value && (value.includes('@') || value.includes('#'))) {
+      setIsResearchDisabled(true);
+      if (mode === 'research') {
+        onModeChange('chat');
+      }
+    } else {
+      setIsResearchDisabled(false);
+    }
+  }, [value, mode, onModeChange]);
+
   return (
     <div className="bg-transparent w-full relative z-[200]">
-      <style dangerouslySetInnerHTML={{ __html: fileStyles }} />
+      {/* Global styles for entire component - combined to avoid nested style tags */}
+      <style jsx global>{`
+        /* File mention styles */
+        .file-mention {
+          background-color: #e0f2fe; 
+          color: #0369a1;
+          border-radius: 4px;
+          padding: 1px 3px;
+          margin: 0 1px;
+          display: inline-block;
+          font-size: 0.9em;
+        }
+        
+        /* Custom scrollbar styles */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #555; border-radius: 2px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #777; }
+        .custom-scrollbar { scrollbar-width: thin; scrollbar-color: #555 transparent; }
+        
+        /* Research tooltip styles */
+        .research-tooltip-container {
+          z-index: 2000 !important; /* Ensure it's above everything */
+        }
+        .research-tooltip-arrow {
+          width: 8px;
+          height: 8px;
+          background: #232323;
+          transform: rotate(45deg);
+          position: absolute;
+          z-index: 6;
+          -webkit-transform: rotate(45deg);
+          -moz-transform: rotate(45deg);
+          -ms-transform: rotate(45deg);
+          -o-transform: rotate(45deg);
+          bottom: -4px;
+          left: 50%;
+          margin-left: -4px;
+        }
+        .research-tooltip-content {
+          display: flex;
+          width: 210px;
+          padding: 8px;
+          flex-direction: column;
+          align-items: flex-start;
+          border-radius: 12px;
+          background: #232323;
+          box-shadow: 0px 0px 20px 0px rgba(203, 203, 203, 0.20);
+          position: relative;
+          color: #FFFFFF;
+          font-size: 13px;
+          font-weight: 400;
+          line-height: 18px;
+          text-align: left;
+          opacity: 1 !important;
+        }
+        .research-tooltip-title {
+          font-weight: 600;
+          margin-bottom: 2px;
+          color: #FFFFFF;
+          opacity: 1 !important;
+        }
+        .research-tooltip-text {
+          color: #FFFFFF;
+          opacity: 1 !important;
+        }
+        
+        /* Chat input styles */
+        .chat-input::placeholder {
+          color: #9ca3af;
+        }
+      `}</style>
       <div 
         style={{
           display: 'flex',
@@ -1001,15 +1094,6 @@ export function ChatInput({
               overflow: 'auto',
             }}
           >
-            {/* Add scrollbar styling */}
-            <style jsx global>{`
-              .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-              .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-              .custom-scrollbar::-webkit-scrollbar-thumb { background: #555; border-radius: 2px; }
-              .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #777; }
-              .custom-scrollbar { scrollbar-width: thin; scrollbar-color: #555 transparent; }
-            `}</style>
-            
             {uploadedFiles.length > 0 || mentionSearch.toLowerCase().startsWith('all') ? (
               <div className="py-1 h-full">
                  {/* Dynamic "All Files" option */}
@@ -1079,15 +1163,6 @@ export function ChatInput({
               overflow: 'auto',
             }}
           >
-            {/* Add scrollbar styling */}
-            <style jsx global>{`
-              .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-              .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-              .custom-scrollbar::-webkit-scrollbar-thumb { background: #555; border-radius: 2px; }
-              .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #777; }
-              .custom-scrollbar { scrollbar-width: thin; scrollbar-color: #555 transparent; }
-            `}</style>
-
             {filteredAgents.length > 0 ? (
               <div className="py-1 h-full">
                 {filteredAgents.map((agent, index) => {
@@ -1192,6 +1267,34 @@ export function ChatInput({
                   paddingLeft: '4px'
                 }}>
                   Chat
+                  {isResearchDisabled && (
+                    <span
+                      ref={researchIconRef}
+                      style={{ display: 'inline-block', marginLeft: 4, position: 'relative', verticalAlign: 'middle', cursor: 'pointer', pointerEvents: 'auto' }}
+                      onClick={e => { 
+                        e.stopPropagation(); 
+                        // Close dropdowns when tooltip is opened
+                        setShowFileMention(false);
+                        setShowAgentMention(false);
+                        setShowResearchTooltip(v => !v); 
+                      }}
+                    >
+                      <AlertCircle className="inline-block relative" style={{ width: 14, height: 14, top: -2 }} />
+                      {showResearchTooltip && (
+                        <div className="absolute research-tooltip-container" style={{ left: '50%', transform: 'translateX(-50%)', bottom: '28px', minWidth: 210, zIndex: 2000 }}>
+                          <div className="relative">
+                            <div className="research-tooltip-arrow"></div>
+                            <div className="research-tooltip-content">
+                              <div className="research-tooltip-title">Web Research Disabled</div>
+                              <div className="research-tooltip-text">
+                                Web Research is disabled when referencing files or agents in your message. Remove @ or # to enable.
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </span>
+                  )}
                 </span>
               </div>
               {/* Research option - with centered text */}
@@ -1202,7 +1305,7 @@ export function ChatInput({
                   height: '100%',
                   color: '#232323',
                   fontWeight: mode === 'research' ? 600 : 500,
-                  opacity: mode === 'research' ? 1 : 0.5,
+                  opacity: (mode === 'research' ? 1 : 0.5) * (isResearchDisabled ? 0.5 : 1),
                   background: 'transparent',
                   transition: 'color 0.2s, opacity 0.2s',
                   position: 'relative',
@@ -1214,10 +1317,12 @@ export function ChatInput({
                   margin: '0 auto',
                   padding: 0,
                   left: 0,
+                  pointerEvents: isResearchDisabled ? 'none' : 'auto', // Disable clicking when research is disabled
                 }}
-                onClick={() => !disabled && onModeChange('research')}
+                onClick={() => !disabled && !isResearchDisabled && onModeChange('research')}
                 aria-pressed={mode === 'research'}
-                tabIndex={0}
+                aria-disabled={isResearchDisabled}
+                tabIndex={isResearchDisabled ? -1 : 0}
                 role="button"
               >
                 <span style={{ 
@@ -1249,7 +1354,7 @@ export function ChatInput({
                 height: isMobile ? '32px' : '36px',
                 borderRadius: '8px',
                 background: isRecording ? 'var(--Error-400, #EF4444)' : 'var(--Monochrome-Superlight, #F2F2ED)',
-                border: 'none',
+                border: '1px solid #E8E8E5',
                 cursor: 'pointer',
                 opacity: (disabled || isTranscribing) ? 0.5 : 1,
                 position: 'relative'
@@ -1287,7 +1392,7 @@ export function ChatInput({
                 gap: '10px',
                 borderRadius: '8px',
                 background: 'var(--Monochrome-Superlight, #F2F2ED)',
-                border: 'none',
+                border: '1px solid #E8E8E5',
                 cursor: 'pointer',
                 opacity: (disabled || isRecording || isTranscribing || isLoadingFileContent || !value.trim()) ? 0.5 : 1
               }}
