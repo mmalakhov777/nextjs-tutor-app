@@ -38,6 +38,7 @@ interface ChatLayoutProps {
   onTabChange: (tab: 'chat' | 'files' | 'agents') => void;
   chatPadding?: string;
   rightSidebarWide?: boolean;
+  researchLoadingIndicator?: ReactNode;
 }
 
 export function ChatLayout({
@@ -52,7 +53,8 @@ export function ChatLayout({
   loadingMessage,
   onTabChange,
   chatPadding = "",
-  rightSidebarWide = false
+  rightSidebarWide = false,
+  researchLoadingIndicator
 }: ChatLayoutProps) {
   const rightSidebarWidth = rightSidebarWide ? "w-96" : "w-64";
   
@@ -122,10 +124,14 @@ export function ChatLayout({
         )}
         
         {/* Loading Overlay */}
-        <LoadingOverlay 
-          isVisible={isLoading}
-          message={loadingMessage}
-        />
+        {isLoading && (researchLoadingIndicator ? (
+          researchLoadingIndicator
+        ) : (
+          <LoadingOverlay 
+            isVisible={isLoading}
+            message={loadingMessage}
+          />
+        ))}
       </div>
 
       {/* Right Sidebar - Only visible on desktop */}

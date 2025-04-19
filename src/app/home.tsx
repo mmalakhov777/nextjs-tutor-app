@@ -25,6 +25,7 @@ import { MobileTabBar } from '@/components/chat/MobileTabBar';
 import { ChatLayout } from '@/components/chat/ChatLayout';
 import { LoadingOverlay } from '@/components/ui/LoadingOverlay';
 import { FileDetailModal } from '@/components/chat/FileDetailModal';
+import ResearchLoadingIndicator from '@/components/chat/ResearchLoadingIndicator';
 
 // Import our hooks
 import { useChat } from '@/hooks/useChat';
@@ -1737,16 +1738,21 @@ content: HIDDEN_CONTENT
         }
         isMobile={isMobile}
         activeTab={activeTab}
-        isLoading={isLoadingSession || isCreatingSession}
+        isLoading={
+          (chat.isProcessing && mode === 'research') || isLoadingSession || isCreatingSession
+        }
         loadingMessage={
           chat.isProcessing && mode === 'research'
-            ? 'Researching...'
+            ? ''
             : isCreatingSession
               ? 'Creating new conversation...'
               : 'Loading conversation...'
         }
         onTabChange={setActiveTab}
         rightSidebarWide={agentsSidebarTab === 'notes' || agentsSidebarTab === 'scenarios'}
+        researchLoadingIndicator={
+          chat.isProcessing && mode === 'research' ? <ResearchLoadingIndicator /> : undefined
+        }
       />
 
       <AnalysisModal
