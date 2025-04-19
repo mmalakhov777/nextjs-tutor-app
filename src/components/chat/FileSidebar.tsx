@@ -755,7 +755,7 @@ export function FileSidebar({
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-xs sm:text-sm font-semibold text-foreground">
             {/* Counter showing files used out of maximum */}
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs sm:text-sm font-semibold text-foreground">
               {uploadedFiles.length + fileUploads.filter(upload => upload.status !== 'error').length}/50 files
             </span>
           </h3>
