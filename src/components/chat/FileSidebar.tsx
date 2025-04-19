@@ -480,21 +480,6 @@ export function FileSidebar({
     
     // Final check for any files that might not have been properly handled
     setTimeout(() => {
-      // Check for PDF files - they often cause silent 400 errors
-      setFileUploads(prev => 
-        prev.map(upload => {
-          if (upload.status === 'completed' && 
-              upload.fileName.toLowerCase().endsWith('.pdf')) {
-            return { 
-              ...upload, 
-              status: 'error',
-              errorMessage: 'Failed to upload file: 400 - PDFs not supported'
-            };
-          }
-          return upload;
-        })
-      );
-      
       // Show success notification if any uploads completed successfully
       const successfulUploads = fileUploads.filter(upload => upload.status === 'completed').length;
       if (successfulUploads > 0) {
