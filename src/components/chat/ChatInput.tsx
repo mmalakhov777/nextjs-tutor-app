@@ -1138,36 +1138,39 @@ export function ChatInput({
               style={{
                 minWidth: 140,
                 height: 36,
-                background: '#F2F2ED',
+                background: '#F8F8F6',
                 borderRadius: 10,
                 boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                border: '1px solid #E8E8E5',
+                border: 'none',
                 padding: 2,
               }}
             >
-              {/* Sliding background */}
+              {/* Sliding background - now with dynamic width/positioning */}
               <div
-                className="absolute top-0 left-0 h-full w-1/2 transition-all duration-200"
+                className="absolute top-0 left-0 h-full transition-all duration-200"
                 style={{
-                  transform: mode === 'chat' ? 'translateX(0%)' : 'translateX(100%)',
+                  transform: mode === 'chat' ? 'translateX(0)' : 'translateX(100%)',
                   background: '#E8E8E5',
                   borderRadius: 10,
-                  width: '50%',
+                  width: mode === 'chat' ? 'calc(50% - 10px)' : 'calc(50% + 10px)', /* Adjusting for text length difference */
+                  left: mode === 'chat' ? '2px' : '50%',
                   zIndex: 1,
                 }}
               />
-              {/* Chat option */}
+              {/* Chat option - now with content-based width */}
               <div
-                className="flex-1 z-10 flex items-center justify-center cursor-pointer text-sm font-medium"
+                className="z-10 flex items-center justify-center cursor-pointer text-sm font-medium"
                 style={{
+                  width: 'calc(50% - 10px)', /* Make Chat button smaller */
                   height: '100%',
-                  color: mode === 'chat' ? '#232323' : '#CBCBCB',
+                  color: '#232323',
                   fontWeight: mode === 'chat' ? 600 : 500,
                   opacity: mode === 'chat' ? 1 : 0.5,
                   background: 'transparent',
                   transition: 'color 0.2s, opacity 0.2s',
                   position: 'relative',
                   userSelect: 'none',
+                  padding: '0 10px',
                 }}
                 onClick={() => !disabled && onModeChange('chat')}
                 aria-pressed={mode === 'chat'}
@@ -1176,18 +1179,20 @@ export function ChatInput({
               >
                 Chat
               </div>
-              {/* Research option */}
+              {/* Research option - now with content-based width */}
               <div
-                className="flex-1 z-10 flex items-center justify-center cursor-pointer text-sm font-medium"
+                className="z-10 flex items-center justify-center cursor-pointer text-sm font-medium"
                 style={{
+                  width: 'calc(50% + 10px)', /* Make Research button larger */
                   height: '100%',
-                  color: mode === 'research' ? '#232323' : '#CBCBCB',
+                  color: '#232323',
                   fontWeight: mode === 'research' ? 600 : 500,
                   opacity: mode === 'research' ? 1 : 0.5,
                   background: 'transparent',
                   transition: 'color 0.2s, opacity 0.2s',
                   position: 'relative',
                   userSelect: 'none',
+                  padding: '0 10px',
                 }}
                 onClick={() => !disabled && onModeChange('research')}
                 aria-pressed={mode === 'research'}
