@@ -768,21 +768,11 @@ export function ChatInput({
       setIsLoadingFileContent(false); // Reset loading state
       // Send both the processed message with metadata and the display message
       onSend(processedMessage, displayMessage);
-      
-      // Reset to chat mode after sending
-      if (mode === 'research') {
-        onModeChange('chat');
-      }
     } catch (error) {
       console.error("Error processing file mentions:", error);
       setIsLoadingFileContent(false); // Reset loading state on error
       // Send original message as fallback
       onSend(value, value); // Send same message for both when error occurs
-      
-      // Reset to chat mode after sending, even on error
-      if (mode === 'research') {
-        onModeChange('chat');
-      }
     }
   };
 

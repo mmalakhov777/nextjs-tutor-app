@@ -88,10 +88,11 @@ export function ChatMessages({
   const shouldShowLoading = useMemo(() => {
     // Always show loading indicator when processing
     if (!isProcessing) return false;
-    
     // Check if the last message was from a user, which means we're waiting for a response
     const lastMessage = displayMessages[displayMessages.length - 1];
-    return lastMessage && lastMessage.role === 'user';
+    const result = lastMessage && lastMessage.role === 'user';
+    console.log('[ChatMessages] shouldShowLoading:', result, 'isProcessing:', isProcessing, 'mode:', mode, 'lastMessage:', lastMessage);
+    return result;
   }, [isProcessing, displayMessages]);
 
   // Scroll to bottom when messages change or when loading appears
@@ -258,9 +259,12 @@ export function ChatMessages({
             ))}
             
             {shouldShowLoading && (
-              mode === 'research'
-                ? <ResearchLoadingIndicator />
-                : renderLoadingIndicator()
+              (() => {
+                console.log('[ChatMessages] Rendering loader. Mode:', mode);
+                return mode === 'research'
+                  ? <ResearchLoadingIndicator />
+                  : renderLoadingIndicator();
+              })()
             )}
 
             <div ref={messagesEndRef} />

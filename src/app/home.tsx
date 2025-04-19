@@ -1624,6 +1624,9 @@ content: HIDDEN_CONTENT
             timestamp: new Date()
           }
         ]);
+        
+        // Reset mode to chat ONLY after the research response is processed
+        setMode('chat');
       } catch (err) {
         chat.setMessages(prev => [
           ...prev,
@@ -1633,6 +1636,9 @@ content: HIDDEN_CONTENT
             timestamp: new Date()
           }
         ]);
+        
+        // Reset mode to chat in case of error too
+        setMode('chat');
       }
       chat.setIsProcessing(false);
     } else {
@@ -1750,9 +1756,7 @@ content: HIDDEN_CONTENT
         }
         onTabChange={setActiveTab}
         rightSidebarWide={agentsSidebarTab === 'notes' || agentsSidebarTab === 'scenarios'}
-        researchLoadingIndicator={
-          chat.isProcessing && mode === 'research' ? <ResearchLoadingIndicator /> : undefined
-        }
+        researchLoadingIndicator={undefined}
       />
 
       <AnalysisModal
