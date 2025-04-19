@@ -1340,8 +1340,6 @@ export function ChatInput({
                 padding: isMobile ? '6px' : '8px',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: isMobile ? '32px' : '36px',
-                height: isMobile ? '32px' : '36px',
                 borderRadius: '8px',
                 background: isRecording ? 'var(--Error-400, #EF4444)' : 'var(--Monochrome-Superlight, #F2F2ED)',
                 border: '1px solid #E8E8E5',

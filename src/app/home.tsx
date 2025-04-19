@@ -1561,9 +1561,10 @@ content: HIDDEN_CONTENT
     setAgentsSidebarTab(tab);
   };
 
-  // Custom send handler for ChatInput
-  const handleInputSend = useCallback(async (message: string, displayMessage?: string) => {
-    if (mode === 'research') {
+  // Custom send handler for ChatInput and AgentsSidebar
+  const handleInputSend = useCallback(async (message: string, displayMessage?: string, type?: 'research' | 'chat') => {
+    const useResearch = type === 'research' || mode === 'research';
+    if (useResearch) {
       // Show loader and add user message
       chat.setIsProcessing(true);
       chat.setMessages(prev => [
@@ -1585,7 +1586,8 @@ content: HIDDEN_CONTENT
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             question: message,
-            user_id
+            user_id,
+            conversation_id: chat.currentConversationId
           })
         });
         const rawText = await response.text();
@@ -1704,7 +1706,14 @@ content: HIDDEN_CONTENT
             onAgentsUpdate={(updatedAgents) => agents.setAgents(updatedAgents)}
             onTabChange={handleAgentsSidebarTabChange}
             currentConversationId={chat.currentConversationId || undefined}
-            onSendMessage={chat.handleSendMessage}
+            onSendMessage={({ message, type }) => {
+              if (type === 'research') {
+                setMode('research');
+                handleInputSend(message, undefined, 'research');
+              } else {
+                handleInputSend(message, undefined, 'chat');
+              }
+            }}
           />
         }
         content={

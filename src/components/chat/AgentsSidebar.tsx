@@ -14,6 +14,7 @@ import { PerplexityLogo } from '@/components/icons/PerplexityLogo';
 import React from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import TiptapEditor from '@/components/editors/TiptapEditor';
+import { scenarios } from '@/data/scenarios';
 
 // Define MSD global interface type
 declare global {
@@ -47,7 +48,7 @@ interface ExtendedAgentsSidebarProps extends AgentsSidebarProps {
   onAgentsUpdate?: (updatedAgents: any[]) => void;
   onTabChange?: (tab: 'agents' | 'notes' | 'scenarios') => void;
   currentConversationId?: string; // Add the current conversation ID
-  onSendMessage?: (message: string) => void; // Add prop for sending messages
+  onSendMessage?: (payload: { message: string; type?: 'research' | 'chat' }) => void; // Add prop for sending messages with type
 }
 
 // Define a ref type for the component
@@ -858,184 +859,10 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
     }
   };
 
-  // Define scenario cards data
-  const scenarioCards = [
-    {
-      id: 'poem-writing',
-      title: 'Poem Writing',
-      description: 'Create beautiful poems in various styles',
-      icon: <PenTool className="h-5 w-5" />,
-      color: '#FED770',
-      steps: [
-        {
-          title: 'Choose poem style',
-          description: 'Select the type of poem you want to write',
-          actions: [
-            { label: 'Help me choose a poem style', prompt: 'I want to write a poem. Can you explain different poem styles and help me choose one?' },
-            { label: 'I want to write a sonnet', prompt: 'I want to write a sonnet. What structure should I follow?' },
-            { label: 'I want to create a haiku', prompt: 'I want to create a haiku. Can you explain the format and give me some examples?' }
-          ]
-        },
-        {
-          title: 'Select theme',
-          description: 'Choose what your poem will be about',
-          actions: [
-            { label: 'Suggest themes for my poem', prompt: 'Can you suggest some powerful themes for my poem?' },
-            { label: 'I want to write about nature', prompt: 'I want to write a poem about nature. What aspects of nature work well in poetry?' },
-            { label: 'Help me explore emotions in poetry', prompt: 'How can I effectively express emotions in my poem?' }
-          ]
-        },
-        {
-          title: 'Develop imagery',
-          description: 'Create vivid images and metaphors',
-          actions: [
-            { label: 'Help with poetic imagery', prompt: 'How can I create strong imagery in my poem?' },
-            { label: 'Suggest metaphors for my theme', prompt: 'Can you suggest some metaphors related to my poem theme?' },
-            { label: 'Tips for sensory descriptions', prompt: 'Give me tips for incorporating sensory details in poetry' }
-          ]
-        },
-        {
-          title: 'Finalize structure',
-          description: 'Refine rhythm, rhyme, and overall structure',
-          actions: [
-            { label: 'Help with rhythm and flow', prompt: 'How can I improve the rhythm and flow of my poem?' },
-            { label: 'Suggestions for better line breaks', prompt: 'Can you give advice on effective line breaks in poetry?' },
-            { label: 'Tips for a powerful ending', prompt: 'How can I create a strong ending for my poem?' }
-          ]
-        }
-      ]
-    },
-    {
-      id: 'marketing',
-      title: 'Marketing & Advertising',
-      description: 'Generate marketing copy and advertising ideas',
-      icon: <Mail className="h-5 w-5" />,
-      color: '#BADA55',
-      steps: [
-        {
-          title: 'Identify audience',
-          description: 'Define who your target customers or readers are'
-        },
-        {
-          title: 'Set marketing goals',
-          description: 'Determine what you want to achieve with this content'
-        },
-        {
-          title: 'Choose channel',
-          description: 'Select where this content will appear (social, email, etc.)'
-        },
-        {
-          title: 'Adapt to brand voice',
-          description: 'Ensure content matches your brand personality and style'
-        }
-      ]
-    },
-    {
-      id: 'research',
-      title: 'Research & Analysis',
-      description: 'Analyze data, trends, and provide insights',
-      icon: <BarChart2 className="h-5 w-5" />,
-      color: '#6CB4EE',
-      steps: [
-        {
-          title: 'Define research topic',
-          description: 'Specify the subject you want to investigate'
-        },
-        {
-          title: 'Set research scope',
-          description: 'Determine the breadth and depth of your analysis'
-        },
-        {
-          title: 'Request specific insights',
-          description: 'Ask for particular data points or trends you need'
-        },
-        {
-          title: 'Summarize findings',
-          description: 'Get a condensed version of the most important insights'
-        }
-      ]
-    },
-    {
-      id: 'content-planning',
-      title: 'Content Planning',
-      description: 'Create outlines and content strategies',
-      icon: <LayoutTemplate className="h-5 w-5" />,
-      color: '#FF7F50',
-      steps: [
-        {
-          title: 'Set content goals',
-          description: 'Define what you want your content to achieve'
-        },
-        {
-          title: 'Identify key topics',
-          description: 'List the main subjects your content should cover'
-        },
-        {
-          title: 'Create content structure',
-          description: 'Organize how information will be presented'
-        },
-        {
-          title: 'Plan distribution',
-          description: 'Decide how and when content will be shared'
-        }
-      ]
-    },
-    {
-      id: 'visual-ideas',
-      title: 'Visual Content Ideas',
-      description: 'Generate concepts for visual projects',
-      icon: <FileImage className="h-5 w-5" />,
-      color: '#D8BFD8',
-      steps: [
-        {
-          title: 'Define visual medium',
-          description: 'Choose what type of visual content you need'
-        },
-        {
-          title: 'Set style guidelines',
-          description: 'Specify color schemes, themes, and visual preferences'
-        },
-        {
-          title: 'Describe key message',
-          description: 'Clarify what your visual content should communicate'
-        },
-        {
-          title: 'Review concepts',
-          description: 'Evaluate ideas against your brand and goals'
-        }
-      ]
-    },
-    {
-      id: 'video-scripts',
-      title: 'Video & Script Writing',
-      description: 'Create scripts and dialogue for videos',
-      icon: <Video className="h-5 w-5" />,
-      color: '#F08080',
-      steps: [
-        {
-          title: 'Define video purpose',
-          description: 'Decide what you want your video to achieve'
-        },
-        {
-          title: 'Set video length',
-          description: 'Determine how long your video will be'
-        },
-        {
-          title: 'Structure your script',
-          description: 'Organize your video into clear sections'
-        },
-        {
-          title: 'Refine dialogue',
-          description: 'Polish the language to be clear and engaging'
-        }
-      ]
-    }
-  ];
-
   // Handler for step action buttons
-  const handleStepAction = (prompt: string, actionIndex: number) => {
+  const handleStepAction = (prompt: string, actionIndex: number, actionType?: 'research' | 'chat') => {
     // In a real implementation, this would trigger the chat with the prompt
-    console.log('Action prompt:', prompt);
+    console.log('Action prompt:', prompt, 'Action type:', actionType);
     
     // Create a unique ID for this action button
     const actionId = `step_${currentStep}_action_${actionIndex}`;
@@ -1053,13 +880,14 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
 
     // Send the prompt to the chat as a user message
     if (onSendMessage) {
-      onSendMessage(prompt);
+      // The home component will handle this message based on the type
+      onSendMessage({ message: prompt, type: actionType });
     }
   };
   
   // Function to advance to the next step
   const handleNextStep = () => {
-    const scenario = scenarioCards.find(s => s.id === expandedScenario);
+    const scenario = scenarios.find(s => s.id === expandedScenario);
     if (scenario && currentStep < scenario.steps.length - 1) {
       setCurrentStep(currentStep + 1);
     }
@@ -1086,6 +914,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
 
   // Function to render a fully expanded scenario card
   const renderExpandedScenarioCard = (scenario: any) => {
+    const Icon = scenario.icon;
     return (
       <>
         {/* Header section */}
@@ -1140,15 +969,22 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
                           // Create a unique ID for this button
                           const actionId = `step_${index}_action_${actionIndex}`;
                           const isTriggered = triggeredActions[actionId];
-                          
+                          const isResearch = action.type === 'research';
+                          // Compose label (no type shown)
                           return (
                             <button 
                               key={actionIndex}
-                              className={`w-full px-4 py-2 ${isTriggered ? 'bg-slate-100 text-slate-500' : 'bg-white text-slate-700 hover:bg-slate-50'} border border-slate-200 rounded-lg text-left text-sm flex items-center transition-colors`}
+                              className={`w-full px-4 py-2 border rounded-lg text-left text-sm flex items-center transition-colors ${
+                                isTriggered
+                                  ? 'bg-slate-100 text-slate-500 border-slate-200'
+                                  : isResearch
+                                    ? 'bg-[#232323] text-white border-[#232323] hover:bg-[#232323]'
+                                    : 'bg-[#232323] text-white border-[#232323] hover:bg-[#232323]'
+                              }`}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 if (!isTriggered) {
-                                  handleStepAction(action.prompt, actionIndex);
+                                  handleStepAction(action.prompt, actionIndex, action.type);
                                 }
                               }}
                               disabled={isTriggered}
@@ -1157,7 +993,11 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
                                 cursor: isTriggered ? 'default' : 'pointer'
                               }}
                             >
-                              <MessageSquare className="h-4 w-4 mr-2 text-slate-500" />
+                              {isResearch ? (
+                                <Search className="h-4 w-4 mr-2 text-inherit" />
+                              ) : (
+                                <MessageSquare className="h-4 w-4 mr-2 text-inherit" />
+                              )}
                               {action.label}
                             </button>
                           );
@@ -1166,7 +1006,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
                         {/* Next step button - only show if actions were taken */}
                         {(isCompleted || completedSteps.includes(index)) && index < scenario.steps.length - 1 && (
                           <button 
-                            className="w-full text-white text-sm font-medium transition-colors mt-3"
+                            className="w-full text-[#232323] text-sm font-medium transition-colors mt-3 border border-[#232323] bg-white hover:bg-slate-50"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleNextStep();
@@ -1178,7 +1018,6 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
                               justifyContent: 'center',
                               gap: '4px',
                               borderRadius: '8px',
-                              background: 'var(--Monochrome-Black, #232323)'
                             }}
                           >
                             Continue to next step
@@ -1209,7 +1048,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   const renderScenarioCards = () => {
     // If there's an expanded scenario, only show that one
     if (expandedScenario) {
-      const scenario = scenarioCards.find(s => s.id === expandedScenario);
+      const scenario = scenarios.find(s => s.id === expandedScenario);
       if (scenario) {
         return renderExpandedScenarioCard(scenario);
       }
@@ -1221,6 +1060,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
 
   // Function to render a scenario card
   const renderScenarioCard = (scenario: any) => {
+    const Icon = scenario.icon;
     return (
       <div 
         key={scenario.id}
@@ -1241,7 +1081,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
         <div className="flex flex-col w-full">
           <div className="flex justify-between items-center w-full">
             <h3 className="font-semibold text-slate-900 mb-1">{scenario.title}</h3>
-            <ChevronDown className="h-4 w-4 text-slate-500" />
+            <Icon className="h-4 w-4 text-slate-500" />
           </div>
           <p className="text-sm text-slate-600">{scenario.description}</p>
         </div>
@@ -1306,20 +1146,6 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
           >
             Agents
           </button>
-          <button 
-            onClick={() => handleTabChange('notes')} 
-            style={{
-              color: activeTab === 'notes' ? 'var(--Monochrome-Black, #232323)' : 'var(--Monochrome-Deep, #6C6C6C)',
-              textAlign: 'center',
-              fontSize: '19px',
-              fontStyle: 'normal',
-              fontWeight: 500,
-              lineHeight: '24px',
-              marginRight: '12px'
-            }}
-          >
-            Notes
-          </button>
           <div className="relative">
             {/* Calculate the disabled state ahead of time */}
             {(() => {
@@ -1358,7 +1184,8 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
                       fontWeight: 500,
                       lineHeight: '24px',
                       opacity: isDisabled ? 0.5 : 1,
-                      cursor: isDisabled ? 'not-allowed' : 'pointer'
+                      cursor: isDisabled ? 'not-allowed' : 'pointer',
+                      marginRight: '12px'
                     }}
                   >
                     {activeTab === 'scenarios' && expandedScenario ? 'All Scenarios' : 'Scenarios'}
@@ -1383,6 +1210,19 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
               );
             })()}
           </div>
+          <button 
+            onClick={() => handleTabChange('notes')} 
+            style={{
+              color: activeTab === 'notes' ? 'var(--Monochrome-Black, #232323)' : 'var(--Monochrome-Deep, #6C6C6C)',
+              textAlign: 'center',
+              fontSize: '19px',
+              fontStyle: 'normal',
+              fontWeight: 500,
+              lineHeight: '24px'
+            }}
+          >
+            Notes
+          </button>
         </div>
         
         <div className="flex-grow"></div>
@@ -1598,7 +1438,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
             </div>
           ) : (
             <div className="space-y-3">
-              {scenarioCards.map(scenario => renderScenarioCard(scenario))}
+              {scenarios.map(scenario => renderScenarioCard(scenario))}
             </div>
           )}
         </div>
