@@ -1744,15 +1744,11 @@ content: HIDDEN_CONTENT
         }
         isMobile={isMobile}
         activeTab={activeTab}
-        isLoading={
-          (chat.isProcessing && mode === 'research') || isLoadingSession || isCreatingSession
-        }
+        isLoading={isLoadingSession || isCreatingSession}
         loadingMessage={
-          chat.isProcessing && mode === 'research'
-            ? ''
-            : isCreatingSession
-              ? 'Creating new conversation...'
-              : 'Loading conversation...'
+          isCreatingSession
+            ? 'Creating new conversation...'
+            : 'Loading conversation...'
         }
         onTabChange={setActiveTab}
         rightSidebarWide={agentsSidebarTab === 'notes' || agentsSidebarTab === 'scenarios'}
