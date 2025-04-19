@@ -556,10 +556,22 @@ export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, ha
       extension: string;
     }>;
     
-    // Remove duplicate links
-    const uniqueLinks = links.filter((link, index, self) => 
-      index === self.findIndex(l => l.url === link.url)
-    );
+    // Remove duplicate links by protocol+host+pathname (ignore query params)
+    const seenBaseUrls = new Set<string>();
+    const uniqueLinks = links.filter(link => {
+      try {
+        const urlObj = new URL(link.url);
+        const base = urlObj.protocol + '//' + urlObj.host + urlObj.pathname;
+        if (seenBaseUrls.has(base)) return false;
+        seenBaseUrls.add(base);
+        return true;
+      } catch {
+        // If URL parsing fails, fallback to full URL deduplication
+        if (seenBaseUrls.has(link.url)) return false;
+        seenBaseUrls.add(link.url);
+        return true;
+      }
+    });
     
     return { text: content, links: uniqueLinks };
   }, [content]);

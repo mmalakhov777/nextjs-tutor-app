@@ -6,6 +6,7 @@ import { ClaudeCreativeLogo } from '@/components/icons/ClaudeCreativeLogo';
 import { DeepSeekLogo } from '@/components/icons/DeepSeekLogo';
 import { MistralLogo } from '@/components/icons/MistralLogo';
 import { PerplexityLogo } from '@/components/icons/PerplexityLogo';
+import { getAgentDescription } from '@/data/agentDescriptions';
 
 interface AgentBadgeProps {
   agentName: string;
@@ -84,29 +85,6 @@ const AgentBadge: React.FC<AgentBadgeProps> = ({ agentName, isStreaming = false 
         return "text-white"; // White text for dark backgrounds
       default:
         return "text-slate-800"; // Dark text for light backgrounds
-    }
-  };
-
-  // Helper function to get agent description
-  const getAgentDescription = (agentName: string) => {
-    switch(agentName) {
-      case "Triage Agent":
-      case "General Assistant":
-        return "The most suitable and effective model for general questions and answers based on uploaded files";
-      case "Grok X":
-        return "Great for questions about social media trends, viral content, and the latest news";
-      case "Mistral Europe":
-        return "Specializes in European languages, culture, and regional topics";
-      case "Claude Creative":
-        return "Great for questions about social media trends, viral content, and the latest news";
-      case "Deep Seek":
-        return "Expert in Chinese culture, language, and current affairs";
-      case "Perplexity":
-        return "Provides up-to-date information and internet search results";
-      case "Deep Thinker":
-        return "Great for questions about social media trends, viral content, and the latest news";
-      default:
-        return "";
     }
   };
 

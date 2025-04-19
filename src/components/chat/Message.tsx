@@ -31,6 +31,7 @@ import AgentBadge from './AgentBadge';
 import MessageActions from './MessageActions';
 import CitationControls from './CitationControls';
 import { getFileMetadataFromLocalStorage, saveFileMetadataToLocalStorage } from '@/utils/fileStorage';
+import { getAgentDescription } from '@/data/agentDescriptions';
 
 const getBackendUrl = () => {
   return process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5002';
@@ -1155,29 +1156,6 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
         return "text-white"; 
       default:
         return "text-slate-800"; 
-    }
-  };
-
-  
-  const getAgentDescription = (agentName: string) => {
-    switch(agentName) {
-      case "Triage Agent":
-      case "General Assistant":
-        return "The most suitable and effective model for general questions and answers based on uploaded files";
-      case "Grok X":
-        return "Great for questions about social media trends, viral content, and the latest news";
-      case "Mistral Europe":
-        return "Specializes in European languages, culture, and regional topics";
-      case "Claude Creative":
-        return "Great for questions about social media trends, viral content, and the latest news";
-      case "Deep Seek":
-        return "Expert in Chinese culture, language, and current affairs";
-      case "Perplexity":
-        return "Provides up-to-date information and internet search results";
-      case "Deep Thinker":
-        return "Great for questions about social media trends, viral content, and the latest news";
-      default:
-        return "";
     }
   };
 

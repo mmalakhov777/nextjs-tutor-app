@@ -1228,6 +1228,9 @@ export default function Home({
       // Clear file metadata cache in memory
       setFileMetadataCache({});
       
+      // Reset the AgentsSidebar (scenarios, tab, etc)
+      agentsSidebarRef.current?.resetSidebar && agentsSidebarRef.current.resetSidebar();
+      
       // If user is set, create a new session
       if (userId) {
         await initializeConversation(userId);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback, forwardRef, useMemo } from 'react';
 import { Send, Loader2, Square, File, AtSign, AlertCircle } from 'lucide-react';
 import type { ChatInputProps, UploadedFile } from '@/types/chat';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import { MistralLogo } from '@/components/icons/MistralLogo';
 import { PerplexityLogo } from '@/components/icons/PerplexityLogo';
 import { UserCircle } from 'lucide-react';
 import { saveFileMetadataToLocalStorage } from '@/utils/fileStorage';
+import { getAgentDescription } from '@/data/agentDescriptions';
 
 // Define a minimal Agent type locally
 type Agent = { id?: string; name: string; [key: string]: any };
@@ -99,13 +100,13 @@ const getDisplayAgentName = (agentName: string) => {
 
 // Define hardcoded default agents
 const DEFAULT_AGENTS: Agent[] = [
-  { id: 'general-assistant', name: 'General Assistant', description: 'The most suitable and effective model for general questions and answers based on uploaded files' },
-  { id: 'grok-x', name: 'Grok X', description: 'Great for questions about social media trends, viral content, and the latest news' },
-  { id: 'mistral-europe', name: 'Mistral Europe', description: 'Specializes in European languages, culture, and regional topics' },
-  { id: 'claude-creative', name: 'Claude Creative', description: 'Great for questions about social media trends, viral content, and the latest news' },
-  { id: 'deep-seek', name: 'Deep Seek', description: 'Expert in Chinese culture, language, and current affairs' },
-  { id: 'perplexity', name: 'Perplexity', description: 'Provides up-to-date information and internet search results' },
-  { id: 'deep-thinker', name: 'Deep Thinker', description: 'Great for questions about social media trends, viral content, and the latest news' }
+  { id: 'general-assistant', name: 'General Assistant' },
+  { id: 'grok-x', name: 'Grok X' },
+  { id: 'mistral-europe', name: 'Mistral Europe' },
+  { id: 'claude-creative', name: 'Claude Creative' },
+  { id: 'deep-seek', name: 'Deep Seek' },
+  { id: 'perplexity', name: 'Perplexity' },
+  { id: 'deep-thinker', name: 'Deep Thinker' }
 ];
 
 // Helper function to get agent circle color
@@ -943,6 +944,17 @@ export function ChatInput({
     }
   }, [value, mode, onModeChange]);
 
+  // Add this new helper function to get agent description:
+  const getDescription = (agent: Agent) => {
+    // If agent has its own description, use it
+    if (agent.description) {
+      return agent.description;
+    }
+    
+    // Otherwise use our centralized description
+    return getAgentDescription(agent.name);
+  };
+
   return (
     <div className="bg-transparent w-full relative z-[200]">
       {/* Global styles for entire component - combined to avoid nested style tags */}
@@ -1172,7 +1184,7 @@ export function ChatInput({
                           {displayName}
                         </span>
                         <span className={`text-xs mt-1 ${selectedAgentIndex === index ? 'text-gray-300' : 'text-gray-400'}`}>
-                          {agent.description || 'AI Assistant'}
+                          {getDescription(agent)}
                         </span>
                       </div>
                     </div>

@@ -15,6 +15,7 @@ import React from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import TiptapEditor from '@/components/editors/TiptapEditor';
 import { scenarios } from '@/data/scenarios';
+import { getAgentDescription } from '@/data/agentDescriptions';
 
 // Define MSD global interface type
 declare global {
@@ -54,6 +55,7 @@ interface ExtendedAgentsSidebarProps extends AgentsSidebarProps {
 // Define a ref type for the component
 export interface AgentsSidebarRef {
   refreshMessageCount: () => Promise<void>;
+  resetSidebar: () => void;
 }
 
 // Remove the TiptapEditor component definition from here as it's now imported
@@ -475,7 +477,14 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
 
   // Expose the fetchTodayMessageCount function through the ref
   useImperativeHandle(ref, () => ({
-    refreshMessageCount: fetchTodayMessageCount
+    refreshMessageCount: fetchTodayMessageCount,
+    resetSidebar: () => {
+      // Only reset scenario-related state, keep activeTab as is
+      setExpandedScenario(null);
+      setCurrentStep(0);
+      setCompletedSteps([]);
+      setTriggeredActions({});
+    }
   }), [fetchTodayMessageCount]);
   
   // Fetch the message count when the component mounts and when userId changes
@@ -571,26 +580,8 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   }, []);
 
   // Helper function to get agent description - memoize
-  const getAgentDescription = React.useCallback((agentName: string) => {
-    switch(agentName) {
-      case "Triage Agent":
-      case "General Assistant":
-        return "The most suitable and effective model for general questions and answers based on uploaded files";
-      case "Grok X":
-        return "Great for questions about social media trends, viral content, and the latest news";
-      case "Mistral Europe":
-        return "Specializes in European languages, culture, and regional topics";
-      case "Claude Creative":
-        return "Great for questions about social media trends, viral content, and the latest news";
-      case "Deep Seek":
-        return "Expert in Chinese culture, language, and current affairs";
-      case "Perplexity":
-        return "Provides up-to-date information and internet search results";
-      case "Deep Thinker":
-        return "Great for questions about social media trends, viral content, and the latest news";
-      default:
-        return "";
-    }
+  const getAgentDescriptionMemo = React.useCallback((agentName: string) => {
+    return getAgentDescription(agentName);
   }, []);
 
   // Helper function to get agent color based on name - memoize
@@ -1305,7 +1296,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
                               </div>
                               <div className="text-base font-semibold">{displayName}</div>
                             </div>
-                            <p className="text-sm text-slate-600">{getAgentDescription(displayName)}</p>
+                            <p className="text-sm text-slate-600">{getAgentDescriptionMemo(displayName)}</p>
                           </div>
                         );
                       })}
