@@ -35,6 +35,8 @@ declare global {
         isClosable: boolean;
         shouldVerifySubscriptionRetrieval: boolean;
         type: string;
+        promoMode?: string;
+        source?: string;
       }) => Promise<void>;
       sendAmpEvent?: (eventName: string, eventProperties?: Record<string, any>) => void;
     };
@@ -217,7 +219,9 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
         window.MSD?.openSubscriptionDialog({
           isClosable: false, // Force the user to make a decision
           shouldVerifySubscriptionRetrieval: true,
-          type: "alt2"
+          type: "alt2",
+          promoMode: 'after-close',
+          source: 'chat'
         }).then(() => {
           // After dialog closes, check subscription status again
           if (window.MSD) {
@@ -253,7 +257,9 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
         await window.MSD.openSubscriptionDialog({
           isClosable: true, // User initiated, so allow closing
           shouldVerifySubscriptionRetrieval: true,
-          type: "alt2"
+          type: "alt2",
+          promoMode: 'after-close',
+          source: 'chat'
         });
         
         console.log('[MSD] Subscription dialog closed, checking updated status');
