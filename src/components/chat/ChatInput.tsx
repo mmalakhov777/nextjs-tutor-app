@@ -589,6 +589,13 @@ export function ChatInput({
       // Create a copy for backend processing
       let processedMessage = value;
       
+      // Inject hidden instruction if there are no uploaded files
+      if (uploadedFiles.length === 0) {
+        processedMessage =
+          "do not use file search tool and just route the following user query to the best agent\n" +
+          processedMessage;
+      }
+      
       // Check if the message contains any file mentions
       const hasFileMention = isFileMention(value);
       

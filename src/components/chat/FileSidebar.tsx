@@ -1063,13 +1063,49 @@ export function FileSidebar({
           style={{
             color: 'var(--Monochrome-Black, #232323)',
             textAlign: 'center',
-            fontSize: '20px',
+            fontSize: '17px',
             fontStyle: 'normal',
             fontWeight: 500,
             lineHeight: '28px'
           }}
+          className="flex items-center gap-3"
         >
           File Upload
+          <a
+            href="https://mystylus.ai/sms"
+            target="_blank"
+            rel="noopener noreferrer"
+            tabIndex={0}
+            style={{
+              display: 'flex',
+              height: '40px',
+              padding: '8px 12px',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: '4px',
+              borderRadius: '8px',
+              border: '1px solid var(--Monochrome-Light, #E8E8E5)',
+              background: 'var(--Monochrome-White, #FFF)',
+              color: 'var(--Monochrome-Black, #232323)',
+              textDecoration: 'none',
+              marginLeft: '8px',
+              fontSize: '14px',
+              fontStyle: 'normal',
+              fontWeight: 400,
+              lineHeight: '20px',
+              transition: 'background 0.2s, border 0.2s, color 0.2s'
+            }}
+            onMouseOver={e => {
+              e.currentTarget.style.background = 'var(--superlight)';
+              e.currentTarget.style.borderColor = 'var(--normal)';
+            }}
+            onMouseOut={e => {
+              e.currentTarget.style.background = 'var(--Monochrome-White, #FFF)';
+              e.currentTarget.style.borderColor = 'var(--Monochrome-Light, #E8E8E5)';
+            }}
+          >
+            <span className="hidden sm:inline">Find Sources</span>
+          </a>
         </h2>
         {defaultVectorStoreId && (
           <Button
@@ -1252,7 +1288,7 @@ export function FileSidebar({
                   }}
                   onClick={defaultVectorStoreId && fileUploads.length === 0 ? handleFileButtonClick : undefined}
                 >            
-                  <h3 className="text-base font-medium text-foreground mb-2">
+                  <h3 className="text-base font-medium text-foreground mb-2 flex items-center gap-2">
                     Drop your files here
                   </h3>
                   
