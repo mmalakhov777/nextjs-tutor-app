@@ -1,16 +1,16 @@
-import { ScenarioData } from "../types";
-import { MegaphoneIcon } from "@heroicons/react/24/outline";
+import { ScenarioData } from '@/types/scenarios';
+import { MegaphoneIcon } from 'lucide-react';
 
-const scenario: ScenarioData = {
+export const researchTheMarketingAgencyLandscape: ScenarioData = {
   id: "research-the-marketing-agency-landscape",
-  title: "Research the Marketing Agency Landscape",
+  title: "How to start a marketing business",
   description:
     "Learn how to start and grow a successful marketing agency, from market research to scaling your team and services.",
   icon: MegaphoneIcon,
   color: "#6B47DC",
   steps: [
     {
-      title: "Research the Marketing Agency Landscape",
+      title: "How to start a marketing business",
       description:
         "Understand the current state, growth, and opportunities in the marketing agency industry.",
       actions: [
@@ -244,5 +244,3 @@ const scenario: ScenarioData = {
     },
   ],
 };
-
-export default scenario;

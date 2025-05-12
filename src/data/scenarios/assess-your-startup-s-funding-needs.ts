@@ -1,16 +1,16 @@
-import { ScenarioData } from "../types";
-import { MegaphoneIcon } from "@heroicons/react/24/outline";
+import { MegaphoneIcon } from 'lucide-react';
+import { ScenarioData } from '@/types/scenarios';
 
-const scenario: ScenarioData = {
-  id: "assess-your-startups-funding-needs",
-  title: "Assess Your Startup’s Funding Needs",
+export const assessYourStartupSFundingNeeds: ScenarioData = {
+  id: "assess-your-startup-s-funding-needs",
+  title: "Assess Your Startup's Funding Needs",
   description:
     "A step-by-step guide to planning, preparing, and succeeding with startup funding: from estimating needs and researching sources to pitching and avoiding common pitfalls.",
   icon: MegaphoneIcon,
   color: "#8C6EFF",
   steps: [
     {
-      title: "Assess Your Startup’s Funding Needs",
+      title: "Assess Your Startup's Funding Needs",
       description:
         "Evaluate your business model, growth stage, and capital requirements to determine how much funding you need and for what purpose.",
       actions: [
@@ -27,7 +27,7 @@ const scenario: ScenarioData = {
         {
           label: "Analyze financial runway",
           prompt:
-            "How do I determine my startup’s financial runway and when I’ll need to raise more capital?",
+            "How do I determine my startup's financial runway and when I'll need to raise more capital?",
         },
       ],
     },
@@ -88,12 +88,12 @@ const scenario: ScenarioData = {
         {
           label: "Factors influencing valuation",
           prompt:
-            "What factors will most impact my startup’s valuation in the eyes of investors?",
+            "What factors will most impact my startup's valuation in the eyes of investors?",
         },
         {
           label: "Prepare for valuation negotiation",
           prompt:
-            "How can I justify my startup’s valuation when negotiating with investors?",
+            "How can I justify my startup's valuation when negotiating with investors?",
         },
       ],
     },
@@ -132,7 +132,7 @@ const scenario: ScenarioData = {
         {
           label: "Protect intellectual property",
           prompt:
-            "How do I protect my startup’s intellectual property before seeking funding?",
+            "How do I protect my startup's intellectual property before seeking funding?",
         },
         {
           label: "Understand securities regulations",
@@ -187,5 +187,3 @@ const scenario: ScenarioData = {
     },
   ],
 };
-
-export default scenario;

@@ -1,15 +1,15 @@
-import { ScenarioData } from "../types";
-import { MegaphoneIcon } from "@heroicons/react/24/outline";
+import { MegaphoneIcon } from 'lucide-react';
+import { ScenarioData } from '@/types/scenarios';
 
-const scenario: ScenarioData = {
+export const clarifyTheConflict: ScenarioData = {
   id: "clarify-the-conflict",
-  title: "Clarify the Conflict",
+  title: "Conflict resolution methods in the workplace",
   description: "A step-by-step guide to resolving workplace conflict through clarification, negotiation, and fostering a positive organizational culture.",
   icon: MegaphoneIcon,
   color: "#6D31ED",
   steps: [
     {
-      title: "Clarify the Conflict",
+      title: "Conflict resolution methods in the workplace",
       description: "Identify and define the workplace conflict to ensure all parties have a shared understanding.",
       actions: [
         {
@@ -168,5 +168,3 @@ const scenario: ScenarioData = {
     }
   ]
 };
-
-export default scenario;

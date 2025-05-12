@@ -1,16 +1,16 @@
-import { ScenarioData } from "../types";
-import { MegaphoneIcon } from "@heroicons/react/24/outline";
+import { MegaphoneIcon } from 'lucide-react';
+import { ScenarioData } from '@/types/scenarios';
 
-const scenarioData: ScenarioData = {
+export const definePurposeAndScope: ScenarioData = {
   id: "define-purpose-and-scope",
-  title: "Define Purpose and Scope",
+  title: "Write a genealogy book",
   description:
     "Learn how to plan, research, write, and publish an engaging genealogy book, from defining its purpose to connecting with readers.",
   icon: MegaphoneIcon,
   color: "#6D4C41",
   steps: [
     {
-      title: "Define Purpose and Scope",
+      title: "Write a genealogy book",
       description:
         "Clarify the main goal and boundaries of your genealogy book to guide your research and writing.",
       actions: [
@@ -208,5 +208,3 @@ const scenarioData: ScenarioData = {
     },
   ],
 };
-
-export default scenarioData;

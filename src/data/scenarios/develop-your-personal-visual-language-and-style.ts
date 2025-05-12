@@ -1,7 +1,7 @@
-import { ScenarioData } from "../types";
-import { MegaphoneIcon } from "@heroicons/react/24/outline";
+import { MegaphoneIcon } from 'lucide-react';
+import { ScenarioData } from '@/types/scenarios';
 
-const scenario: ScenarioData = {
+export const developYourPersonalVisualLanguageAndStyle: ScenarioData = {
   id: "develop-your-personal-visual-language-and-style",
   title: "Develop Your Personal Visual Language and Style",
   description:
@@ -56,7 +56,7 @@ const scenario: ScenarioData = {
     {
       title: "Leverage Social Media in Unconventional Ways",
       description:
-        "Use social platforms creatively to build your brand, network, and credibility before you’re licensed.",
+        "Use social platforms creatively to build your brand, network, and credibility before you're licensed.",
       actions: [
         {
           label: "Document my artistic journey",
@@ -88,7 +88,7 @@ const scenario: ScenarioData = {
         {
           label: "Build a focused portfolio",
           prompt:
-            "What’s the best way to create a small but strong portfolio that showcases my chosen tattoo style?",
+            "What's the best way to create a small but strong portfolio that showcases my chosen tattoo style?",
         },
         {
           label: "Tell my artistic story",
@@ -98,7 +98,7 @@ const scenario: ScenarioData = {
       ],
     },
     {
-      title: "Build Credibility Before You’re Licensed",
+      title: "Build Credibility Before You're Licensed",
       description:
         "Establish a reputation for professionalism, safety, and reliability from the very beginning.",
       actions: [
@@ -115,11 +115,9 @@ const scenario: ScenarioData = {
         {
           label: "Get involved in the tattoo community",
           prompt:
-            "What are some ways I can start building a positive reputation in the tattoo community before I’m officially licensed?",
+            "What are some ways I can start building a positive reputation in the tattoo community before I'm officially licensed?",
         },
       ],
     },
   ],
 };
-
-export default scenario;

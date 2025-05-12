@@ -1,16 +1,16 @@
-import { ScenarioData } from "../types";
-import { MegaphoneIcon } from "@heroicons/react/24/outline";
+import { ScenarioData } from '@/types/scenarios';
+import { MegaphoneIcon } from 'lucide-react';
 
-const scenario: ScenarioData = {
+export const identifyYourNicheAndAudience: ScenarioData = {
   id: "identify-your-niche-and-audience",
-  title: "Identify Your Niche and Audience",
+  title: "How to do affiliate marketing on youtube",
   description:
     "A step-by-step guide to launching and optimizing YouTube affiliate marketing, from niche selection to analytics and compliance.",
   icon: MegaphoneIcon,
   color: "#7B3FE4",
   steps: [
     {
-      title: "Identify Your Niche and Audience",
+      title: "How to do affiliate marketing on youtube",
       description:
         "Select a strategic niche and understand your target audience for effective affiliate marketing.",
       actions: [
@@ -238,5 +238,3 @@ const scenario: ScenarioData = {
     },
   ],
 };
-
-export default scenario;

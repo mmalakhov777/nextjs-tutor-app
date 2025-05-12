@@ -1,15 +1,15 @@
-import { ScenarioData } from '../types'
-import { MegaphoneIcon } from '@heroicons/react/24/outline'
+import { ScenarioData } from '@/types/scenarios';
+import { MegaphoneIcon } from 'lucide-react';
 
-const scenario: ScenarioData = {
+export const prepareYourDigitalArtwork: ScenarioData = {
   id: 'prepare-your-digital-artwork',
-  title: 'Prepare Your Digital Artwork',
+  title: 'How to turn artwork into nft',
   description: 'A step-by-step guide to creating, minting, and protecting your NFT art, from digital preparation to marketplace success and advanced utilities.',
   icon: MegaphoneIcon,
   color: '#7A5CFA',
   steps: [
     {
-      title: 'Prepare Your Digital Artwork',
+      title: 'how to get started as a tattoo artist',
       description: 'Get your artwork ready in the appropriate digital format and resolution for NFT minting.',
       actions: [
         {
@@ -190,5 +190,3 @@ const scenario: ScenarioData = {
     }
   ]
 }
-
-export default scenario

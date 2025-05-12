@@ -1,7 +1,7 @@
-import { ScenarioData } from "../types";
-import { MegaphoneIcon } from "@heroicons/react/24/outline";
+import { MegaphoneIcon } from 'lucide-react';
+import { ScenarioData } from '@/types/scenarios';
 
-const scenario: ScenarioData = {
+export const defineYourResearchQuestionAndScope: ScenarioData = {
   id: "define-your-research-question-and-scope",
   title: "Define Your Research Question and Scope",
   description:
@@ -209,5 +209,3 @@ const scenario: ScenarioData = {
     },
   ],
 };
-
-export default scenario;

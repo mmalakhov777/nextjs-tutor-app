@@ -1,9 +1,9 @@
-import { ScenarioData } from "../types";
-import { MegaphoneIcon } from "@heroicons/react/24/outline";
+import { ScenarioData } from '@/types/scenarios';
+import { MegaphoneIcon } from 'lucide-react';
 
-const scenario: ScenarioData = {
+export const selfAssessmentAndPlanning: ScenarioData = {
   id: "self-assessment-and-planning",
-  title: "Self-Assessment and Planning",
+  title: "How do i start an online business",
   description:
     "A step-by-step guide to launching a successful online business, from planning and branding to scaling and avoiding pitfalls.",
   icon: MegaphoneIcon,
@@ -279,5 +279,3 @@ const scenario: ScenarioData = {
     },
   ],
 };
-
-export default scenario;

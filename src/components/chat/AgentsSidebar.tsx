@@ -1118,6 +1118,10 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
     };
   }, [isTooltipVisible]);
 
+  useEffect(() => {
+    console.log('Loaded scenarios:', scenarios);
+  }, []);
+
   return (
     <div className={`${isMobile ? 'w-full' : activeTab === 'notes' || activeTab === 'scenarios' ? 'w-96 border-r' : 'w-64 border-r'} bg-white h-full flex flex-col transition-all duration-300 ease-in-out`}>
       <div 

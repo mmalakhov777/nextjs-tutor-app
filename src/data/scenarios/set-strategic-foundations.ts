@@ -1,7 +1,7 @@
-import { ScenarioData } from "../types";
-import { MegaphoneIcon } from "@heroicons/react/24/outline";
+import { MegaphoneIcon } from 'lucide-react';
+import { ScenarioData } from '@/types/scenarios';
 
-const scenario: ScenarioData = {
+export const setStrategicFoundations: ScenarioData = {
   id: "set-strategic-foundations",
   title: "Set Strategic Foundations",
   description:
@@ -153,5 +153,3 @@ const scenario: ScenarioData = {
     },
   ],
 };
-
-export default scenario;
