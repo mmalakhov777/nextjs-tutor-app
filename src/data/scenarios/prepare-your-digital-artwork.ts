@@ -112,7 +112,7 @@ export const prepareYourDigitalArtwork: ScenarioData = {
         },
         {
           label: 'Avoid copyright infringement',
-          prompt: 'How can I make sure I'm not infringing on someone else's copyright when minting NFTs?'
+          prompt: 'How can I make sure I am not infringing on someone else\'s copyright when minting NFTs?'
         }
       ]
     },
