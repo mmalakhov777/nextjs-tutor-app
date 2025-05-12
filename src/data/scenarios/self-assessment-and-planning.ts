@@ -3,7 +3,7 @@ import { MegaphoneIcon } from 'lucide-react';
 
 export const selfAssessmentAndPlanning: ScenarioData = {
   id: "self-assessment-and-planning",
-  title: "How do i start an online business",
+  title: "How start an online business",
   description:
     "A step-by-step guide to launching a successful online business, from planning and branding to scaling and avoiding pitfalls.",
   icon: MegaphoneIcon,
