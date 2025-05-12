@@ -9,7 +9,7 @@ export const prepareYourDigitalArtwork: ScenarioData = {
   color: '#7A5CFA',
   steps: [
     {
-      title: 'how to get started as a tattoo artist',
+      title: 'Prepare Your Digital Artwork',
       description: 'Get your artwork ready in the appropriate digital format and resolution for NFT minting.',
       actions: [
         {
@@ -112,7 +112,7 @@ export const prepareYourDigitalArtwork: ScenarioData = {
         },
         {
           label: 'Avoid copyright infringement',
-          prompt: 'How can I make sure I’m not infringing on someone else’s copyright when minting NFTs?'
+          prompt: 'How can I make sure I'm not infringing on someone else's copyright when minting NFTs?'
         }
       ]
     },
