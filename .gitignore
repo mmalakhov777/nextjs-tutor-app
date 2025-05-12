@@ -40,4 +40,6 @@ next-env.d.ts
 
 # logs
 logs
-*.log 
+*.log
+
+scenario-generator.mjs 
