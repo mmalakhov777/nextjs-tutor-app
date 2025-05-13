@@ -108,9 +108,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   const MESSAGE_LIMIT = 10;
   const NOTES_AUTOSAVE_DELAY = 2000; // Autosave delay in milliseconds
   
-  // Add tooltip functionality
-  const [isTooltipVisible, setIsTooltipVisible] = useState<boolean>(false);
-  const tooltipRef = useRef<HTMLDivElement>(null);
+  // Removed tooltip state as it's no longer needed
   
   const [scenarios, setScenarios] = useState<ScenarioData[]>([]);
   const [isLoadingScenarios, setIsLoadingScenarios] = useState(true);
@@ -1090,37 +1088,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
     );
   };
 
-  // Add effect for handling clicks outside tooltip
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (tooltipRef.current && !tooltipRef.current.contains(event.target as Node)) {
-        setIsTooltipVisible(false);
-      }
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  // Add an effect to auto-hide the tooltip after 3 seconds
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout | null = null;
-    
-    if (isTooltipVisible) {
-      timeoutId = setTimeout(() => {
-        setIsTooltipVisible(false);
-      }, 3000);
-    }
-    
-    // Clean up timeout when component unmounts or tooltip visibility changes
-    return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [isTooltipVisible]);
+  // Tooltip effects removed as they're no longer needed
 
   useEffect(() => {
     console.log('Loaded scenarios:', scenarios);
@@ -1168,35 +1136,22 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
             Agents
           </button>
           <div className="relative">
-            {/* Calculate the disabled state ahead of time */}
+            {/* Button for Scenarios tab */}
             {(() => {
-              // Only disable if we're on the scenarios tab AND have a started scenario
-              const isDisabled = activeTab === 'scenarios' && 
-                                expandedScenario && 
-                                (currentStep > 0 || completedSteps.length > 0);
-              
               return (
                 <>
                   <button 
                     onClick={(e) => {
                       e.preventDefault();
-                      if (isDisabled) {
-                        // FORCE show tooltip
-                        console.log("SHOWING TOOLTIP ON CLICK!");
-                        setIsTooltipVisible(true);
-                      } else {
-                        // Only allow going back to scenarios list if there's no progress
-                        if (expandedScenario && (currentStep === 0 && completedSteps.length === 0)) {
-                          handleBackToScenarios();
-                        } else if (!expandedScenario) {
-                          handleTabChange('scenarios');
-                        } else if (activeTab !== 'scenarios') {
-                          // If we're not on scenarios tab, allow switching to it even with a started scenario
-                          handleTabChange('scenarios');
-                        }
+                      // Handle scenarios tab navigation
+                      if (expandedScenario) {
+                        // If viewing a specific scenario, go back to all scenarios
+                        handleBackToScenarios();
+                      } else if (!expandedScenario) {
+                        // If not viewing scenarios tab, switch to it
+                        handleTabChange('scenarios');
                       }
                     }}
-                    disabled={false} // Never disable the button to ensure click events work
                     style={{
                       color: activeTab === 'scenarios' ? 'var(--Monochrome-Black, #232323)' : 'var(--Monochrome-Deep, #6C6C6C)',
                       textAlign: 'center',
@@ -1204,29 +1159,11 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
                       fontStyle: 'normal',
                       fontWeight: 500,
                       lineHeight: '24px',
-                      opacity: isDisabled ? 0.5 : 1,
-                      cursor: isDisabled ? 'not-allowed' : 'pointer',
                       marginRight: '12px'
                     }}
                   >
                     {activeTab === 'scenarios' && expandedScenario ? 'All Scenarios' : 'Scenarios'}
                   </button>
-                  
-                  {/* Tooltip positioned below the button and centered in sidebar */}
-                  {isTooltipVisible && (
-                    <div 
-                      className="absolute z-50 bg-gray-900 text-white text-sm p-2 rounded-lg shadow-lg"
-                      style={{
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        top: '30px',
-                        width: 'auto',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      Please create new chat to start new scenario
-                    </div>
-                  )}
                 </>
               );
             })()}
