@@ -86,7 +86,7 @@ export function ScenariosModal({ isOpen, onOpenChange, onSelectScenario }: Scena
     return (
       <div 
         key={scenario.id}
-        className="cursor-pointer transition-all duration-200 hover:bg-slate-50"
+        className="cursor-pointer transition-all duration-200 hover:bg-slate-50 h-full"
         style={{
           display: 'flex',
           padding: '16px',
@@ -95,28 +95,27 @@ export function ScenariosModal({ isOpen, onOpenChange, onSelectScenario }: Scena
           gap: '10px',
           borderRadius: '16px',
           border: '1px solid var(--Monochrome-Light, #E8E8E5)',
-          background: '#FFF',
-          marginBottom: '12px'
+          background: '#FFF'
         }}
         onClick={() => handleSelectScenario(scenario)}
       >
-        <div className="flex flex-col w-full">
-          <div className="flex justify-between items-center w-full">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-slate-900">{scenario.title}</h3>
+        <div className="flex flex-col w-full h-full">
+          <div className="flex justify-between items-start w-full">
+            <div className="flex flex-col">
+              <h3 className="font-semibold text-slate-900 line-clamp-1">{scenario.title}</h3>
               {scenario.category && (
-                <Badge variant="outline" className="ml-2 text-xs bg-slate-100">
+                <Badge variant="outline" className="mt-1 text-xs bg-slate-100 w-fit">
                   {scenario.category}
                 </Badge>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0 ml-2">
               <Icon className="h-5 w-5 text-slate-500" />
               <ChevronRight className="h-4 w-4 text-slate-400" />
             </div>
           </div>
-          <p className="text-sm text-slate-600 mt-2">{scenario.description}</p>
-          <div className="text-xs text-slate-500 mt-3">
+          <p className="text-sm text-slate-600 mt-2 line-clamp-2">{scenario.description}</p>
+          <div className="text-xs text-slate-500 mt-auto pt-3">
             {scenario.steps.length} {scenario.steps.length === 1 ? 'step' : 'steps'}
           </div>
         </div>
@@ -127,8 +126,8 @@ export function ScenariosModal({ isOpen, onOpenChange, onSelectScenario }: Scena
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="sm:max-w-2xl fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-        style={{ width: "700px", height: "600px", maxHeight: "600px" }}>
+        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+        style={{ width: "900px", height: "600px", maxHeight: "600px", maxWidth: "90vw" }}>
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">AI Task Scenarios</DialogTitle>
         </DialogHeader>
@@ -181,7 +180,7 @@ export function ScenariosModal({ isOpen, onOpenChange, onSelectScenario }: Scena
             </div>
           ) : filteredScenarios.length > 0 ? (
             <div className="overflow-y-auto" style={{ height: "400px", paddingRight: "4px" }}>
-              <div className="pr-1">
+              <div className="pr-1 grid grid-cols-1 md:grid-cols-2 gap-3">
                 {filteredScenarios.map(scenario => renderScenarioCard(scenario))}
               </div>
             </div>
