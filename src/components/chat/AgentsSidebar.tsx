@@ -17,6 +17,7 @@ import TiptapEditor from '@/components/editors/TiptapEditor';
 import { getAgentDescription } from '@/data/agentDescriptions';
 import { getScenariosFromDB } from '@/data/scenarios';
 import type { ScenarioData } from '@/types/scenarios';
+import { ScenariosModal } from '@/components/chat/ScenariosModal';
 
 // Define MSD global interface type
 declare global {
@@ -112,6 +113,8 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   
   const [scenarios, setScenarios] = useState<ScenarioData[]>([]);
   const [isLoadingScenarios, setIsLoadingScenarios] = useState(true);
+  
+  const [showScenariosModal, setShowScenariosModal] = useState<boolean>(false);
   
   // Set up debug commands in window object for testing
   useEffect(() => {
@@ -1110,6 +1113,11 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
     fetchScenarios();
   }, []);
 
+  // Function to handle selecting a scenario from the modal
+  const handleSelectScenario = (scenario: ScenarioData) => {
+    toggleScenarioExpand(scenario.id);
+  };
+
   return (
     <div className={`${isMobile ? 'w-full' : activeTab === 'notes' || activeTab === 'scenarios' ? 'w-96 border-r' : 'w-64 border-r'} bg-white h-full flex flex-col transition-all duration-300 ease-in-out`}>
       <div 
@@ -1385,9 +1393,19 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
       ) : (
         <div className={`${isMobile ? 'p-2' : 'p-3 sm:p-4'} pt-4 sm:pt-6 overflow-y-auto h-full flex flex-col`}>
           {!expandedScenario && (
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold mb-3">AI Task Scenarios</h2>
-              <p className="text-sm text-slate-600 mb-3">Choose a scenario to see detailed instructions and best practices.</p>
+            <div className="mb-4 flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-semibold mb-3">AI Task Scenarios</h2>
+                <p className="text-sm text-slate-600 mb-3">Choose a scenario to see detailed instructions and best practices.</p>
+              </div>
+              <Button
+                variant="outline"
+                className="flex items-center gap-2"
+                onClick={() => setShowScenariosModal(true)}
+              >
+                <Search className="h-4 w-4" />
+                <span>Find Scenarios</span>
+              </Button>
             </div>
           )}
           {expandedScenario ? (
@@ -1412,6 +1430,13 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
           {notification}
         </div>
       )}
+
+      {/* Scenarios Modal */}
+      <ScenariosModal 
+        isOpen={showScenariosModal}
+        onOpenChange={setShowScenariosModal}
+        onSelectScenario={handleSelectScenario}
+      />
     </div>
   );
 }));

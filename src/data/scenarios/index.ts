@@ -31,6 +31,7 @@ export async function getScenariosFromDB(): Promise<ScenarioData[]> {
       actionsByStep[action.step_id].push({
         label: action.label,
         prompt: action.prompt,
+        type: action.type as 'research' | 'chat' | undefined
       });
     }
 
@@ -52,6 +53,7 @@ export async function getScenariosFromDB(): Promise<ScenarioData[]> {
       description: scenario.description,
       icon: scenario.icon,
       color: scenario.color,
+      category: scenario.category,
       steps: stepsByScenario[scenario.id] || [],
     }));
   } catch (error) {

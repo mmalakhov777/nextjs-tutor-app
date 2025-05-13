@@ -18,5 +18,6 @@ export interface ScenarioData {
   description: string;
   icon: LucideIcon;
   color: string;
+  category?: string;
   steps: ScenarioStep[];
 } 
