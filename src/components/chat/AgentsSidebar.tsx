@@ -16,6 +16,8 @@ import { Textarea } from '@/components/ui/textarea';
 import TiptapEditor from '@/components/editors/TiptapEditor';
 import { scenarios } from '@/data/scenarios';
 import { getAgentDescription } from '@/data/agentDescriptions';
+import { getScenariosFromDB } from '@/data/scenarios';
+import type { ScenarioData } from '@/types/scenarios';
 
 // Define MSD global interface type
 declare global {
@@ -110,6 +112,9 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   // Add tooltip functionality
   const [isTooltipVisible, setIsTooltipVisible] = useState<boolean>(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
+  
+  const [scenarios, setScenarios] = useState<ScenarioData[]>([]);
+  const [isLoadingScenarios, setIsLoadingScenarios] = useState(true);
   
   // Set up debug commands in window object for testing
   useEffect(() => {
@@ -1122,6 +1127,22 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
     console.log('Loaded scenarios:', scenarios);
   }, []);
 
+  useEffect(() => {
+    async function fetchScenarios() {
+      setIsLoadingScenarios(true);
+      try {
+        const dbScenarios = await getScenariosFromDB();
+        setScenarios(dbScenarios);
+      } catch (err) {
+        console.error('Failed to load scenarios from DB', err);
+        setScenarios([]);
+      } finally {
+        setIsLoadingScenarios(false);
+      }
+    }
+    fetchScenarios();
+  }, []);
+
   return (
     <div className={`${isMobile ? 'w-full' : activeTab === 'notes' || activeTab === 'scenarios' ? 'w-96 border-r' : 'w-64 border-r'} bg-white h-full flex flex-col transition-all duration-300 ease-in-out`}>
       <div 
@@ -1439,7 +1460,11 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
             </div>
           ) : (
             <div className="space-y-3">
-              {scenarios.map(scenario => renderScenarioCard(scenario))}
+              {isLoadingScenarios ? (
+                <div>Loading scenarios...</div>
+              ) : (
+                scenarios.map(scenario => renderScenarioCard(scenario))
+              )}
             </div>
           )}
         </div>
