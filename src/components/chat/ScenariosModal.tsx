@@ -89,14 +89,14 @@ export function ScenariosModal({ isOpen, onOpenChange, onSelectScenario }: Scena
         className="cursor-pointer transition-all duration-200 hover:bg-slate-50"
         style={{
           display: 'flex',
-          padding: '20px',
+          padding: '16px',
           flexDirection: 'column',
           alignItems: 'flex-start',
-          gap: '12px',
+          gap: '10px',
           borderRadius: '16px',
           border: '1px solid var(--Monochrome-Light, #E8E8E5)',
           background: '#FFF',
-          marginBottom: '16px'
+          marginBottom: '12px'
         }}
         onClick={() => handleSelectScenario(scenario)}
       >
@@ -126,25 +126,25 @@ export function ScenariosModal({ isOpen, onOpenChange, onSelectScenario }: Scena
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh]">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh]" style={{ width: "80%" }}>
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">AI Task Scenarios</DialogTitle>
         </DialogHeader>
         
-        <div className="py-4">
+        <div className="py-4 px-1">
           {/* Search and filter */}
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-2 mb-5">
             <div className="relative flex-grow">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 placeholder="Search scenarios..."
-                className="pl-10 py-2"
+                className="pl-8 py-1 h-9"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
               {searchQuery && (
                 <button 
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400"
                   onClick={() => setSearchQuery('')}
                 >
                   <X className="h-4 w-4" />
@@ -152,11 +152,11 @@ export function ScenariosModal({ isOpen, onOpenChange, onSelectScenario }: Scena
               )}
             </div>
             
-            <div className="w-[200px]">
+            <div className="w-[180px]">
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-full">
-                  <div className="flex items-center gap-2">
-                    <Filter className="h-4 w-4 text-slate-400" />
+                <SelectTrigger className="w-full h-9 py-1">
+                  <div className="flex items-center gap-1">
+                    <Filter className="h-3.5 w-3.5 text-slate-400" />
                     <SelectValue placeholder="Filter by category" />
                   </div>
                 </SelectTrigger>
@@ -178,8 +178,10 @@ export function ScenariosModal({ isOpen, onOpenChange, onSelectScenario }: Scena
               <p className="text-slate-600 ml-3">Loading scenarios...</p>
             </div>
           ) : filteredScenarios.length > 0 ? (
-            <div className="overflow-y-auto max-h-[calc(90vh-220px)]">
-              {filteredScenarios.map(scenario => renderScenarioCard(scenario))}
+            <div className="overflow-y-auto max-h-[calc(90vh-200px)]" style={{ paddingRight: "4px" }}>
+              <div className="pr-1">
+                {filteredScenarios.map(scenario => renderScenarioCard(scenario))}
+              </div>
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-64 text-center">
