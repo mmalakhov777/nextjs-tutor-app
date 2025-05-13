@@ -14,7 +14,6 @@ import { PerplexityLogo } from '@/components/icons/PerplexityLogo';
 import React from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import TiptapEditor from '@/components/editors/TiptapEditor';
-import { scenarios } from '@/data/scenarios';
 import { getAgentDescription } from '@/data/agentDescriptions';
 import { getScenariosFromDB } from '@/data/scenarios';
 import type { ScenarioData } from '@/types/scenarios';
