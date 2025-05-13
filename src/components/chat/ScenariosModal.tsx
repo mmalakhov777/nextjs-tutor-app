@@ -126,7 +126,9 @@ export function ScenariosModal({ isOpen, onOpenChange, onSelectScenario }: Scena
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh]" style={{ width: "80%" }}>
+      <DialogContent 
+        className="sm:max-w-2xl fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+        style={{ width: "700px", height: "600px", maxHeight: "600px" }}>
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">AI Task Scenarios</DialogTitle>
         </DialogHeader>
@@ -173,18 +175,18 @@ export function ScenariosModal({ isOpen, onOpenChange, onSelectScenario }: Scena
           
           {/* Scenarios list */}
           {isLoading ? (
-            <div className="flex justify-center items-center h-64">
+            <div className="flex justify-center items-center" style={{ height: "400px" }}>
               <div className="animate-spin h-8 w-8 border-2 border-blue-500 border-t-transparent rounded-full mb-4"></div>
               <p className="text-slate-600 ml-3">Loading scenarios...</p>
             </div>
           ) : filteredScenarios.length > 0 ? (
-            <div className="overflow-y-auto max-h-[calc(90vh-200px)]" style={{ paddingRight: "4px" }}>
+            <div className="overflow-y-auto" style={{ height: "400px", paddingRight: "4px" }}>
               <div className="pr-1">
                 {filteredScenarios.map(scenario => renderScenarioCard(scenario))}
               </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-64 text-center">
+            <div className="flex flex-col items-center justify-center text-center" style={{ height: "400px" }}>
               <p className="text-slate-600 mb-2">No scenarios found</p>
               <p className="text-slate-500 text-sm">Try adjusting your search or filter</p>
             </div>
