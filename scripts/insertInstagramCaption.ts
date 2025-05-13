@@ -1,3 +1,6 @@
+// This script is preserved for historical reference but is no longer used
+// It was used to initially migrate data to the database
+/*
 import { neon } from '@neondatabase/serverless';
 import { instagramCaption } from '../src/data/scenarios/instagramCaption';
 
@@ -40,3 +43,6 @@ insertScenario()
     console.error(err);
     process.exit(1);
   }); 
+*/
+
+// This script is now disabled as we've moved to database-based scenarios 
