@@ -92,8 +92,8 @@ export async function POST(request: NextRequest) {
             const action = step.actions[j];
             
             await sql`
-              INSERT INTO scenario_actions (step_id, action_order, label, prompt, type)
-              VALUES (${stepId}, ${j + 1}, ${action.label}, ${action.prompt}, ${action.type || null})
+              INSERT INTO scenario_actions (step_id, action_order, label, prompt)
+              VALUES (${stepId}, ${j + 1}, ${action.label}, ${action.prompt})
             `;
           }
         }
