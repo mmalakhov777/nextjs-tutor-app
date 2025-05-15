@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Filter, X, ChevronRight } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { Search, Filter, X } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getScenariosFromDB } from '@/data/scenarios';
 import type { ScenarioData } from '@/types/scenarios';
+import { useScenarioContext } from '@/contexts/ScenarioContext';
 
 interface ScenariosModalProps {
   isOpen: boolean;
@@ -17,21 +17,20 @@ interface ScenariosModalProps {
 }
 
 export function ScenariosModal({ isOpen, onOpenChange, onSelectScenario }: ScenariosModalProps) {
-  const [scenarios, setScenarios] = useState<ScenarioData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { scenarios, isLoading } = useScenarioContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-  // Get unique categories from scenarios
+  // Predefined category list with dynamic fallback
   const categories = useMemo(() => {
-    const uniqueCategories = new Set<string>();
+    // Predefined categories (always include these)
+    const predefinedCategories = ['all', 'Productivity', 'Marketing', 'Education', 'Business', 'Art'];
     
-    // Add 'all' category
-    uniqueCategories.add('all');
+    // Add any additional categories from scenarios that aren't in the predefined list
+    const uniqueCategories = new Set<string>(predefinedCategories);
     
-    // Add categories from scenarios
     scenarios.forEach(scenario => {
-      if (scenario.category) {
+      if (scenario.category && !predefinedCategories.includes(scenario.category)) {
         uniqueCategories.add(scenario.category);
       }
     });
@@ -54,26 +53,6 @@ export function ScenariosModal({ isOpen, onOpenChange, onSelectScenario }: Scena
     });
   }, [scenarios, searchQuery, selectedCategory]);
 
-  // Fetch scenarios from database
-  useEffect(() => {
-    async function fetchScenarios() {
-      setIsLoading(true);
-      try {
-        const dbScenarios = await getScenariosFromDB();
-        setScenarios(dbScenarios);
-      } catch (err) {
-        console.error('Failed to load scenarios from DB', err);
-        setScenarios([]);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    
-    if (isOpen) {
-      fetchScenarios();
-    }
-  }, [isOpen]);
-
   // Handle scenario selection
   const handleSelectScenario = (scenario: ScenarioData) => {
     onSelectScenario(scenario);
@@ -82,7 +61,6 @@ export function ScenariosModal({ isOpen, onOpenChange, onSelectScenario }: Scena
 
   // Render a scenario card
   const renderScenarioCard = (scenario: ScenarioData) => {
-    const Icon = scenario.icon;
     return (
       <div 
         key={scenario.id}
@@ -99,24 +77,20 @@ export function ScenariosModal({ isOpen, onOpenChange, onSelectScenario }: Scena
         }}
         onClick={() => handleSelectScenario(scenario)}
       >
-        <div className="flex flex-col w-full h-full">
-          <div className="flex justify-between items-start w-full">
-            <div className="flex flex-col">
-              <h3 className="font-semibold text-slate-900 line-clamp-1">{scenario.title}</h3>
-              {scenario.category && (
-                <Badge variant="outline" className="mt-1 text-xs bg-slate-100 w-fit">
-                  {scenario.category}
-                </Badge>
-              )}
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-              <Icon className="h-5 w-5 text-slate-500" />
-              <ChevronRight className="h-4 w-4 text-slate-400" />
-            </div>
+        <div className="flex flex-col w-full">
+          <div className="flex flex-col">
+            <h3 className="font-semibold text-slate-900 line-clamp-1">{scenario.title}</h3>
           </div>
           <p className="text-sm text-slate-600 mt-2 line-clamp-2">{scenario.description}</p>
-          <div className="text-xs text-slate-500 mt-auto pt-3">
-            {scenario.steps.length} {scenario.steps.length === 1 ? 'step' : 'steps'}
+          <div className="flex justify-between items-center mt-auto pt-3">
+            <div className="text-xs text-slate-500">
+              {scenario.steps.length} {scenario.steps.length === 1 ? 'step' : 'steps'}
+            </div>
+            {scenario.category && (
+              <span className="text-xs text-slate-500">
+                {scenario.category}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -126,80 +100,123 @@ export function ScenariosModal({ isOpen, onOpenChange, onSelectScenario }: Scena
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-        style={{ width: "900px", height: "600px", maxHeight: "600px", maxWidth: "90vw" }}>
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">AI Task Scenarios</DialogTitle>
-        </DialogHeader>
-        
-        <div className="py-4 px-1">
-          {/* Search and filter */}
-          <div className="flex items-center gap-2 mb-5">
-            <div className="relative flex-grow">
-              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col"
+        style={{ 
+          width: "900px",
+          minHeight: "500px",
+          maxHeight: "80vh",
+          maxWidth: "90vw"
+        }}>
+
+        <div className="flex flex-col flex-grow overflow-hidden">
+          {/* Search bar */}
+          <div className="px-1 mb-4 flex-shrink-0 pt-6">
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 placeholder="Search scenarios..."
-                className="pl-8 py-1 h-9"
+                className="pl-8 focus-visible:ring-0 focus-visible:ring-offset-0 border-slate-200 focus-visible:border-[#232323] focus-visible:shadow-none"
+                style={{ 
+                  boxShadow: "none",
+                  outline: "none",
+                  height: "40px", // Exact match for category buttons (8px top + 8px bottom + 20px line height + 4px for borders)
+                  padding: "8px 12px 8px 32px", // Match button padding (left padding is larger for icon)
+                  fontSize: "14px",
+                  fontStyle: "normal", 
+                  fontWeight: 400,
+                  lineHeight: "20px"
+                }}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
               {searchQuery && (
                 <button 
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400"
                   onClick={() => setSearchQuery('')}
+                  style={{ height: "20px", width: "20px" }}
                 >
                   <X className="h-4 w-4" />
                 </button>
               )}
             </div>
-            
-            <div className="w-[180px]">
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-full h-9 py-1">
-                  <div className="flex items-center gap-1">
-                    <Filter className="h-3.5 w-3.5 text-slate-400" />
-                    <SelectValue placeholder="Filter by category" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map(category => (
-                    <SelectItem key={category} value={category}>
-                      {category === 'all' ? 'All Categories' : category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          </div>
+          
+          {/* Category filters */}
+          <div className="px-1 mb-4 flex-shrink-0">
+            <h3 className="text-sm font-medium text-slate-700 mb-2">Categories</h3>
+            <div className="flex flex-wrap gap-2">
+              <button
+                key="all"
+                style={{
+                  display: 'flex',
+                  padding: '8px 12px',
+                  alignItems: 'center',
+                  gap: '4px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--Monochrome-Light, #E8E8E5)',
+                  background: selectedCategory === 'all' ? 'var(--Monochrome-Black, #232323)' : 'var(--Monochrome-White, #FFF)',
+                  color: selectedCategory === 'all' ? 'white' : 'var(--Monochrome-Black, #232323)',
+                  fontSize: '14px',
+                  fontStyle: 'normal',
+                  fontWeight: 400,
+                  lineHeight: '20px'
+                }}
+                onClick={() => setSelectedCategory('all')}
+              >
+                All
+              </button>
+              {categories
+                .filter(category => category !== 'all')
+                .map(category => {
+                  // Determine button style based on selection state
+                  let buttonStyle: React.CSSProperties = {
+                    display: 'flex',
+                    padding: '8px 12px',
+                    alignItems: 'center',
+                    gap: '4px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--Monochrome-Light, #E8E8E5)',
+                    background: selectedCategory === category ? 'var(--Monochrome-Black, #232323)' : 'var(--Monochrome-White, #FFF)',
+                    color: selectedCategory === category ? 'white' : 'var(--Monochrome-Black, #232323)',
+                    fontSize: '14px',
+                    fontStyle: 'normal',
+                    fontWeight: 400,
+                    lineHeight: '20px'
+                  };
+                  
+                  return (
+                    <button
+                      key={category}
+                      style={buttonStyle}
+                      onClick={() => setSelectedCategory(category)}
+                    >
+                      {category}
+                    </button>
+                  );
+                })
+              }
             </div>
           </div>
           
           {/* Scenarios list */}
           {isLoading ? (
-            <div className="flex justify-center items-center" style={{ height: "400px" }}>
-              <div className="animate-spin h-8 w-8 border-2 border-blue-500 border-t-transparent rounded-full mb-4"></div>
+            <div className="flex justify-center items-center p-4 flex-grow">
+              <div className="animate-spin h-8 w-8 border-2 border-blue-500 border-t-transparent rounded-full"></div>
               <p className="text-slate-600 ml-3">Loading scenarios...</p>
             </div>
           ) : filteredScenarios.length > 0 ? (
-            <div className="overflow-y-auto" style={{ height: "400px", paddingRight: "4px" }}>
-              <div className="pr-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="px-1 overflow-y-auto flex-grow" style={{ height: "calc(80vh - 240px)" }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-4">
                 {filteredScenarios.map(scenario => renderScenarioCard(scenario))}
               </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center text-center" style={{ height: "400px" }}>
+            <div className="flex flex-col items-center justify-center text-center p-4 flex-grow">
               <p className="text-slate-600 mb-2">No scenarios found</p>
               <p className="text-slate-500 text-sm">Try adjusting your search or filter</p>
             </div>
           )}
         </div>
-        
-        <DialogFooter>
-          <Button 
-            variant="outline" 
-            onClick={() => onOpenChange(false)}
-          >
-            Close
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

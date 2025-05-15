@@ -18,6 +18,7 @@ import { getAgentDescription } from '@/data/agentDescriptions';
 import { getScenariosFromDB } from '@/data/scenarios';
 import type { ScenarioData } from '@/types/scenarios';
 import { ScenariosModal } from '@/components/chat/ScenariosModal';
+import { useScenarioContext } from '@/contexts/ScenarioContext';
 
 // Define MSD global interface type
 declare global {
@@ -115,6 +116,16 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   const [isLoadingScenarios, setIsLoadingScenarios] = useState(true);
   
   const [showScenariosModal, setShowScenariosModal] = useState<boolean>(false);
+  
+  const { selectedScenario } = useScenarioContext();
+  
+  // Auto-expand scenario and switch to scenarios tab if selectedScenario is set
+  useEffect(() => {
+    if (selectedScenario) {
+      setActiveTab('scenarios');
+      setExpandedScenario(selectedScenario.id);
+    }
+  }, [selectedScenario]);
   
   // Set up debug commands in window object for testing
   useEffect(() => {
@@ -916,7 +927,6 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
 
   // Function to render a fully expanded scenario card
   const renderExpandedScenarioCard = (scenario: any) => {
-    const Icon = scenario.icon;
     return (
       <>
         {/* Header section */}
@@ -1062,7 +1072,6 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
 
   // Function to render a scenario card
   const renderScenarioCard = (scenario: any) => {
-    const Icon = scenario.icon;
     return (
       <div 
         key={scenario.id}
@@ -1081,21 +1090,16 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
         onClick={() => toggleScenarioExpand(scenario.id)}
       >
         <div className="flex flex-col w-full">
-          <div className="flex justify-between items-center w-full">
+          <div className="flex flex-col w-full">
             <h3 className="font-semibold text-slate-900 mb-1">{scenario.title}</h3>
-            <Icon className="h-4 w-4 text-slate-500" />
           </div>
-          <p className="text-sm text-slate-600">{scenario.description}</p>
+          <p className="text-sm text-slate-600 mt-2">{scenario.description}</p>
         </div>
       </div>
     );
   };
 
   // Tooltip effects removed as they're no longer needed
-
-  useEffect(() => {
-    console.log('Loaded scenarios:', scenarios);
-  }, []);
 
   useEffect(() => {
     async function fetchScenarios() {
@@ -1119,7 +1123,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   };
 
   return (
-    <div className={`${isMobile ? 'w-full' : activeTab === 'notes' || activeTab === 'scenarios' ? 'w-96 border-r' : 'w-64 border-r'} bg-white h-full flex flex-col transition-all duration-300 ease-in-out`}>
+    <div className={`${isMobile ? 'w-full' : ((activeTab === 'scenarios') || expandedScenario) ? 'w-96 border-r' : 'w-64 border-r'} bg-white h-full flex flex-col transition-all duration-300 ease-in-out`}>
       <div 
         className={`sticky top-0 z-10 flex items-center h-[60px] px-4 ${isMobile ? 'hidden' : ''} bg-white`}
         style={{ 
@@ -1393,19 +1397,48 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
       ) : (
         <div className={`${isMobile ? 'p-2' : 'p-3 sm:p-4'} pt-4 sm:pt-6 overflow-y-auto h-full flex flex-col`}>
           {!expandedScenario && (
-            <div className="mb-4 flex justify-between items-center">
-              <div>
-                <h2 className="text-lg font-semibold mb-3">AI Task Scenarios</h2>
-                <p className="text-sm text-slate-600 mb-3">Choose a scenario to see detailed instructions and best practices.</p>
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-3">
+                <h2 className="text-lg font-semibold">AI Task Scenarios</h2>
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setShowScenariosModal(true);
+                  }}
+                  style={{
+                    display: 'flex',
+                    height: '40px',
+                    padding: '8px 12px',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '4px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--Monochrome-Light, #E8E8E5)',
+                    background: 'var(--Monochrome-White, #FFF)',
+                    color: 'var(--Monochrome-Black, #232323)',
+                    textDecoration: 'none',
+                    marginLeft: '8px',
+                    fontSize: '14px',
+                    fontStyle: 'normal',
+                    fontWeight: 400,
+                    lineHeight: '20px',
+                    transition: 'background 0.2s, border 0.2s, color 0.2s'
+                  }}
+                  onMouseOver={e => {
+                    e.currentTarget.style.background = 'var(--superlight)';
+                    e.currentTarget.style.borderColor = 'var(--normal)';
+                  }}
+                  onMouseOut={e => {
+                    e.currentTarget.style.background = 'var(--Monochrome-White, #FFF)';
+                    e.currentTarget.style.borderColor = 'var(--Monochrome-Light, #E8E8E5)';
+                  }}
+                >
+                  <Search className="h-4 w-4 mr-1" />
+                  <span>Find Scenarios</span>
+                </a>
               </div>
-              <Button
-                variant="outline"
-                className="flex items-center gap-2"
-                onClick={() => setShowScenariosModal(true)}
-              >
-                <Search className="h-4 w-4" />
-                <span>Find Scenarios</span>
-              </Button>
+              <p className="text-sm text-slate-600 mb-3">Choose a scenario to see detailed instructions and best practices.</p>
             </div>
           )}
           {expandedScenario ? (

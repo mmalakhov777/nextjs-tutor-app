@@ -16,7 +16,7 @@ export interface ScenarioData {
   id: string;
   title: string;
   description: string;
-  icon: LucideIcon;
+  icon?: LucideIcon | string;
   color: string;
   category?: string;
   steps: ScenarioStep[];

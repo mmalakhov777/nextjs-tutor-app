@@ -33,6 +33,7 @@ import { useFiles } from '@/hooks/useFiles';
 import { useHistory } from '@/hooks/useHistory';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { useAgents } from '@/hooks/useAgents';
+import { useScenarioContext } from '@/contexts/ScenarioContext';
 
 // Import our types
 import type { 
@@ -113,6 +114,7 @@ export default function Home({
   const history = useHistory(userId);
   const analysis = useAnalysis();
   const agents = useAgents(userId);
+  const { selectedScenario } = useScenarioContext();
   
   // Add a metadata cache to avoid refetching the same metadata
   const [fileMetadataCache, setFileMetadataCache] = useState<Record<string, any>>({});
@@ -145,6 +147,9 @@ export default function Home({
 
   // Add chat/research mode state
   const [mode, setMode] = useState<'chat' | 'research'>('chat');
+
+  // Add a state to track if a scenario is expanded in the sidebar
+  const [expandedScenario, setExpandedScenario] = useState<string | null>(null);
 
   // Detect mobile screen size
   useEffect(() => {
@@ -1763,7 +1768,7 @@ content: HIDDEN_CONTENT
             : 'Loading conversation...'
         }
         onTabChange={setActiveTab}
-        rightSidebarWide={agentsSidebarTab === 'notes' || agentsSidebarTab === 'scenarios'}
+        rightSidebarWide={agentsSidebarTab === 'notes' || agentsSidebarTab === 'scenarios' || !!selectedScenario}
         researchLoadingIndicator={undefined}
       />
 

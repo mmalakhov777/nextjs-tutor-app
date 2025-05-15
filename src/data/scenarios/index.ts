@@ -19,6 +19,7 @@ export async function getScenariosFromDB(): Promise<ScenarioData[]> {
   try {
     // Get all scenarios
     const scenarios = await sql`SELECT * FROM scenarios`;
+    
     // Get all steps
     const steps = await sql`SELECT * FROM scenario_steps`;
     // Get all actions
@@ -47,15 +48,18 @@ export async function getScenariosFromDB(): Promise<ScenarioData[]> {
     }
 
     // Build scenarios array
-    return scenarios.map((scenario: any) => ({
+    const result = scenarios.map((scenario: any) => ({
       id: scenario.id,
       title: scenario.title,
       description: scenario.description,
-      icon: scenario.icon,
+      // We're not using icons anymore, but keep the field for backward compatibility
+      icon: undefined, 
       color: scenario.color,
       category: scenario.category,
       steps: stepsByScenario[scenario.id] || [],
     }));
+    
+    return result;
   } catch (error) {
     console.error('Error fetching scenarios from database:', error);
     return []; // Return empty array on error

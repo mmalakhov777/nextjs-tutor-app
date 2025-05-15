@@ -4,6 +4,7 @@ import './globals.css';
 import 'katex/dist/katex.min.css';
 import Script from 'next/script';
 import { FileProvider } from '@/contexts/FileContext';
+import { ScenarioProvider } from '@/contexts/ScenarioContext';
 
 export const metadata: Metadata = {
   title: 'AI Tutoring Platform',
@@ -34,7 +35,9 @@ export default function RootLayout({
       <body>
         <main>
           <FileProvider>
-            {children}
+            <ScenarioProvider>
+              {children}
+            </ScenarioProvider>
           </FileProvider>
         </main>
       </body>
