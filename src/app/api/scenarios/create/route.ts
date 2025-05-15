@@ -51,6 +51,10 @@ export async function POST(request: NextRequest) {
     
     const scenario = validationResult.data;
     
+    // Check if scenario exists
+    const existingScenario = await sql`SELECT 1 FROM scenarios WHERE id = ${scenario.id}`;
+    const isUpdate = existingScenario.length > 0;
+
     // Begin transaction
     await sql`BEGIN`;
     
@@ -107,8 +111,12 @@ export async function POST(request: NextRequest) {
       await sql`COMMIT`;
       
       return NextResponse.json(
-        { success: true, message: 'Scenario created successfully', id: scenario.id },
-        { status: 201 }
+        { 
+          success: true, 
+          message: isUpdate ? 'Scenario updated successfully' : 'Scenario created successfully', 
+          id: scenario.id 
+        },
+        { status: isUpdate ? 200 : 201 }
       );
     } catch (dbError) {
       // Rollback on error
