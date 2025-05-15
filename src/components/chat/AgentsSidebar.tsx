@@ -65,6 +65,8 @@ export interface AgentsSidebarRef {
 
 // Remove the TiptapEditor component definition from here as it's now imported
 
+const MESSAGE_LIMIT = 3;
+
 const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarProps>(function AgentsSidebar({
   agents,
   isLoadingAgents,
@@ -107,7 +109,6 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   const [originalSubscriptionState, setOriginalSubscriptionState] = useState<boolean | null>(null);
   
   // Constants
-  const MESSAGE_LIMIT = 10;
   const NOTES_AUTOSAVE_DELAY = 2000; // Autosave delay in milliseconds
   
   // Removed tooltip state as it's no longer needed
@@ -1123,7 +1124,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   };
 
   return (
-    <div className={`${isMobile ? 'w-full' : ((activeTab === 'scenarios') || expandedScenario) ? 'w-96 border-r' : 'w-64 border-r'} bg-white h-full flex flex-col transition-all duration-300 ease-in-out`}>
+    <div className={`flex flex-col h-full min-h-0 w-full ${isMobile ? 'w-full' : ((activeTab === 'scenarios') || expandedScenario) ? 'w-96 border-r' : 'w-64 border-r'} bg-white transition-all duration-300 ease-in-out`}>
       <div 
         className={`sticky top-0 z-10 flex items-center h-[60px] px-4 ${isMobile ? 'hidden' : ''} bg-white`}
         style={{ 
@@ -1382,16 +1383,18 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
           )}
         </div>
       ) : activeTab === 'notes' ? (
-        <div className="overflow-y-auto h-full flex flex-col">
+        <div className="flex-1 h-full w-full min-h-0 min-w-0 flex flex-col p-0 m-0">
           {isLoadingNotes ? (
-            <div className="flex justify-center items-center h-full">
+            <div className="flex flex-1 justify-center items-center h-full w-full">
               <div className="animate-spin h-5 w-5 sm:h-6 sm:w-6 border-2 border-blue-500 border-t-transparent rounded-full"></div>
             </div>
           ) : (
-            <TiptapEditor 
-              content={noteContent} 
-              onUpdate={handleNoteUpdate} 
-            />
+            <div className="flex-1 h-full w-full min-h-0 min-w-0 flex flex-col p-0 m-0">
+              <TiptapEditor 
+                content={noteContent} 
+                onUpdate={handleNoteUpdate} 
+              />
+            </div>
           )}
         </div>
       ) : (

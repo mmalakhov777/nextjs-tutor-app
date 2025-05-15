@@ -151,6 +151,9 @@ export default function Home({
   // Add a state to track if a scenario is expanded in the sidebar
   const [expandedScenario, setExpandedScenario] = useState<string | null>(null);
 
+  // Add a state to track if the user has manually switched the sidebar tab
+  const [hasUserSwitchedSidebarTab, setHasUserSwitchedSidebarTab] = useState(false);
+
   // Detect mobile screen size
   useEffect(() => {
     const checkIfMobile = () => {
@@ -1567,6 +1570,7 @@ content: HIDDEN_CONTENT
   // Handler to track sidebar tab changes
   const handleAgentsSidebarTabChange = (tab: 'agents' | 'notes' | 'scenarios') => {
     setAgentsSidebarTab(tab);
+    setHasUserSwitchedSidebarTab(true);
   };
 
   // Custom send handler for ChatInput and AgentsSidebar
@@ -1768,7 +1772,11 @@ content: HIDDEN_CONTENT
             : 'Loading conversation...'
         }
         onTabChange={setActiveTab}
-        rightSidebarWide={agentsSidebarTab === 'notes' || agentsSidebarTab === 'scenarios' || !!selectedScenario}
+        rightSidebarWide={
+          hasUserSwitchedSidebarTab
+            ? (agentsSidebarTab === 'notes' || agentsSidebarTab === 'scenarios')
+            : (agentsSidebarTab === 'notes' || agentsSidebarTab === 'scenarios' || !!selectedScenario)
+        }
         researchLoadingIndicator={undefined}
       />
 
