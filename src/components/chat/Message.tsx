@@ -1236,6 +1236,16 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
   }, [message, isResearchResponse]);
 
   
+  // Add isMobile state
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkIfMobile = () => setIsMobile(typeof window !== 'undefined' && window.innerWidth < 768);
+    checkIfMobile();
+    window.addEventListener('resize', checkIfMobile);
+    return () => window.removeEventListener('resize', checkIfMobile);
+  }, []);
+
+  
   if (message.role === 'system' && message.agentName) {
     return (
       <div className="flex items-center gap-2 py-1 px-3 my-2 rounded-md text-gray-200 text-xs font-mono max-w-[90%] shadow-md">
@@ -1694,13 +1704,35 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
             
             
             {!isEditing && !isLoadingEnhancedText && !isStreaming && (
-              <div className="flex items-center gap-2 mt-3 justify-between">
-                
-                <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 mt-3 justify-between w-full relative">
+                {/* Left: Research label on mobile */}
+                {isMobile && message.role === 'assistant' && isResearchResponse(message) && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'flex-start',
+                      height: '24px',
+                      padding: '0 10px',
+                      backgroundColor: 'transparent',
+                      color: '#232323',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      borderRadius: '1000px',
+                      border: '1px solid #E8E8E5',
+                      letterSpacing: '0.5px',
+                      position: 'relative',
+                      marginRight: 'auto',
+                    }}
+                  >
+                    Research
+                  </div>
+                )}
+                {/* Center: File citations, etc. (if any) */}
+                <div className="flex items-center gap-2" style={{ flex: 1 }}>
                   {message.role === 'assistant' && annotations && 
                     parseCitations(annotations.content).length > 0 && (
                       <div className="flex items-center gap-2 px-3 border border-gray-200 rounded-[20px]">
-                        
                         <div className="flex-grow">
                           <FileCitationBadges
                             citations={parseCitations(annotations.content)}
@@ -1710,7 +1742,6 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
                             onFileClick={handleFileClick}
                           />
                         </div>
-                        
                         <div className="flex-shrink-0" style={{ maxWidth: '200px' }}>
                           <CitationControls
                             citationStyle={citationStyle}
@@ -1723,35 +1754,34 @@ export const Message = React.memo(function Message({ message, onCopy, onDelete, 
                       </div>
                     )}
                 </div>
-                
-                
-                <div className="flex items-center gap-2">
-                  {message.role === 'assistant' && 
-                  // Show either AgentBadge or Research label in the same position
-                  !isResearchResponse(message) ? (
-                    <AgentBadge 
-                      agentName={message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant'}
-                      isStreaming={isStreaming}
-                    />
-                  ) : message.role === 'assistant' && isResearchResponse(message) && (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      height: '24px',
-                      padding: '0 10px',
-                      backgroundColor: 'transparent',
-                      color: '#232323',
-                      fontSize: '12px',
-                      fontWeight: '500',
-                      borderRadius: '1000px',
-                      border: '1px solid #E8E8E5',
-                      letterSpacing: '0.5px'
-                    }}>
-                      Research
-                    </div>
-                  )}
-                  
+                {/* Right: All actions and agent badge (desktop: also Research label if needed) */}
+                <div className="flex items-center gap-2" style={{ marginLeft: 'auto' }}>
+                  {message.role === 'assistant' &&
+                    (!isMobile && isResearchResponse(message) ? (
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          height: '24px',
+                          padding: '0 10px',
+                          backgroundColor: 'transparent',
+                          color: '#232323',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          borderRadius: '1000px',
+                          border: '1px solid #E8E8E5',
+                          letterSpacing: '0.5px',
+                        }}
+                      >
+                        Research
+                      </div>
+                    ) : !isResearchResponse(message) ? (
+                      <AgentBadge
+                        agentName={message.metadata?.agent_name || message.agentName || currentAgent || 'Assistant'}
+                        isStreaming={isStreaming}
+                      />
+                    ) : null)}
                   <MessageActions
                     message={message}
                     enhancedText={enhancedText}
