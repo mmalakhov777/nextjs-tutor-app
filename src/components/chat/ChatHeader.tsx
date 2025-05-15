@@ -110,7 +110,16 @@ export function ChatHeader({
           onClick={onToggleDropdown}
           className="flex items-center gap-1 px-3 py-2 rounded-md hover:bg-gray-100 transition-colors"
         >
-          <span className="font-medium truncate max-w-[200px]">{chatTitle}</span>
+          <span
+            className="font-medium truncate"
+            style={{
+              maxWidth: '110px',
+              display: 'block',
+            }}
+          >
+            <span className="sm:hidden">{chatTitle}</span>
+            <span className="hidden sm:inline" style={{ maxWidth: '200px' }}>{chatTitle}</span>
+          </span>
           <ChevronDown className="h-4 w-4" />
         </button>
         

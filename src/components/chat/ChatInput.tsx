@@ -22,6 +22,7 @@ import { PerplexityLogo } from '@/components/icons/PerplexityLogo';
 import { UserCircle } from 'lucide-react';
 import { saveFileMetadataToLocalStorage } from '@/utils/fileStorage';
 import { getAgentDescription } from '@/data/agentDescriptions';
+import { MobileSlider } from './MobileSlider';
 
 // Define a minimal Agent type locally
 type Agent = { id?: string; name: string; [key: string]: any };
@@ -1217,136 +1218,146 @@ export function ChatInput({
         >
           {/* Chat/Research Slider Toggle */}
           <div>
-            <div
-              className="relative flex items-center select-none"
-              style={{
-                minWidth: 200,
-                height: 36,
-                background: '#F8F8F6',
-                borderRadius: 10,
-                boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                border: 'none',
-                padding: 0,
-                paddingRight: 2,
-              }}
-            >
-              {/* Sliding background - with smooth transition */}
-              <div
-                className="absolute top-0 h-full transition-all duration-300"
-                style={{
-                  left: 2,
-                  background: '#F2F2ED',
-                  borderRadius: 10,
-                  border: '1px solid #E8E8E5',
-                  width: mode === 'chat' ? 'calc(40% - 10px)' : 'calc(60% + 10px)',
-                  transform: mode === 'chat' ? 'translateX(0)' : `translateX(calc(66.7% - 20px))`, 
-                  zIndex: 1,
-                }}
+            {isMobile ? (
+              <MobileSlider
+                mode={mode}
+                onModeChange={onModeChange}
+                isResearchDisabled={isResearchDisabled}
+                showResearchTooltip={showResearchTooltip}
+                setShowResearchTooltip={setShowResearchTooltip}
               />
-              {/* Chat option - with centered text */}
+            ) : (
               <div
-                className="z-10 flex items-center justify-center cursor-pointer text-sm font-medium"
+                className="relative flex items-center select-none"
                 style={{
-                  width: 'calc(40% - 10px)', /* Make Chat button smaller */
-                  height: '100%',
-                  color: '#232323',
-                  fontWeight: mode === 'chat' ? 600 : 500,
-                  opacity: mode === 'chat' ? 1 : 0.5,
-                  background: 'transparent',
-                  transition: 'color 0.2s, opacity 0.2s',
-                  position: 'relative',
-                  userSelect: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  textAlign: 'center',
+                  minWidth: 200,
+                  height: 36,
+                  background: '#F8F8F6',
+                  borderRadius: 10,
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                  border: 'none',
+                  padding: 0,
+                  paddingRight: 2,
                 }}
-                onClick={() => !disabled && onModeChange('chat')}
-                aria-pressed={mode === 'chat'}
-                tabIndex={0}
-                role="button"
               >
-                <span style={{ 
-                  display: 'block', 
-                  textAlign: 'center', 
-                  width: '100%',
-                  position: 'absolute',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  paddingLeft: '4px'
-                }}>
-                  Chat
-                  {isResearchDisabled && (
-                    <span
-                      ref={researchIconRef}
-                      style={{ display: 'inline-block', marginLeft: 4, position: 'relative', verticalAlign: 'middle', cursor: 'pointer', pointerEvents: 'auto' }}
-                      onClick={e => { 
-                        e.stopPropagation(); 
-                        // Close dropdowns when tooltip is opened
-                        setShowFileMention(false);
-                        setShowAgentMention(false);
-                        setShowResearchTooltip(v => !v); 
-                      }}
-                    >
-                      <AlertCircle className="inline-block relative" style={{ width: 14, height: 14, top: -2 }} />
-                      {showResearchTooltip && (
-                        <div className="absolute research-tooltip-container" style={{ left: '50%', transform: 'translateX(-50%)', bottom: '28px', minWidth: 210, zIndex: 2000 }}>
-                          <div className="relative">
-                            <div className="research-tooltip-arrow"></div>
-                            <div className="research-tooltip-content">
-                              <div className="research-tooltip-title">Web Research Disabled</div>
-                              <div className="research-tooltip-text">
-                                Web Research is disabled when referencing files or agents in your message. Remove @ or # to enable.
+                {/* Sliding background - with smooth transition */}
+                <div
+                  className="absolute top-0 h-full transition-all duration-300"
+                  style={{
+                    left: 2,
+                    background: '#F2F2ED',
+                    borderRadius: 10,
+                    border: '1px solid #E8E8E5',
+                    width: mode === 'chat' ? 'calc(40% - 10px)' : 'calc(60% + 10px)',
+                    transform: mode === 'chat' ? 'translateX(0)' : `translateX(calc(66.7% - 20px))`, 
+                    zIndex: 1,
+                  }}
+                />
+                {/* Chat option - with centered text */}
+                <div
+                  className="z-10 flex items-center justify-center cursor-pointer text-sm font-medium"
+                  style={{
+                    width: 'calc(40% - 10px)', /* Make Chat button smaller */
+                    height: '100%',
+                    color: '#232323',
+                    fontWeight: mode === 'chat' ? 600 : 500,
+                    opacity: mode === 'chat' ? 1 : 0.5,
+                    background: 'transparent',
+                    transition: 'color 0.2s, opacity 0.2s',
+                    position: 'relative',
+                    userSelect: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textAlign: 'center',
+                  }}
+                  onClick={() => !disabled && onModeChange('chat')}
+                  aria-pressed={mode === 'chat'}
+                  tabIndex={0}
+                  role="button"
+                >
+                  <span style={{ 
+                    display: 'block', 
+                    textAlign: 'center', 
+                    width: '100%',
+                    position: 'absolute',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    paddingLeft: '4px'
+                  }}>
+                    Chat
+                    {isResearchDisabled && (
+                      <span
+                        ref={researchIconRef}
+                        style={{ display: 'inline-block', marginLeft: 4, position: 'relative', verticalAlign: 'middle', cursor: 'pointer', pointerEvents: 'auto' }}
+                        onClick={e => { 
+                          e.stopPropagation(); 
+                          // Close dropdowns when tooltip is opened
+                          setShowFileMention(false);
+                          setShowAgentMention(false);
+                          setShowResearchTooltip(v => !v); 
+                        }}
+                      >
+                        <AlertCircle className="inline-block relative" style={{ width: 14, height: 14, top: -2 }} />
+                        {showResearchTooltip && (
+                          <div className="absolute research-tooltip-container" style={{ left: '50%', transform: 'translateX(-50%)', bottom: '28px', minWidth: 210, zIndex: 2000 }}>
+                            <div className="relative">
+                              <div className="research-tooltip-arrow"></div>
+                              <div className="research-tooltip-content">
+                                <div className="research-tooltip-title">Web Research Disabled</div>
+                                <div className="research-tooltip-text">
+                                  Web Research is disabled when referencing files or agents in your message. Remove @ or # to enable.
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      )}
-                    </span>
-                  )}
-                </span>
+                        )}
+                      </span>
+                    )}
+                  </span>
+                </div>
+                {/* Research option - with centered text */}
+                <div
+                  className="z-10 flex items-center justify-center cursor-pointer text-sm font-medium"
+                  style={{
+                    width: 'calc(60% + 10px)', /* Make Web Research button larger */
+                    height: '100%',
+                    color: '#232323',
+                    fontWeight: mode === 'research' ? 600 : 500,
+                    opacity: (mode === 'research' ? 1 : 0.5) * (isResearchDisabled ? 0.5 : 1),
+                    background: 'transparent',
+                    transition: 'color 0.2s, opacity 0.2s',
+                    position: 'relative',
+                    userSelect: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textAlign: 'center',
+                    margin: '0 auto',
+                    padding: 0,
+                    left: 0,
+                    pointerEvents: isResearchDisabled ? 'none' : 'auto', // Disable clicking when research is disabled
+                  }}
+                  onClick={() => !disabled && !isResearchDisabled && onModeChange('research')}
+                  aria-pressed={mode === 'research'}
+                  aria-disabled={isResearchDisabled}
+                  tabIndex={isResearchDisabled ? -1 : 0}
+                  role="button"
+                >
+                  <span style={{ 
+                    display: 'block', 
+                    textAlign: 'center', 
+                    width: '100%',
+                    position: 'absolute',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    paddingLeft: '7px'
+                  }}>
+                    {isMobile ? "Web" : "Web Research"}
+                  </span>
+                </div>
               </div>
-              {/* Research option - with centered text */}
-              <div
-                className="z-10 flex items-center justify-center cursor-pointer text-sm font-medium"
-                style={{
-                  width: 'calc(60% + 10px)', /* Make Web Research button larger */
-                  height: '100%',
-                  color: '#232323',
-                  fontWeight: mode === 'research' ? 600 : 500,
-                  opacity: (mode === 'research' ? 1 : 0.5) * (isResearchDisabled ? 0.5 : 1),
-                  background: 'transparent',
-                  transition: 'color 0.2s, opacity 0.2s',
-                  position: 'relative',
-                  userSelect: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  textAlign: 'center',
-                  margin: '0 auto',
-                  padding: 0,
-                  left: 0,
-                  pointerEvents: isResearchDisabled ? 'none' : 'auto', // Disable clicking when research is disabled
-                }}
-                onClick={() => !disabled && !isResearchDisabled && onModeChange('research')}
-                aria-pressed={mode === 'research'}
-                aria-disabled={isResearchDisabled}
-                tabIndex={isResearchDisabled ? -1 : 0}
-                role="button"
-              >
-                <span style={{ 
-                  display: 'block', 
-                  textAlign: 'center', 
-                  width: '100%',
-                  position: 'absolute',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  paddingLeft: '7px'
-                }}>
-                  Web Research
-                </span>
-              </div>
-            </div>
+            )}
           </div>
           
           <div className="flex gap-2">
@@ -1409,11 +1420,15 @@ export function ChatInput({
               ) : (
                 <Send className="h-4 w-4" />
               )}
-              <span style={{ fontSize: '14px', fontWeight: 500 }}>
-                {disabled ? "Processing..." : 
-                 isLoadingFileContent ? "Preparing files..." : 
-                 "Send"}
-              </span>
+              {isMobile ? (
+                <span style={{ fontSize: '14px', fontWeight: 500 }}>Send</span>
+              ) : (
+                <span style={{ fontSize: '14px', fontWeight: 500 }}>
+                  {disabled ? "Processing..." : 
+                   isLoadingFileContent ? "Preparing files..." : 
+                   "Send"}
+                </span>
+              )}
             </button>
           </div>
         </div>

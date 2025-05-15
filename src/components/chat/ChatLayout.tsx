@@ -32,10 +32,10 @@ interface ChatLayoutProps {
   content: ReactNode;
   inputComponent?: ReactNode;
   isMobile: boolean;
-  activeTab: 'chat' | 'files' | 'agents';
+  activeTab: 'chat' | 'files' | 'agents' | 'scenarios';
   isLoading: boolean;
   loadingMessage: string;
-  onTabChange: (tab: 'chat' | 'files' | 'agents') => void;
+  onTabChange: (tab: 'chat' | 'files' | 'agents' | 'scenarios') => void;
   chatPadding?: string;
   rightSidebarWide?: boolean;
   researchLoadingIndicator?: ReactNode;
@@ -116,6 +116,15 @@ export function ChatLayout({
         
         {/* Agents Tab - Only visible on mobile when active */}
         {isMobile && activeTab === 'agents' && (
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-4">
+              {rightSidebar}
+            </div>
+          </div>
+        )}
+        
+        {/* Scenarios Tab - Only visible on mobile when active */}
+        {isMobile && activeTab === 'scenarios' && (
           <div className="flex-1 overflow-y-auto">
             <div className="p-4">
               {rightSidebar}

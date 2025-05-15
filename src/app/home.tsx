@@ -140,7 +140,7 @@ export default function Home({
   
   // Mobile responsiveness
   const [isMobile, setIsMobile] = useState(false);
-  const [activeTab, setActiveTab] = useState<'chat' | 'files' | 'agents'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'files' | 'agents' | 'scenarios'>('chat');
   
   // Add state to track active sidebar tab
   const [agentsSidebarTab, setAgentsSidebarTab] = useState<'agents' | 'notes' | 'scenarios'>('agents');

@@ -13,7 +13,7 @@ import Table from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
-import { Bold, Italic, List, Heading, Underline, ListOrdered, Link as LucideLink, Image, Table as TableIcon, ClipboardPaste } from 'lucide-react';
+import { Bold, Italic, List, Heading, Underline, ListOrdered, Link as LucideLink } from 'lucide-react';
 import { useCallback } from 'react';
 
 interface TiptapEditorProps {
@@ -99,7 +99,8 @@ const TiptapEditor = ({ content, onUpdate }: TiptapEditorProps) => {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="border-b border-gray-200 flex items-center gap-1 px-2 py-1">
+      {/* Fixed toolbar positioned at the top */}
+      <div className="border-b border-gray-200 flex items-center gap-1 px-2 py-1 bg-white w-full">
         <button
           onClick={() => editor.chain().focus().toggleBold().run()}
           className={`p-1 rounded ${editor.isActive('bold') ? 'bg-gray-100' : ''} hover:bg-gray-50`}
@@ -152,58 +153,15 @@ const TiptapEditor = ({ content, onUpdate }: TiptapEditorProps) => {
         >
           <LucideLink className="h-4 w-4" />
         </button>
-        <button
-          onClick={() => {
-            const url = window.prompt('Image URL');
-            if (url) {
-              editor.chain().focus().setImage({ src: url }).run();
-            }
-          }}
-          className="p-1 rounded hover:bg-gray-50"
-          title="Insert Image"
-        >
-          <Image className="h-4 w-4" />
-        </button>
-        <button
-          onClick={() => {
-            editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
-          }}
-          className="p-1 rounded hover:bg-gray-50"
-          title="Insert Table"
-        >
-          <TableIcon className="h-4 w-4" />
-        </button>
-        <button
-          onClick={async () => {
-            // Read clipboard as text
-            if (navigator.clipboard) {
-              const text = await navigator.clipboard.readText();
-              // Simple check: if it looks like HTML, insert as HTML
-              if (text.trim().startsWith('<') && text.trim().endsWith('>')) {
-                editor.commands.insertContent(text);
-              } else {
-                // fallback: insert as plain text
-                editor.commands.insertContent(text.replace(/</g, '&lt;').replace(/>/g, '&gt;'));
-              }
-            } else {
-              alert('Clipboard API not supported.');
-            }
-          }}
-          className="p-1 rounded hover:bg-gray-50"
-          title="Paste HTML as Rich Text"
-        >
-          <ClipboardPaste className="h-4 w-4" />
-        </button>
       </div>
       <div 
-        className="flex-grow w-full h-full cursor-text"
+        className="flex-grow w-full h-full cursor-text overflow-auto"
         onClick={() => editor.chain().focus().run()}
       >
         <EditorContent 
           editor={editor} 
-          className="w-full h-full overflow-y-auto"
+          className="w-full h-full"
           style={{
-            height: 'calc(100vh - 100px)',
             padding: '16px',
             outline: 'none',
           }}
@@ -211,8 +169,6 @@ const TiptapEditor = ({ content, onUpdate }: TiptapEditorProps) => {
       </div>
       <style dangerouslySetInnerHTML={{ __html: `
         .ProseMirror {
-          min-height: calc(100vh - 100px);
-          height: 100%;
           outline: none !important;
           box-shadow: none !important;
           border: none !important;

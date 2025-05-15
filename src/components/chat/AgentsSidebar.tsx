@@ -1,5 +1,6 @@
 import { Users, X, Info, Settings, Wrench, Shield, UserCircle, Brain, Globe, Sparkles, Search, BookOpen, Code, Lightbulb, ChevronDown, ChevronUp, ChevronLeft, MessageSquare, FileText, Bold, Italic, List, Heading, Underline, ListOrdered, Edit3, TrendingUp, BarChart2, PenTool, LayoutTemplate, Video, FileImage, Mail } from 'lucide-react';
 import { PlusIcon } from '@/components/icons/PlusIcon';
+import { RewriteIcon } from '@/components/icons/RewriteIcon';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -100,6 +101,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   const [isSavingNotes, setIsSavingNotes] = useState<boolean>(false);
   const [isLoadingNotes, setIsLoadingNotes] = useState<boolean>(false);
   const [lastSavedNoteContent, setLastSavedNoteContent] = useState<string>('');
+  const [isFooterCollapsed, setIsFooterCollapsed] = useState<boolean>(false);
   const {
     expandedScenario,
     setExpandedScenario,
@@ -418,7 +420,11 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   // Detect mobile screen size
   useEffect(() => {
     const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setActiveTab('scenarios');
+      }
     };
     
     // Initial check
@@ -1545,17 +1551,102 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
           )}
         </div>
       ) : activeTab === 'notes' ? (
-        <div className="flex-1 h-full w-full min-h-0 min-w-0 flex flex-col p-0 m-0">
+        <div className="flex flex-col h-full w-full overflow-hidden">
           {isLoadingNotes ? (
             <div className="flex flex-1 justify-center items-center h-full w-full">
               <div className="animate-spin h-5 w-5 sm:h-6 sm:w-6 border-2 border-blue-500 border-t-transparent rounded-full"></div>
             </div>
           ) : (
-            <div className="flex-1 h-full w-full min-h-0 min-w-0 flex flex-col p-0 m-0">
-              <TiptapEditor 
-                content={noteContent} 
-                onUpdate={handleNoteUpdate} 
-              />
+            <div className="flex flex-col h-full w-full overflow-hidden">
+              {/* Editor container with its own scroll - flexGrow makes it fill remaining space */}
+              <div className="flex-grow overflow-auto" style={{ height: 0, minHeight: 0 }}>
+                <TiptapEditor 
+                  content={noteContent} 
+                  onUpdate={handleNoteUpdate} 
+                />
+              </div>
+              {/* Notes rewrite footer */}
+              <div className="flex-shrink-0 w-full bg-white z-10 transition-all duration-300" 
+                   style={{ 
+                     borderTop: '1px solid #e8e8e5',
+                     height: isFooterCollapsed ? '40px' : 'auto'
+                   }}>
+                {/* Collapse/Expand toggle button */}
+                <div className="flex justify-end items-center px-4 h-10">
+                  <button 
+                    onClick={() => setIsFooterCollapsed(!isFooterCollapsed)}
+                    className="p-1 rounded hover:bg-gray-100 focus:outline-none"
+                  >
+                    {isFooterCollapsed ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </button>
+                </div>
+
+                {/* Footer content - only shown when expanded */}
+                <div className={`px-4 pb-4 ${isFooterCollapsed ? 'hidden' : 'block'}`}>
+                  {/* Utility to strip HTML tags from notes */}
+                  {(() => {
+                    function stripHtml(html: string) {
+                      if (!html) return '';
+                      const tmp = document.createElement('div');
+                      tmp.innerHTML = html;
+                      return tmp.textContent || tmp.innerText || '';
+                    }
+                    var plainTextNotes = stripHtml(noteContent);
+                    // Use plainTextNotes below
+                    return (
+                      <>
+                        <h3 style={{ 
+                          color: 'var(--Monochrome-Black, #232323)',
+                          fontFeatureSettings: '"ss04" on',
+                          fontFamily: '"Aeonik Pro", sans-serif',
+                          fontSize: '16px',
+                          fontStyle: 'normal',
+                          fontWeight: 500,
+                          lineHeight: '24px'
+                        }} className="mb-2">Rewrite your notes with AI</h3>
+                        <p style={{ 
+                          color: 'var(--Monochrome-Black, #232323)',
+                          fontFamily: '"Aeonik Pro", sans-serif',
+                          fontSize: '14px',
+                          fontStyle: 'normal',
+                          fontWeight: 400,
+                          lineHeight: '20px'
+                        }} className="mb-4">Instantly improve, rephrase, or summarize your notes using our AI-powered tool</p>
+                        <a 
+                          href={`https://mystylus.ai/rewrite-studio/?text=${encodeURIComponent(plainTextNotes)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center py-3 px-4 w-full transition-colors hover:bg-[#F8F9FE]"
+                          style={{
+                            color: 'var(--Monochrome-Black, #232323)',
+                            fontFamily: '"Aeonik Pro", sans-serif',
+                            fontSize: '14px',
+                            fontStyle: 'normal',
+                            fontWeight: 500,
+                            lineHeight: '20px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--Monochrome-Light, #E8E8E5)',
+                            background: 'var(--Monochrome-White, #FFF)'
+                          }}
+                          onMouseOver={(e) => {
+                            e.currentTarget.style.border = '1px solid var(--Monochrome-Light, #E8E8E5)';
+                            e.currentTarget.style.background = 'var(--Monochrome-Light, #E8E8E5)';
+                          }}
+                          onMouseOut={(e) => {
+                            e.currentTarget.style.border = '1px solid var(--Monochrome-Light, #E8E8E5)';
+                            e.currentTarget.style.background = '#FFF';
+                          }}
+                        >
+                          <div className="mr-2 flex items-center justify-center">
+                            <RewriteIcon className="h-5 w-5" />
+                          </div>
+                          Open in Rewrite Studio
+                        </a>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
             </div>
           )}
         </div>

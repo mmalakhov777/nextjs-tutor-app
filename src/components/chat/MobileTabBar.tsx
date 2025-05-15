@@ -1,8 +1,8 @@
 import { FiFolder, FiMessageSquare, FiUser } from 'react-icons/fi';
 
 interface MobileTabBarProps {
-  activeTab: 'chat' | 'files' | 'agents';
-  onTabChange: (tab: 'chat' | 'files' | 'agents') => void;
+  activeTab: 'chat' | 'files' | 'agents' | 'scenarios';
+  onTabChange: (tab: 'chat' | 'files' | 'agents' | 'scenarios') => void;
 }
 
 export function MobileTabBar({ activeTab, onTabChange }: MobileTabBarProps) {
@@ -24,11 +24,11 @@ export function MobileTabBar({ activeTab, onTabChange }: MobileTabBarProps) {
           <span className="text-sm font-medium">Chat</span>
         </button>
         <button
-          onClick={() => onTabChange('agents')}
-          className={`flex items-center justify-center p-1 rounded-lg flex-1 ${activeTab === 'agents' ? 'bg-white text-black' : 'text-black'}`}
-          aria-label="Agents tab"
+          onClick={() => onTabChange('scenarios')}
+          className={`flex items-center justify-center p-1 rounded-lg flex-1 ${activeTab === 'scenarios' ? 'bg-white text-black' : 'text-black'}`}
+          aria-label="Scenarios tab"
         >
-          <span className="text-sm font-medium">Agents</span>
+          <span className="text-sm font-medium">Scenarios</span>
         </button>
       </div>
     </div>

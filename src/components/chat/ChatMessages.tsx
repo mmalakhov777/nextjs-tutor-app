@@ -270,7 +270,7 @@ export function ChatMessages({
             <div ref={messagesEndRef} />
             
             {/* Add extra padding at the bottom to prevent input overlay */}
-            <div className="pb-[50px]"></div>
+            <div className="pb-[90px] sm:pb-[50px]"></div>
           </div>
         </div>
       )}
