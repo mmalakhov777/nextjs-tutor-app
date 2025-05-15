@@ -1,4 +1,5 @@
-import { Users, X, Info, Plus, Settings, Wrench, Shield, UserCircle, Brain, Globe, Sparkles, Search, BookOpen, Code, Lightbulb, ChevronDown, ChevronUp, MessageSquare, FileText, Bold, Italic, List, Heading, Underline, ListOrdered, Edit3, TrendingUp, BarChart2, PenTool, LayoutTemplate, Video, FileImage, Mail } from 'lucide-react';
+import { Users, X, Info, Settings, Wrench, Shield, UserCircle, Brain, Globe, Sparkles, Search, BookOpen, Code, Lightbulb, ChevronDown, ChevronUp, ChevronLeft, MessageSquare, FileText, Bold, Italic, List, Heading, Underline, ListOrdered, Edit3, TrendingUp, BarChart2, PenTool, LayoutTemplate, Video, FileImage, Mail } from 'lucide-react';
+import { PlusIcon } from '@/components/icons/PlusIcon';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -929,56 +930,139 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   // Function to render a fully expanded scenario card
   const renderExpandedScenarioCard = (scenario: any) => {
     return (
-      <>
+      <div className="flex flex-col h-full">
         {/* Header section */}
-        <div className="flex gap-3 items-center mb-5">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-900">{scenario.title}</h2>
-            <p className="text-slate-600">{scenario.description}</p>
+        <div className="mb-4">
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-lg font-semibold">{scenario.title}</h2>
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                handleBackToScenarios();
+              }}
+              style={{
+                display: 'inline-flex',
+                height: '40px',
+                padding: '8px 12px',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '4px',
+                borderRadius: '8px',
+                border: '1px solid var(--Monochrome-Light, #E8E8E5)',
+                background: 'var(--Monochrome-White, #FFF)',
+                color: 'var(--Monochrome-Black, #232323)',
+                textDecoration: 'none',
+                marginLeft: '8px',
+                fontSize: '14px',
+                fontStyle: 'normal',
+                fontWeight: 400,
+                lineHeight: '20px',
+                transition: 'background 0.2s, border 0.2s, color 0.2s',
+                whiteSpace: 'nowrap'
+              }}
+              onMouseOver={e => {
+                e.currentTarget.style.background = 'var(--superlight)';
+                e.currentTarget.style.borderColor = 'var(--normal)';
+              }}
+              onMouseOut={e => {
+                e.currentTarget.style.background = 'var(--Monochrome-White, #FFF)';
+                e.currentTarget.style.borderColor = 'var(--Monochrome-Light, #E8E8E5)';
+              }}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              <span>All Scenarios</span>
+            </a>
           </div>
+          <p className="text-sm text-slate-600 mb-3">{scenario.description}</p>
         </div>
         
-        {/* Steps section */}
-        <div className="mb-auto space-y-4">
+        {/* Steps section - add flex-grow to take available space */}
+        <div className="flex-grow overflow-y-auto space-y-4">
           {scenario.steps.map((step: any, index: number) => {
             const isCurrentStep = index === currentStep;
             const isCompleted = completedSteps.includes(index);
             const isAccessible = index <= Math.max(...completedSteps, 0) + 1;
             
             return (
-              <div 
+                              <div 
                 key={index} 
-                className={`p-4 rounded-lg border transition-all duration-200 ${
+                className={`transition-all duration-200 ${
                   isCurrentStep 
-                    ? 'border-[#70D6FF] bg-[#E5F7FF]' 
+                    ? '' 
                     : isCompleted 
-                      ? 'border-green-200 bg-green-50' 
+                      ? '' 
                       : isAccessible 
-                        ? 'border-slate-200 bg-white cursor-pointer hover:border-slate-300' 
-                        : 'border-slate-200 bg-slate-50 opacity-70'
+                        ? 'p-4 rounded-lg border border-slate-200 bg-white cursor-pointer hover:border-slate-300' 
+                        : 'p-4 rounded-lg border border-slate-200 bg-slate-50 opacity-70'
                 }`}
+                style={isCurrentStep ? {
+                  display: 'flex',
+                  padding: '16px',
+                  flexDirection: 'column',
+                  alignItems: 'stretch',
+                  gap: '12px',
+                  alignSelf: 'stretch',
+                  borderRadius: '16px',
+                  border: '1px solid var(--Monochrome-Light, #E8E8E5)',
+                  background: '#FFF',
+                  boxShadow: '0px 15px 40px 0px rgba(203, 203, 203, 0.25)'
+                } : isCompleted ? {
+                  display: 'flex',
+                  padding: '16px',
+                  flexDirection: 'column',
+                  alignItems: 'stretch',
+                  gap: '12px',
+                  alignSelf: 'stretch',
+                  borderRadius: '16px',
+                  border: '1px solid var(--Monochrome-Light, #E8E8E5)',
+                  background: '#FFF'
+                } : {}}
                 onClick={() => isAccessible && goToStep(index)}
               >
-                <div className="flex items-start">
-                  <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center mr-3 text-sm font-medium ${
-                    isCompleted 
-                      ? 'bg-green-500 text-white' 
-                      : isCurrentStep 
-                        ? 'bg-[#232323] text-white' 
-                        : isAccessible 
+                <div className="flex items-start w-full">
+                  <div 
+                    className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center mr-3 text-sm font-medium ${
+                      !isCompleted && !isCurrentStep && isAccessible 
                           ? 'bg-white border border-slate-300 text-slate-700' 
-                          : 'bg-slate-200 text-slate-500'
-                  }`}>
+                          : !isCompleted && !isCurrentStep ? 'bg-slate-200 text-slate-500' : ''
+                    }`}
+                    style={isCurrentStep ? {
+                      width: '24px',
+                      height: '24px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: '12px',
+                      borderRadius: '1000px',
+                      background: 'var(--Blue-Light, #C7EFFF)',
+                      color: '#232323',
+                      fontSize: '14px',
+                      fontWeight: '500'
+                    } : isCompleted ? {
+                      width: '24px',
+                      height: '24px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: '12px',
+                      borderRadius: '1000px',
+                      background: 'var(--Blue-Normal, #70D6FF)',
+                      color: 'white',
+                      fontSize: '14px',
+                      fontWeight: '500'
+                    } : {}}
+                  >
                     {isCompleted ? '✓' : index + 1}
                   </div>
-                  <div className="w-full">
+                  <div className="w-full flex-grow flex flex-col" style={{ width: '100%' }}>
                     <h4 className="font-medium text-slate-900">{step.title}</h4>
                     <p className="text-sm text-slate-600 mb-3">{step.description}</p>
                     
-                    {/* Step-specific action buttons - only show for current step */}
-                    {isCurrentStep && step.actions && step.actions.length > 0 && (
-                      <div className="space-y-2 mt-3">
-                        {step.actions.map((action: any, actionIndex: number) => {
+                                            {/* Step-specific action buttons - only show for current step */}
+                        {isCurrentStep && step.actions && step.actions.length > 0 && (
+                          <div className="space-y-2 mt-3 w-full" style={{ width: '100%' }}>
+                            {step.actions.map((action: any, actionIndex: number) => {
                           // Create a unique ID for this button
                           const actionId = `step_${index}_action_${actionIndex}`;
                           const isTriggered = triggeredActions[actionId];
@@ -987,12 +1071,10 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
                           return (
                             <button 
                               key={actionIndex}
-                              className={`w-full px-4 py-2 border rounded-lg text-left text-sm flex items-center transition-colors ${
+                              className={`text-left text-sm transition-colors ${
                                 isTriggered
-                                  ? 'bg-slate-100 text-slate-500 border-slate-200'
-                                  : isResearch
-                                    ? 'bg-[#232323] text-white border-[#232323] hover:bg-[#232323]'
-                                    : 'bg-[#232323] text-white border-[#232323] hover:bg-[#232323]'
+                                  ? 'text-slate-500'
+                                  : 'text-[#232323]'
                               }`}
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -1001,25 +1083,57 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
                                 }
                               }}
                               disabled={isTriggered}
-                              style={{
+                                                              style={{
+                                display: 'flex',
+                                padding: '16px',
+                                flexDirection: 'column',
+                                alignItems: 'flex-start',
+                                gap: '12px',
+                                alignSelf: 'stretch',
+                                width: '100%',
+                                minWidth: '100%',
+                                maxWidth: '100%',
+                                borderRadius: '8px',
+                                border: '1px solid var(--Monochrome-Light, #E8E8E5)',
+                                background: '#FFF',
+                                boxShadow: '0px 15px 40px 0px rgba(203, 203, 203, 0.25)',
                                 opacity: isTriggered ? 0.7 : 1,
                                 cursor: isTriggered ? 'default' : 'pointer'
                               }}
-                            >
-                              {isResearch ? (
-                                <Search className="h-4 w-4 mr-2 text-inherit" />
-                              ) : (
-                                <MessageSquare className="h-4 w-4 mr-2 text-inherit" />
-                              )}
-                              {action.label}
-                            </button>
+                              onMouseOver={(e) => {
+                                if (!isTriggered) {
+                                  e.currentTarget.style.border = '1px solid var(--Monochrome-Light, #E8E8E5)';
+                                  e.currentTarget.style.background = 'var(--Monochrome-Light, #E8E8E5)';
+                                }
+                              }}
+                              onMouseOut={(e) => {
+                                if (!isTriggered) {
+                                  e.currentTarget.style.border = '1px solid var(--Monochrome-Light, #E8E8E5)';
+                                  e.currentTarget.style.background = '#FFF';
+                                }
+                              }}
+                                                          >
+                                <div className="flex items-center w-full">
+                                  <PlusIcon className="h-4 w-4 mr-2 text-inherit" />
+                                  <span style={{
+                                    color: 'var(--Monochrome-Black, #232323)',
+                                    fontFamily: '"Aeonik Pro", sans-serif',
+                                    fontSize: '14px',
+                                    fontStyle: 'normal',
+                                    fontWeight: 400,
+                                    lineHeight: '20px'
+                                  }}>
+                                    {action.label}
+                                  </span>
+                                </div>
+                              </button>
                           );
                         })}
                         
                         {/* Next step button - only show if actions were taken */}
                         {(isCompleted || completedSteps.includes(index)) && index < scenario.steps.length - 1 && (
                           <button 
-                            className="w-full text-[#232323] text-sm font-medium transition-colors mt-3 border border-[#232323] bg-white hover:bg-slate-50"
+                            className="w-full text-white text-sm font-medium transition-colors mt-3"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleNextStep();
@@ -1031,6 +1145,15 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
                               justifyContent: 'center',
                               gap: '4px',
                               borderRadius: '8px',
+                              background: 'var(--Monochrome-Black, #232323)',
+                              cursor: 'pointer',
+                              transition: 'background-color 0.2s ease'
+                            }}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.background = '#444444';
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.background = 'var(--Monochrome-Black, #232323)';
                             }}
                           >
                             Continue to next step
@@ -1044,7 +1167,57 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
             );
           })}
         </div>
-      </>
+        
+        {/* Discord help footer - only show when scenario has discord link */}
+        {scenario.discord && (
+          <div className="mt-4 flex-shrink-0 sticky bottom-0 overflow-visible bg-white w-full" style={{ borderTop: '1px solid #e8e8e5' }}>
+            <div className="pt-4">
+              <h3 style={{ 
+                color: 'var(--Monochrome-Black, #232323)',
+                fontFeatureSettings: '"ss04" on',
+                fontFamily: '"Aeonik Pro", sans-serif',
+                fontSize: '16px',
+                fontStyle: 'normal',
+                fontWeight: 500,
+                lineHeight: '24px'
+              }} className="mb-2">Need scenario help?</h3>
+              <p style={{ 
+                color: 'var(--Monochrome-Black, #232323)',
+                fontFamily: '"Aeonik Pro", sans-serif',
+                fontSize: '14px',
+                fontStyle: 'normal',
+                fontWeight: 400,
+                lineHeight: '20px'
+              }} className="mb-4">Get guides, video walk-throughs & feedback in our Discord community</p>
+              
+              <a 
+                href={scenario.discord}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center py-3 px-4 w-full transition-colors hover:bg-[#F8F9FE]"
+                style={{
+                  color: 'var(--Monochrome-Black, #232323)',
+                  fontFamily: '"Aeonik Pro", sans-serif',
+                  fontSize: '14px',
+                  fontStyle: 'normal',
+                  fontWeight: 500,
+                  lineHeight: '20px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--Monochrome-Light, #E8E8E5)',
+                  background: 'var(--Monochrome-White, #FFF)'
+                }}
+              >
+                <div className="mr-2 flex items-center justify-center" style={{ color: '#5865F2' }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20.317 4.492c-1.53-.69-3.17-1.2-4.885-1.49a.075.075 0 0 0-.079.036c-.21.39-.444.855-.608 1.23a18.407 18.407 0 0 0-5.487 0 12.331 12.331 0 0 0-.617-1.23A.077.077 0 0 0 8.562 3c-1.714.29-3.354.8-4.885 1.491a.07.07 0 0 0-.032.027C.533 9.094-.32 13.555.099 17.961a.08.08 0 0 0 .031.055c1.992 1.457 3.922 2.34 5.814 2.926a.078.078 0 0 0 .084-.026c.462-.63.874-1.295 1.226-1.995a.076.076 0 0 0-.041-.106c-.632-.242-1.235-.52-1.807-.852a.077.077 0 0 1-.008-.128c.122-.091.243-.186.359-.28a.07.07 0 0 1 .073-.011c3.712 1.694 7.73 1.694 11.401 0a.07.07 0 0 1 .074.01c.116.095.237.19.36.281a.077.077 0 0 1-.007.128c-.573.333-1.176.61-1.808.853a.076.076 0 0 0-.041.106c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028c1.9-.586 3.832-1.47 5.824-2.927a.08.08 0 0 0 .032-.055c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.278c-1.182 0-2.157-1.069-2.157-2.38 0-1.312.956-2.38 2.157-2.38 1.21 0 2.176 1.077 2.157 2.38 0 1.312-.956 2.38-2.157 2.38zm7.975 0c-1.183 0-2.157-1.069-2.157-2.38 0-1.312.955-2.38 2.157-2.38 1.21 0 2.176 1.077 2.157 2.38 0 1.312-.946 2.38-2.157 2.38z"></path>
+                  </svg>
+                </div>
+                Join community
+              </a>
+            </div>
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -1175,7 +1348,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
                       marginRight: '12px'
                     }}
                   >
-                    {activeTab === 'scenarios' && expandedScenario ? 'All Scenarios' : 'Scenarios'}
+                    Scenarios
                   </button>
                 </>
               );
@@ -1317,7 +1490,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
                           background: 'var(--Monochrome-Superlight, #F2F2ED)'
                         }}
                       >
-                        <Plus className="h-4 w-4" />
+                        <PlusIcon className="h-4 w-4" />
                         Create agent
                       </Button>
                     </Link>
@@ -1398,7 +1571,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
           )}
         </div>
       ) : (
-        <div className={`${isMobile ? 'p-2' : 'p-3 sm:p-4'} pt-4 sm:pt-6 overflow-y-auto h-full flex flex-col`}>
+        <div className={`${isMobile ? 'p-2' : 'p-3 sm:p-4'} pt-4 sm:pt-6 overflow-hidden h-full flex flex-col`}>
           {!expandedScenario && (
             <div className="mb-4">
               <div className="flex justify-between items-center mb-3">
@@ -1410,7 +1583,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
                     setShowScenariosModal(true);
                   }}
                   style={{
-                    display: 'flex',
+                    display: 'inline-flex',
                     height: '40px',
                     padding: '8px 12px',
                     justifyContent: 'center',
@@ -1426,7 +1599,8 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
                     fontStyle: 'normal',
                     fontWeight: 400,
                     lineHeight: '20px',
-                    transition: 'background 0.2s, border 0.2s, color 0.2s'
+                    transition: 'background 0.2s, border 0.2s, color 0.2s',
+                    whiteSpace: 'nowrap'
                   }}
                   onMouseOver={e => {
                     e.currentTarget.style.background = 'var(--superlight)';
@@ -1445,11 +1619,11 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
             </div>
           )}
           {expandedScenario ? (
-            <div className="h-full overflow-y-auto">
+            <div className="h-full flex-grow overflow-hidden">
               {renderScenarioCards()}
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 overflow-y-auto">
               {isLoadingScenarios ? (
                 <div>Loading scenarios...</div>
               ) : (

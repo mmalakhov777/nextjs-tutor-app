@@ -19,5 +19,7 @@ export interface ScenarioData {
   icon?: LucideIcon | string;
   color: string;
   category?: string;
+  discord?: string;
+  social_link?: string;
   steps: ScenarioStep[];
 } 

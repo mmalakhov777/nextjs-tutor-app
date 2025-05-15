@@ -56,6 +56,8 @@ export async function getScenariosFromDB(): Promise<ScenarioData[]> {
       icon: undefined, 
       color: scenario.color,
       category: scenario.category,
+      discord: scenario.discord,
+      social_link: scenario.social_link,
       steps: stepsByScenario[scenario.id] || [],
     }));
     

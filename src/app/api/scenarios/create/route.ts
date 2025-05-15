@@ -26,6 +26,8 @@ const ScenarioSchema = z.object({
   description: z.string(),
   color: z.string(),
   category: z.string().optional(),
+  discord: z.string().optional(),
+  social_link: z.string().optional(),
   steps: z.array(ScenarioStepSchema),
 });
 
@@ -55,13 +57,15 @@ export async function POST(request: NextRequest) {
     try {
       // Insert scenario
       await sql`
-        INSERT INTO scenarios (id, title, description, color, category)
-        VALUES (${scenario.id}, ${scenario.title}, ${scenario.description}, ${scenario.color}, ${scenario.category})
+        INSERT INTO scenarios (id, title, description, color, category, discord, social_link)
+        VALUES (${scenario.id}, ${scenario.title}, ${scenario.description}, ${scenario.color}, ${scenario.category}, ${scenario.discord}, ${scenario.social_link})
         ON CONFLICT (id) DO UPDATE SET
           title = ${scenario.title},
           description = ${scenario.description},
           color = ${scenario.color},
-          category = ${scenario.category}
+          category = ${scenario.category},
+          discord = ${scenario.discord},
+          social_link = ${scenario.social_link}
       `;
       
       // Delete existing steps and actions to replace them
