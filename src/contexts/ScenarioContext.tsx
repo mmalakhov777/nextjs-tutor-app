@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, Suspense } from "react";
 import type { ScenarioData } from "@/types/scenarios";
 import { useSearchParams } from "next/navigation";
 import { getScenariosFromDB } from "@/data/scenarios";
@@ -21,7 +21,8 @@ const ScenarioContext = createContext<ScenarioContextType>({
 
 export const useScenarioContext = () => useContext(ScenarioContext);
 
-export const ScenarioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+// Create a component that uses useSearchParams inside Suspense
+function ScenarioProviderContent({ children }: { children: React.ReactNode }) {
   const [scenarios, setScenarios] = useState<ScenarioData[]>([]);
   const [selectedScenario, setSelectedScenario] = useState<ScenarioData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,5 +61,14 @@ export const ScenarioProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     >
       {children}
     </ScenarioContext.Provider>
+  );
+}
+
+// Export the provider with Suspense
+export const ScenarioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return (
+    <Suspense fallback={<div>Loading scenarios...</div>}>
+      <ScenarioProviderContent>{children}</ScenarioProviderContent>
+    </Suspense>
   );
 }; 

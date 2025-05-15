@@ -1,10 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { env } from '@/lib/env';
 
-export default function BackendTest() {
+// Create a loading component
+function LoadingComponent() {
+  return (
+    <div className="text-center p-8">
+      <p className="text-xl">Loading backend test...</p>
+    </div>
+  );
+}
+
+// Create the main content component
+function BackendTestContent() {
   const [loading, setLoading] = useState(true);
   const [testResults, setTestResults] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -160,5 +170,14 @@ Access-Control-Allow-Credentials: true`}
         </button>
       </div>
     </div>
+  );
+}
+
+// Main component with Suspense wrapper
+export default function BackendTest() {
+  return (
+    <Suspense fallback={<LoadingComponent />}>
+      <BackendTestContent />
+    </Suspense>
   );
 } 
