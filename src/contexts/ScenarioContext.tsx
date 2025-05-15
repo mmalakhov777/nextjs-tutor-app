@@ -10,6 +10,12 @@ interface ScenarioContextType {
   setSelectedScenario: (scenario: ScenarioData | null) => void;
   scenarios: ScenarioData[];
   isLoading: boolean;
+  expandedScenario: string | null;
+  setExpandedScenario: (id: string | null) => void;
+  currentStep: number;
+  setCurrentStep: (step: number) => void;
+  completedSteps: number[];
+  setCompletedSteps: (steps: number[]) => void;
 }
 
 const ScenarioContext = createContext<ScenarioContextType>({
@@ -17,6 +23,12 @@ const ScenarioContext = createContext<ScenarioContextType>({
   setSelectedScenario: () => {},
   scenarios: [],
   isLoading: false,
+  expandedScenario: null,
+  setExpandedScenario: () => {},
+  currentStep: 0,
+  setCurrentStep: () => {},
+  completedSteps: [],
+  setCompletedSteps: () => {},
 });
 
 export const useScenarioContext = () => useContext(ScenarioContext);
@@ -26,6 +38,9 @@ function ScenarioProviderContent({ children }: { children: React.ReactNode }) {
   const [scenarios, setScenarios] = useState<ScenarioData[]>([]);
   const [selectedScenario, setSelectedScenario] = useState<ScenarioData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [expandedScenario, setExpandedScenario] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState<number>(0);
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -57,7 +72,18 @@ function ScenarioProviderContent({ children }: { children: React.ReactNode }) {
 
   return (
     <ScenarioContext.Provider
-      value={{ selectedScenario, setSelectedScenario, scenarios, isLoading }}
+      value={{
+        selectedScenario,
+        setSelectedScenario,
+        scenarios,
+        isLoading,
+        expandedScenario,
+        setExpandedScenario,
+        currentStep,
+        setCurrentStep,
+        completedSteps,
+        setCompletedSteps,
+      }}
     >
       {children}
     </ScenarioContext.Provider>

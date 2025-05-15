@@ -100,9 +100,14 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
   const [isSavingNotes, setIsSavingNotes] = useState<boolean>(false);
   const [isLoadingNotes, setIsLoadingNotes] = useState<boolean>(false);
   const [lastSavedNoteContent, setLastSavedNoteContent] = useState<string>('');
-  const [expandedScenario, setExpandedScenario] = useState<string | null>(null);
-  const [currentStep, setCurrentStep] = useState<number>(0);
-  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const {
+    expandedScenario,
+    setExpandedScenario,
+    currentStep,
+    setCurrentStep,
+    completedSteps,
+    setCompletedSteps
+  } = useScenarioContext();
   const [triggeredActions, setTriggeredActions] = useState<{[key: string]: boolean}>({});
   
   // Debug state to override subscription status
@@ -127,7 +132,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
       setActiveTab('scenarios');
       setExpandedScenario(selectedScenario.id);
     }
-  }, [selectedScenario]);
+  }, [selectedScenario, setExpandedScenario]);
   
   // Set up debug commands in window object for testing
   useEffect(() => {
@@ -509,7 +514,7 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
       setCompletedSteps([]);
       setTriggeredActions({});
     }
-  }), [fetchTodayMessageCount]);
+  }), [fetchTodayMessageCount, setExpandedScenario, setCurrentStep, setCompletedSteps]);
   
   // Fetch the message count when the component mounts and when userId changes
   useEffect(() => {
@@ -1323,36 +1328,20 @@ const AgentsSidebar = memo(forwardRef<AgentsSidebarRef, ExtendedAgentsSidebarPro
           </button>
           <div className="relative">
             {/* Button for Scenarios tab */}
-            {(() => {
-              return (
-                <>
-                  <button 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      // Handle scenarios tab navigation
-                      if (expandedScenario) {
-                        // If viewing a specific scenario, go back to all scenarios
-                        handleBackToScenarios();
-                      } else if (!expandedScenario) {
-                        // If not viewing scenarios tab, switch to it
-                        handleTabChange('scenarios');
-                      }
-                    }}
-                    style={{
-                      color: activeTab === 'scenarios' ? 'var(--Monochrome-Black, #232323)' : 'var(--Monochrome-Deep, #6C6C6C)',
-                      textAlign: 'center',
-                      fontSize: '19px',
-                      fontStyle: 'normal',
-                      fontWeight: 500,
-                      lineHeight: '24px',
-                      marginRight: '12px'
-                    }}
-                  >
-                    Scenarios
-                  </button>
-                </>
-              );
-            })()}
+            <button 
+              onClick={() => handleTabChange('scenarios')}
+              style={{
+                color: activeTab === 'scenarios' ? 'var(--Monochrome-Black, #232323)' : 'var(--Monochrome-Deep, #6C6C6C)',
+                textAlign: 'center',
+                fontSize: '19px',
+                fontStyle: 'normal',
+                fontWeight: 500,
+                lineHeight: '24px',
+                marginRight: '12px'
+              }}
+            >
+              Scenarios
+            </button>
           </div>
           <button 
             onClick={() => handleTabChange('notes')} 
