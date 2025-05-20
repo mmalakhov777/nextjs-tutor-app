@@ -303,10 +303,10 @@ content: ${content}
   };
   
   return (
-    <div className="fixed inset-0 bg-white z-50 flex flex-col h-screen w-screen">
+    <div className="relative bg-white z-50 flex flex-col h-full w-full overflow-y-auto">
       {/* Notification */}
       {notification && (
-        <div className="fixed top-6 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-[60] text-sm">
+        <div className="absolute top-6 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-4 py-2 rounded shadow-lg z-[60] text-sm">
           {notification}
         </div>
       )}

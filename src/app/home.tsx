@@ -1764,6 +1764,7 @@ content: HIDDEN_CONTENT
         }
         onTabChange={setActiveTab}
         rightSidebarWide={agentsSidebarTab === 'notes' || agentsSidebarTab === 'scenarios'}
+        leftSidebarWide={files.selectedFile !== null}
         researchLoadingIndicator={undefined}
       />
 

@@ -1049,8 +1049,21 @@ export function FileSidebar({
     }
   }, [fileUploads]);
 
+  if (selectedFile) {
+    return (
+      <div className={`${isMobile ? 'w-full' : 'w-full border-r'} bg-white border-light h-full flex flex-col relative`}>
+        <FileDetailModal
+          file={selectedFile}
+          onClose={() => setSelectedFile(null)}
+          onSendMessage={onSendMessage}
+          onFileQuickAction={onFileQuickAction}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className={`${isMobile ? 'w-full' : 'w-64 border-r'} bg-white border-light h-full flex flex-col`}>
+    <div className={`${isMobile ? 'w-full' : 'w-full border-r'} bg-white border-light h-full flex flex-col`}>
       <div 
         className={`sticky top-0 z-10 flex justify-between items-center h-[60px] px-4 ${isMobile ? 'hidden' : ''} bg-white`}
         style={{ 
@@ -1345,15 +1358,6 @@ export function FileSidebar({
         )}
       </div>
       
-      {/* Render the file detail modal when a file is selected */}
-      {selectedFile && (
-        <FileDetailModal 
-          file={selectedFile} 
-          onClose={() => setSelectedFile(null)} 
-          onSendMessage={onSendMessage}
-          onFileQuickAction={onFileQuickAction}
-        />
-      )}
     </div>
   );
 } 

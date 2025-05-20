@@ -38,6 +38,7 @@ interface ChatLayoutProps {
   onTabChange: (tab: 'chat' | 'files' | 'agents') => void;
   chatPadding?: string;
   rightSidebarWide?: boolean;
+  leftSidebarWide?: boolean;
   researchLoadingIndicator?: ReactNode;
 }
 
@@ -54,15 +55,17 @@ export function ChatLayout({
   onTabChange,
   chatPadding = "",
   rightSidebarWide = false,
+  leftSidebarWide = false,
   researchLoadingIndicator
 }: ChatLayoutProps) {
   const rightSidebarWidth = rightSidebarWide ? "w-96" : "w-64";
+  const leftSidebarWidth = leftSidebarWide ? "w-96" : "w-64";
   
   return (
     <div className="flex flex-col lg:flex-row h-screen bg-white overflow-hidden">
       {/* Left Sidebar - Only visible on desktop */}
       {!isMobile && (
-        <div className="w-64 border-r border-slate-200 bg-white hidden lg:block">
+        <div className={`${leftSidebarWidth} border-r border-slate-200 bg-white hidden lg:block transition-all duration-300`}>
           {leftSidebar}
         </div>
       )}
@@ -92,11 +95,14 @@ export function ChatLayout({
             
             {/* Input component - Fixed at the bottom of chat */}
             {inputComponent && (
-              <div className={cn(
-                "fixed bottom-0 left-0 right-0 lg:left-64 z-10 bg-transparent transition-all duration-300", 
-                isMobile ? "px-2 py-2" : "px-20 py-3",
-                rightSidebarWide ? "lg:right-96" : "lg:right-64" 
-              )}>
+              <div
+                className={cn(
+                  "fixed bottom-0 left-0 right-0 z-10 bg-transparent transition-all duration-300",
+                  isMobile ? "px-2 py-2" : "px-20 py-3",
+                  rightSidebarWide ? "lg:right-96" : "lg:right-64",
+                  leftSidebarWide ? "lg:left-96" : "lg:left-64"
+                )}
+              >
                 {inputComponent}
               </div>
             )}
