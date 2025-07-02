@@ -1,4 +1,4 @@
-import { FiRefreshCw, FiPlusCircle, FiEdit2, FiTrash2 } from 'react-icons/fi';
+import { FiRefreshCw, FiPlusCircle, FiEdit2, FiTrash2 } from '@/utils/optimizedIcons';
 import { RefreshCw, ChevronDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

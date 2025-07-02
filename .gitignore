@@ -42,4 +42,8 @@ next-env.d.ts
 logs
 *.log
 
-scenario-generator.mjs 
+scenario-generator.mjs
+
+# Bundle analyzer
+analyze.html
+.next/analyze/ 

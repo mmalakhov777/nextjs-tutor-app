@@ -6,7 +6,7 @@ import {
   FiPaperclip, FiFile, FiUpload, FiToggleLeft, FiToggleRight, FiUsers, FiTool,
   FiSearch, FiMaximize2, FiExternalLink, FiClock, FiEdit2, FiTrash2, FiMoreVertical,
   FiMessageSquare, FiFolder, FiUser
-} from 'react-icons/fi';
+} from '@/utils/optimizedIcons';
 import { RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

@@ -89,6 +89,9 @@
   --sidebar-accent-foreground: var(--white);
   --sidebar-border: var(--light);
   --sidebar-ring: var(--blue-light);
+  
+  /* Font variable */
+  --font-inter: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 @theme inline {
@@ -225,6 +228,7 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-inter);
   }
 }
 
@@ -285,3 +289,6 @@ body {
 .animate-progress {
   animation: progress 1.5s ease-in-out infinite;
 }
+
+/* KaTeX styles are now loaded dynamically via JavaScript */
+/* See src/utils/loadKatexCss.ts for implementation */
