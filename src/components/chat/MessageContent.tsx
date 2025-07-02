@@ -12,6 +12,8 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import rehypeHighlight from 'rehype-highlight';
 import { LoadingSpinner } from '@/components/icons/LoadingSpinner';
+import 'prismjs/themes/prism-tomorrow.css';
+import { loadKatexCss } from '@/utils/loadKatexCss';
 
 // Global favicon cache to prevent redundant fetches
 const faviconCache: Record<string, string> = {};
@@ -383,6 +385,13 @@ export interface MessageContentProps {
 }
 
 export const MessageContent = React.memo(({ content, messageId, onLinkSubmit, hasFileAnnotations, loadingLinkId, isStreaming, isResearchResponse = false }: MessageContentProps) => {
+  // Load KaTeX CSS if math content is detected
+  useEffect(() => {
+    if (content.includes('$$') || content.includes('\\(') || content.includes('\\[')) {
+      loadKatexCss();
+    }
+  }, [content]);
+
   // Function to extract URLs from text with their surrounding context
   const extractLinks = React.useMemo(() => {
     // First, look for regular URLs

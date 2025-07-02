@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import AgentList from '@/components/agents/AgentList';
 import { AgentForm } from '@/components/agents/AgentForm';
 import { Button } from '@/components/ui/button';
-import { FiPlus } from 'react-icons/fi';
+import { FiPlus } from '@/utils/optimizedIcons';
 import { MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';

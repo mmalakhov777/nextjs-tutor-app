@@ -1,4 +1,4 @@
-import { FiFolder, FiMessageSquare, FiUser } from 'react-icons/fi';
+import { FiFolder, FiMessageSquare, FiUser } from '@/utils/optimizedIcons';
 
 interface MobileTabBarProps {
   activeTab: 'chat' | 'files' | 'agents' | 'scenarios';

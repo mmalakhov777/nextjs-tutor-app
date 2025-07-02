@@ -89,6 +89,9 @@
   --sidebar-accent-foreground: var(--white);
   --sidebar-border: var(--light);
   --sidebar-ring: var(--blue-light);
+  
+  /* Font variable */
+  --font-inter: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 @theme inline {
@@ -225,6 +228,7 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-inter);
   }
 }
 
@@ -284,4 +288,14 @@ body {
 
 .animate-progress {
   animation: progress 1.5s ease-in-out infinite;
+}
+
+/* Lazy-load KaTeX CSS when needed */
+@media print {
+  @import 'katex/dist/katex.min.css';
+}
+
+/* Add a class that can trigger KaTeX CSS loading */
+.katex-loaded {
+  @import 'katex/dist/katex.min.css';
 }

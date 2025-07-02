@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { FiEdit2, FiTrash2, FiClock, FiMessageSquare } from 'react-icons/fi';
+import { FiEdit2, FiTrash2, FiClock, FiMessageSquare } from '@/utils/optimizedIcons';
 import type { ChatSession } from '@/types/chat';
 
 interface ExtendedChatSession extends ChatSession {

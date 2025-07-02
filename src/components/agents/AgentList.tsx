@@ -2,7 +2,7 @@ import { Agent } from '@/app/agents/page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FiEdit2, FiTrash2, FiTool } from 'react-icons/fi';
+import { FiEdit2, FiTrash2, FiTool } from '@/utils/optimizedIcons';
 import { formatDistanceToNow } from 'date-fns';
 import { Switch } from "@/components/ui/switch";
 import { Settings, Trash2 } from "lucide-react";

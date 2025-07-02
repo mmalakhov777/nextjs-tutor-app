@@ -1,10 +1,17 @@
 import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
 import Link from 'next/link';
 import './globals.css';
-import 'katex/dist/katex.min.css';
 import Script from 'next/script';
 import { FileProvider } from '@/contexts/FileContext';
 import { ScenarioProvider } from '@/contexts/ScenarioContext';
+
+// Optimize font loading with next/font
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
   title: 'AI Tutoring Platform',
@@ -17,22 +24,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={inter.variable}>
       <head>
         <link 
-          rel="stylesheet" 
+          rel="preload"
+          as="style"
           href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
-        />
-        <link 
-          rel="stylesheet" 
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+          onLoad={(e) => {
+            const link = e.target as HTMLLinkElement;
+            link.rel = 'stylesheet';
+          }}
         />
         <Script 
           src="https://mystylus.ai/msd/msd-app-core.js"
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
         />
       </head>
-      <body>
+      <body className="font-sans">
         <main>
           <FileProvider>
             <ScenarioProvider>
