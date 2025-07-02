@@ -27,13 +27,8 @@ export default function RootLayout({
     <html lang="en" className={inter.variable}>
       <head>
         <link 
-          rel="preload"
-          as="style"
+          rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
-          onLoad={(e) => {
-            const link = e.target as HTMLLinkElement;
-            link.rel = 'stylesheet';
-          }}
         />
         <Script 
           src="https://mystylus.ai/msd/msd-app-core.js"

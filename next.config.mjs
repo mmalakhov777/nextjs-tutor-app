@@ -13,9 +13,6 @@ const nextConfig = {
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
   
-  // Optimize builds
-  swcMinify: true,
-  
   // Image optimization
   images: {
     unoptimized: process.env.NODE_ENV !== 'production',

@@ -10,7 +10,7 @@
     "lint": "next lint",
     "clean": "rm -rf .next node_modules",
     "vercel-build": "next build",
-    "analyze": "ANALYZE=true next build"
+    "analyze": "cross-env ANALYZE=true next build"
   },
   "dependencies": {
     "@heroicons/react": "2.2.0",
@@ -81,6 +81,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "10.4.21",
+    "cross-env": "7.0.3",
     "eslint": "^9",
     "eslint-config-next": "latest",
     "tailwindcss": "^4",

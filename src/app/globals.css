@@ -290,12 +290,5 @@ body {
   animation: progress 1.5s ease-in-out infinite;
 }
 
-/* Lazy-load KaTeX CSS when needed */
-@media print {
-  @import 'katex/dist/katex.min.css';
-}
-
-/* Add a class that can trigger KaTeX CSS loading */
-.katex-loaded {
-  @import 'katex/dist/katex.min.css';
-}
+/* KaTeX styles are now loaded dynamically via JavaScript */
+/* See src/utils/loadKatexCss.ts for implementation */
