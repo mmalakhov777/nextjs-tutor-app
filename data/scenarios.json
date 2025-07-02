@@ -1,0 +1,3758 @@
+[
+  {
+    "id": "clarify-the-conflict",
+    "title": "Conflict resolution methods in the workplace",
+    "description": "A step-by-step guide to resolving workplace conflict through clarification, negotiation, and fostering a positive organizational culture.",
+    "color": "#6D31ED",
+    "category": "Business",
+    "discord": null,
+    "social_link": null,
+    "steps": [
+      {
+        "title": "Conflict resolution methods in the workplace",
+        "description": "Identify and define the workplace conflict to ensure all parties have a shared understanding.",
+        "actions": [
+          {
+            "label": "Clarify the issue",
+            "prompt": "How do I clearly define the workplace conflict and ensure everyone understands the problem?"
+          },
+          {
+            "label": "Acknowledge the conflict",
+            "prompt": "What are effective ways to acknowledge and validate the existence of a workplace conflict?"
+          }
+        ]
+      },
+      {
+        "title": "Gather Perspectives",
+        "description": "Collect information from all involved parties to understand their viewpoints and underlying causes.",
+        "actions": [
+          {
+            "label": "Gather information",
+            "prompt": "How can I gather all relevant perspectives and information about the workplace conflict?"
+          },
+          {
+            "label": "Practice active listening",
+            "prompt": "What are the best techniques for active listening during conflict resolution?"
+          }
+        ]
+      },
+      {
+        "title": "Establish Common Goals",
+        "description": "Identify shared objectives to shift focus from individual positions to mutual outcomes.",
+        "actions": [
+          {
+            "label": "Find common ground",
+            "prompt": "How do I help conflicting parties establish common goals for resolution?"
+          },
+          {
+            "label": "Set shared objectives",
+            "prompt": "What are effective ways to set shared objectives in a workplace conflict?"
+          }
+        ]
+      },
+      {
+        "title": "Explore Solutions",
+        "description": "Brainstorm and discuss possible solutions, considering different conflict resolution styles.",
+        "actions": [
+          {
+            "label": "Brainstorm solutions",
+            "prompt": "What are effective brainstorming techniques for resolving workplace conflict?"
+          },
+          {
+            "label": "Choose a resolution style",
+            "prompt": "How do I select the most appropriate conflict resolution style for a given situation?"
+          }
+        ]
+      },
+      {
+        "title": "Negotiate and Agree",
+        "description": "Negotiate, compromise, or collaborate to reach a mutually acceptable solution.",
+        "actions": [
+          {
+            "label": "Negotiate agreement",
+            "prompt": "What negotiation techniques can help reach a fair agreement in workplace conflict?"
+          },
+          {
+            "label": "Formalize the solution",
+            "prompt": "How do I formalize and document the agreed-upon solution to a workplace conflict?"
+          }
+        ]
+      },
+      {
+        "title": "Implement and Monitor",
+        "description": "Assign responsibilities, implement the solution, and monitor progress.",
+        "actions": [
+          {
+            "label": "Assign responsibilities",
+            "prompt": "How do I assign and communicate responsibilities for implementing the conflict resolution?"
+          },
+          {
+            "label": "Monitor progress",
+            "prompt": "What are effective ways to monitor the progress and success of a conflict resolution agreement?"
+          }
+        ]
+      },
+      {
+        "title": "Leverage HR and Mediation",
+        "description": "Involve HR or a neutral mediator if conflicts persist or require formal intervention.",
+        "actions": [
+          {
+            "label": "Involve HR",
+            "prompt": "When and how should I involve HR in workplace conflict resolution?"
+          },
+          {
+            "label": "Use mediation",
+            "prompt": "How does workplace mediation work and when is it appropriate to use?"
+          }
+        ]
+      },
+      {
+        "title": "Apply Specialized Techniques",
+        "description": "Consider emerging methods like appreciative inquiry, restorative justice, or online dispute resolution.",
+        "actions": [
+          {
+            "label": "Appreciative inquiry",
+            "prompt": "How can appreciative inquiry be used to resolve workplace conflict?"
+          },
+          {
+            "label": "Restorative justice",
+            "prompt": "What is restorative justice and how can it help in workplace conflict resolution?"
+          },
+          {
+            "label": "Online dispute resolution",
+            "prompt": "What are the benefits and steps of online dispute resolution for remote teams?"
+          }
+        ]
+      },
+      {
+        "title": "Foster Emotional Intelligence and Communication",
+        "description": "Develop emotional intelligence and communication skills to prevent and manage conflicts.",
+        "actions": [
+          {
+            "label": "Build emotional intelligence",
+            "prompt": "How can I improve emotional intelligence to better handle workplace conflict?"
+          },
+          {
+            "label": "Enhance communication skills",
+            "prompt": "What communication skills are essential for effective conflict resolution?"
+          }
+        ]
+      },
+      {
+        "title": "Cultivate a Positive Conflict Culture",
+        "description": "Promote an organizational culture that values open communication, respect, and proactive conflict management.",
+        "actions": [
+          {
+            "label": "Promote open communication",
+            "prompt": "How do I foster a culture of open communication to reduce workplace conflict?"
+          },
+          {
+            "label": "Model positive behaviors",
+            "prompt": "What leadership behaviors help create a positive conflict resolution culture?"
+          }
+        ]
+      },
+      {
+        "title": "Review and Improve",
+        "description": "Regularly evaluate conflict resolution strategies and adapt based on feedback and best practices.",
+        "actions": [
+          {
+            "label": "Evaluate effectiveness",
+            "prompt": "How do I assess the effectiveness of our workplace conflict resolution strategies?"
+          },
+          {
+            "label": "Incorporate feedback",
+            "prompt": "What are the best ways to gather and use feedback to improve conflict management processes?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "define-purpose-and-scope",
+    "title": "Write a genealogy book",
+    "description": "Learn how to plan, research, write, and publish an engaging genealogy book, from defining its purpose to connecting with readers.",
+    "color": "#6D4C41",
+    "category": "Productivity",
+    "discord": null,
+    "social_link": null,
+    "steps": [
+      {
+        "title": "Write a genealogy book",
+        "description": "Clarify the main goal and boundaries of your genealogy book to guide your research and writing.",
+        "actions": [
+          {
+            "label": "Clarify my book's purpose",
+            "prompt": "How do I define the main purpose for my genealogy book?"
+          },
+          {
+            "label": "Set the scope of my genealogy book",
+            "prompt": "What are effective ways to determine the scope for a family history book?"
+          },
+          {
+            "label": "Choose a focus or theme",
+            "prompt": "Can you help me select a central theme or focus for my genealogy book?"
+          }
+        ]
+      },
+      {
+        "title": "Gather and Organize Research",
+        "description": "Collect genealogical data, stories, and documents, and organize them for easy access.",
+        "actions": [
+          {
+            "label": "Find non-trivial family information",
+            "prompt": "What are the best sources for finding interesting stories and details about my ancestors?"
+          },
+          {
+            "label": "Organize my genealogy research",
+            "prompt": "How should I organize my genealogical data and documents for writing a book?"
+          },
+          {
+            "label": "Interview family members",
+            "prompt": "What questions should I ask relatives to gather meaningful family stories?"
+          }
+        ]
+      },
+      {
+        "title": "Structure the Book",
+        "description": "Choose an organizational format and outline chapters for maximum engagement.",
+        "actions": [
+          {
+            "label": "Select a book structure",
+            "prompt": "What are the pros and cons of different ways to organize a genealogy book?"
+          },
+          {
+            "label": "Outline my chapters",
+            "prompt": "Can you help me create an outline for my genealogy book's chapters?"
+          },
+          {
+            "label": "Create engaging chapter openings",
+            "prompt": "How do I write compelling openings for each chapter in my family history book?"
+          }
+        ]
+      },
+      {
+        "title": "Write Engaging Narratives",
+        "description": "Transform facts into compelling stories using narrative techniques and descriptive writing.",
+        "actions": [
+          {
+            "label": "Make my genealogy writing engaging",
+            "prompt": "What storytelling techniques can I use to make my genealogy book more interesting?"
+          },
+          {
+            "label": "Add emotion and relatability",
+            "prompt": "How do I highlight universal emotions and relatable stories in my family history?"
+          },
+          {
+            "label": "Incorporate dialogue and perspectives",
+            "prompt": "How can I use dialogue and multiple perspectives in my genealogy book?"
+          }
+        ]
+      },
+      {
+        "title": "Integrate Visual Elements",
+        "description": "Enhance your book with photos, documents, maps, and artifacts for depth and visual appeal.",
+        "actions": [
+          {
+            "label": "Choose visuals for my book",
+            "prompt": "What types of visual elements should I include in my genealogy book?"
+          },
+          {
+            "label": "Organize and caption images",
+            "prompt": "How do I organize and write captions for photos and documents in my family history book?"
+          },
+          {
+            "label": "Improve image quality",
+            "prompt": "What are best practices for scanning and editing images for a printed genealogy book?"
+          }
+        ]
+      },
+      {
+        "title": "Cite Sources and Ensure Accuracy",
+        "description": "Document your sources and maintain credibility with proper citations.",
+        "actions": [
+          {
+            "label": "Choose a citation style",
+            "prompt": "What citation styles are recommended for genealogy books?"
+          },
+          {
+            "label": "Cite sources as I write",
+            "prompt": "How do I efficiently cite sources while writing my genealogy book?"
+          },
+          {
+            "label": "Handle unverifiable stories",
+            "prompt": "How should I present family stories that can't be fully verified?"
+          }
+        ]
+      },
+      {
+        "title": "Polish and Supplement",
+        "description": "Add appendices, create an index, and edit your manuscript for clarity and professionalism.",
+        "actions": [
+          {
+            "label": "Add appendices and extras",
+            "prompt": "What supplementary materials should I include in the appendices of my genealogy book?"
+          },
+          {
+            "label": "Create an index",
+            "prompt": "How do I make a useful index for names and places in my family history book?"
+          },
+          {
+            "label": "Edit and proofread",
+            "prompt": "What are the best ways to edit and proofread my genealogy book before publishing?"
+          }
+        ]
+      },
+      {
+        "title": "Design, Format, and Publish",
+        "description": "Finalize the layout, choose publishing options, and prepare your book for distribution.",
+        "actions": [
+          {
+            "label": "Design my book layout",
+            "prompt": "What are best practices for designing the layout of a genealogy book?"
+          },
+          {
+            "label": "Choose a publishing method",
+            "prompt": "What are the pros and cons of self-publishing versus professional publishing for a genealogy book?"
+          },
+          {
+            "label": "Prepare for print and digital formats",
+            "prompt": "How do I format my genealogy book for both print and digital distribution?"
+          }
+        ]
+      },
+      {
+        "title": "Engage and Connect with Readers",
+        "description": "Keep your audience interested with focused writing, relatable stories, and visual variety.",
+        "actions": [
+          {
+            "label": "Keep my writing concise",
+            "prompt": "How do I keep my genealogy book focused and avoid overwhelming readers with too much detail?"
+          },
+          {
+            "label": "Make stories relatable",
+            "prompt": "What techniques help make family history stories relatable to modern readers?"
+          },
+          {
+            "label": "Enhance visual appeal",
+            "prompt": "How can I use visuals and design to make my genealogy book more engaging?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "identify-your-niche-and-audience",
+    "title": "How to do affiliate marketing on youtube",
+    "description": "A step-by-step guide to launching and optimizing YouTube affiliate marketing, from niche selection to analytics and compliance.",
+    "color": "#7B3FE4",
+    "category": "Marketing",
+    "discord": null,
+    "social_link": null,
+    "steps": [
+      {
+        "title": "How to do affiliate marketing on youtube",
+        "description": "Select a strategic niche and understand your target audience for effective affiliate marketing.",
+        "actions": [
+          {
+            "label": "Help me choose a profitable niche",
+            "prompt": "What steps should I take to identify a profitable and relevant niche for my YouTube affiliate marketing channel?"
+          },
+          {
+            "label": "Define my target audience",
+            "prompt": "How do I define and understand my target audience for YouTube affiliate marketing?"
+          },
+          {
+            "label": "Research audience needs",
+            "prompt": "What methods can I use to research my audience's needs and interests for affiliate marketing content?"
+          }
+        ]
+      },
+      {
+        "title": "Research and Select Affiliate Programs",
+        "description": "Find and evaluate affiliate programs that align with your niche and audience.",
+        "actions": [
+          {
+            "label": "Find affiliate programs",
+            "prompt": "How can I find relevant affiliate programs for my YouTube channel's niche?"
+          },
+          {
+            "label": "Compare affiliate networks",
+            "prompt": "Can you compare popular affiliate networks for YouTube creators and their key features?"
+          },
+          {
+            "label": "Evaluate program suitability",
+            "prompt": "What factors should I consider when evaluating affiliate programs for my channel?"
+          }
+        ]
+      },
+      {
+        "title": "Meet YouTube Affiliate Program Requirements",
+        "description": "Understand and fulfill the eligibility criteria for YouTube's native Shopping affiliate program.",
+        "actions": [
+          {
+            "label": "Check eligibility for YouTube Shopping",
+            "prompt": "What are the eligibility requirements for joining the YouTube Shopping affiliate program?"
+          },
+          {
+            "label": "Join the YouTube Partner Program",
+            "prompt": "How do I join the YouTube Partner Program and what are its requirements?"
+          }
+        ]
+      },
+      {
+        "title": "Create High-Converting Content",
+        "description": "Produce engaging video content that naturally integrates affiliate recommendations.",
+        "actions": [
+          {
+            "label": "Choose effective video formats",
+            "prompt": "What video formats work best for affiliate marketing on YouTube?"
+          },
+          {
+            "label": "Integrate affiliate links naturally",
+            "prompt": "How can I seamlessly integrate affiliate product recommendations into my YouTube videos?"
+          },
+          {
+            "label": "Build trust with my audience",
+            "prompt": "What are the best practices for creating trustworthy and engaging affiliate content?"
+          }
+        ]
+      },
+      {
+        "title": "Optimize for Discoverability and Engagement",
+        "description": "Apply YouTube SEO and engagement strategies to maximize reach and watch time.",
+        "actions": [
+          {
+            "label": "Optimize video SEO",
+            "prompt": "How do I optimize my YouTube videos for SEO to increase discoverability?"
+          },
+          {
+            "label": "Create compelling titles and thumbnails",
+            "prompt": "What are tips for making click-worthy titles and thumbnails for affiliate videos?"
+          },
+          {
+            "label": "Use descriptions, tags, and playlists",
+            "prompt": "How should I use video descriptions, tags, and playlists to boost affiliate marketing success?"
+          },
+          {
+            "label": "Increase viewer engagement",
+            "prompt": "What tactics can I use to maximize viewer engagement and watch time on my affiliate videos?"
+          }
+        ]
+      },
+      {
+        "title": "Strategically Implement and Manage Affiliate Links",
+        "description": "Place, present, and track affiliate links for maximum conversions and transparency.",
+        "actions": [
+          {
+            "label": "Best practices for link placement",
+            "prompt": "Where should I place affiliate links in my YouTube videos and descriptions for best results?"
+          },
+          {
+            "label": "Disclose affiliate relationships",
+            "prompt": "How do I properly disclose affiliate links to comply with legal and ethical standards?"
+          },
+          {
+            "label": "Use link management tools",
+            "prompt": "What are the best tools for tracking, shortening, and optimizing affiliate links on YouTube?"
+          }
+        ]
+      },
+      {
+        "title": "Ensure Legal and Ethical Compliance",
+        "description": "Follow legal guidelines and ethical practices to maintain trust and avoid penalties.",
+        "actions": [
+          {
+            "label": "Understand disclosure requirements",
+            "prompt": "What are the legal requirements for disclosing affiliate links on YouTube?"
+          },
+          {
+            "label": "Promote ethically",
+            "prompt": "What are ethical best practices for promoting affiliate products on YouTube?"
+          },
+          {
+            "label": "Comply with YouTube policies",
+            "prompt": "What YouTube policies should I be aware of when doing affiliate marketing?"
+          }
+        ]
+      },
+      {
+        "title": "Avoid Common Pitfalls",
+        "description": "Recognize and prevent frequent mistakes in YouTube affiliate marketing.",
+        "actions": [
+          {
+            "label": "Identify common mistakes",
+            "prompt": "What are the most common mistakes in YouTube affiliate marketing and how can I avoid them?"
+          },
+          {
+            "label": "Focus on value and trust",
+            "prompt": "How can I ensure my affiliate marketing strategy prioritizes value and audience trust?"
+          }
+        ]
+      },
+      {
+        "title": "Leverage Tools and Resources",
+        "description": "Utilize essential tools and communities to streamline and enhance your affiliate marketing efforts.",
+        "actions": [
+          {
+            "label": "Find useful tools",
+            "prompt": "What are the most useful tools for YouTube affiliate marketers for SEO, analytics, and link management?"
+          },
+          {
+            "label": "Join online communities",
+            "prompt": "What online communities and educational resources can help me improve my YouTube affiliate marketing?"
+          }
+        ]
+      },
+      {
+        "title": "Align with the YouTube Algorithm",
+        "description": "Create content that matches algorithmic best practices for greater reach and recommendations.",
+        "actions": [
+          {
+            "label": "Understand the YouTube algorithm",
+            "prompt": "How does the YouTube algorithm affect affiliate marketing videos and what can I do to benefit from it?"
+          },
+          {
+            "label": "Optimize for algorithm signals",
+            "prompt": "What strategies should I use to optimize my affiliate content for the YouTube algorithm?"
+          }
+        ]
+      },
+      {
+        "title": "Measure and Analyze Performance",
+        "description": "Track key metrics and use data to refine your affiliate marketing strategy.",
+        "actions": [
+          {
+            "label": "Monitor key analytics",
+            "prompt": "What YouTube Analytics metrics are most important for affiliate marketing success?"
+          },
+          {
+            "label": "Track conversions and earnings",
+            "prompt": "How do I track affiliate link conversions and earnings from my YouTube channel?"
+          },
+          {
+            "label": "Interpret audience data",
+            "prompt": "How can I use audience behavior data to improve my affiliate marketing results?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prepare-your-digital-artwork",
+    "title": "How to turn artwork into nft",
+    "description": "A step-by-step guide to creating, minting, and protecting your NFT art, from digital preparation to marketplace success and advanced utilities.",
+    "color": "#7A5CFA",
+    "category": "Art",
+    "discord": null,
+    "social_link": null,
+    "steps": [
+      {
+        "title": "Prepare Your Digital Artwork",
+        "description": "Get your artwork ready in the appropriate digital format and resolution for NFT minting.",
+        "actions": [
+          {
+            "label": "Choose the right file format",
+            "prompt": "What file formats are best for minting my artwork as an NFT?"
+          },
+          {
+            "label": "Optimize file size and resolution",
+            "prompt": "How do I optimize my artwork's file size and resolution for NFT platforms?"
+          },
+          {
+            "label": "Convert physical art to digital",
+            "prompt": "How can I digitize my physical artwork for NFT creation?"
+          }
+        ]
+      },
+      {
+        "title": "Select a Blockchain Platform",
+        "description": "Choose the blockchain where your NFT will be minted, considering fees, speed, and community.",
+        "actions": [
+          {
+            "label": "Compare blockchain options",
+            "prompt": "What are the pros and cons of Ethereum, Solana, and Tezos for NFTs?"
+          },
+          {
+            "label": "Understand blockchain fees",
+            "prompt": "How do transaction fees differ between NFT blockchains?"
+          },
+          {
+            "label": "Pick the best blockchain for my needs",
+            "prompt": "Which blockchain should I use for my NFT art project?"
+          }
+        ]
+      },
+      {
+        "title": "Set Up a Crypto Wallet",
+        "description": "Create and secure a crypto wallet compatible with your chosen blockchain and NFT marketplace.",
+        "actions": [
+          {
+            "label": "Create a crypto wallet",
+            "prompt": "How do I set up a crypto wallet for NFTs?"
+          },
+          {
+            "label": "Secure my wallet",
+            "prompt": "What are the best practices for keeping my crypto wallet safe?"
+          },
+          {
+            "label": "Choose a wallet for my blockchain",
+            "prompt": "Which crypto wallet should I use for Ethereum/Solana/Tezos NFTs?"
+          }
+        ]
+      },
+      {
+        "title": "Choose an NFT Marketplace",
+        "description": "Select a marketplace that fits your art style, audience, and blockchain.",
+        "actions": [
+          {
+            "label": "Compare NFT marketplaces",
+            "prompt": "What are the differences between OpenSea, Rarible, SuperRare, and other NFT marketplaces?"
+          },
+          {
+            "label": "Find a marketplace for my art",
+            "prompt": "Which NFT marketplace is best for my type of artwork?"
+          },
+          {
+            "label": "Understand marketplace fees",
+            "prompt": "What fees should I expect when selling NFTs on different platforms?"
+          }
+        ]
+      },
+      {
+        "title": "Mint Your NFT",
+        "description": "Upload your artwork, add metadata, set royalties, and mint your NFT on the chosen platform.",
+        "actions": [
+          {
+            "label": "Step-by-step minting guide",
+            "prompt": "Can you walk me through the process of minting my first NFT?"
+          },
+          {
+            "label": "Set up royalties",
+            "prompt": "How do I set up royalties for my NFT sales?"
+          },
+          {
+            "label": "Add metadata to my NFT",
+            "prompt": "What metadata should I include when minting my NFT?"
+          }
+        ]
+      },
+      {
+        "title": "Navigate Legal and Copyright Issues",
+        "description": "Understand copyright, intellectual property, and licensing for NFT art.",
+        "actions": [
+          {
+            "label": "Understand NFT copyright",
+            "prompt": "What copyright rights do I keep or transfer when I sell an NFT?"
+          },
+          {
+            "label": "Create a license for my NFT",
+            "prompt": "How do I write a license or terms for my NFT buyers?"
+          },
+          {
+            "label": "Avoid copyright infringement",
+            "prompt": "How can I make sure I am not infringing on someone else's copyright when minting NFTs?"
+          }
+        ]
+      },
+      {
+        "title": "Store and Showcase Your NFT Art",
+        "description": "Ensure your NFT files are securely stored and learn how to display your digital art.",
+        "actions": [
+          {
+            "label": "Store NFT files securely",
+            "prompt": "What are the best ways to store my NFT artwork files for long-term access?"
+          },
+          {
+            "label": "Use decentralized storage",
+            "prompt": "How do I use IPFS or other decentralized storage for my NFT art?"
+          },
+          {
+            "label": "Showcase my NFTs",
+            "prompt": "What are the best ways to display my NFT art online or in physical spaces?"
+          }
+        ]
+      },
+      {
+        "title": "Protect Yourself and Your NFTs",
+        "description": "Adopt security best practices to avoid scams, hacks, and loss of assets.",
+        "actions": [
+          {
+            "label": "Avoid NFT scams",
+            "prompt": "What are common NFT scams and how can I protect myself?"
+          },
+          {
+            "label": "Use hardware wallets",
+            "prompt": "How do hardware wallets help secure my NFTs and crypto assets?"
+          },
+          {
+            "label": "Check smart contract safety",
+            "prompt": "How can I verify that an NFT smart contract is safe before interacting with it?"
+          }
+        ]
+      },
+      {
+        "title": "Explore Advanced NFT Utilities",
+        "description": "Leverage NFTs for community building, exclusive content, and new engagement models.",
+        "actions": [
+          {
+            "label": "Offer exclusive content",
+            "prompt": "How can I use NFTs to give collectors access to exclusive content or experiences?"
+          },
+          {
+            "label": "Build a community with NFTs",
+            "prompt": "What are ways to use NFTs to build and engage a community around my art?"
+          },
+          {
+            "label": "Use NFTs for real-world assets",
+            "prompt": "How can NFTs represent ownership or access to real-world items or events?"
+          }
+        ]
+      },
+      {
+        "title": "Stay Informed and Adapt",
+        "description": "Keep up with legal, technical, and market changes in the NFT space.",
+        "actions": [
+          {
+            "label": "Monitor NFT regulations",
+            "prompt": "How can I stay updated on legal and regulatory changes affecting NFTs?"
+          },
+          {
+            "label": "Follow NFT security news",
+            "prompt": "Where can I find the latest information on NFT security threats and best practices?"
+          },
+          {
+            "label": "Adapt to NFT market trends",
+            "prompt": "What are the current trends in the NFT art market and how can I adapt my strategy?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "research-the-marketing-agency-landscape",
+    "title": "How to start a marketing business",
+    "description": "Learn how to start and grow a successful marketing agency, from market research to scaling your team and services.",
+    "color": "#6B47DC",
+    "category": "Marketing",
+    "discord": null,
+    "social_link": null,
+    "steps": [
+      {
+        "title": "How to start a marketing business",
+        "description": "Understand the current state, growth, and opportunities in the marketing agency industry.",
+        "actions": [
+          {
+            "label": "Industry overview",
+            "prompt": "What is the current landscape and growth outlook for marketing agencies?"
+          },
+          {
+            "label": "Identify industry trends",
+            "prompt": "What are the latest trends and technologies shaping the marketing agency sector?"
+          },
+          {
+            "label": "Assess market demand",
+            "prompt": "How do I determine if there is demand for a new marketing agency in my area or niche?"
+          }
+        ]
+      },
+      {
+        "title": "Define Your Agency’s Core",
+        "description": "Clarify your agency’s niche, target market, mission, vision, and unique selling proposition.",
+        "actions": [
+          {
+            "label": "Choose a niche",
+            "prompt": "How do I select a profitable niche for my marketing agency?"
+          },
+          {
+            "label": "Define ideal client",
+            "prompt": "Can you help me create an ideal client profile for my agency?"
+          },
+          {
+            "label": "Write mission and vision",
+            "prompt": "How do I write a mission and vision statement for my marketing agency?"
+          },
+          {
+            "label": "Develop a USP",
+            "prompt": "How do I create a unique selling proposition for my agency?"
+          }
+        ]
+      },
+      {
+        "title": "Business Planning and Legal Setup",
+        "description": "Develop a business plan and establish the legal and financial foundation for your agency.",
+        "actions": [
+          {
+            "label": "Create a business plan",
+            "prompt": "What should I include in a business plan for a marketing agency?"
+          },
+          {
+            "label": "Choose legal structure",
+            "prompt": "What legal structure is best for a new marketing agency?"
+          },
+          {
+            "label": "Register the business",
+            "prompt": "What steps do I need to take to register my marketing agency?"
+          },
+          {
+            "label": "Understand tax obligations",
+            "prompt": "What are the basic tax requirements for a marketing agency?"
+          }
+        ]
+      },
+      {
+        "title": "Craft Your Service Offerings and Pricing",
+        "description": "Define your agency’s services, specializations, and pricing models.",
+        "actions": [
+          {
+            "label": "Select service offerings",
+            "prompt": "What marketing services should my agency offer based on current demand?"
+          },
+          {
+            "label": "Specialize or generalize",
+            "prompt": "Should my agency focus on a specialization or offer a full suite of services?"
+          },
+          {
+            "label": "Set pricing models",
+            "prompt": "What are the most effective pricing models for marketing agencies?"
+          },
+          {
+            "label": "Create service packages",
+            "prompt": "How do I develop service packages and tiers for my agency?"
+          }
+        ]
+      },
+      {
+        "title": "Acquire Initial Clients and Build Credibility",
+        "description": "Establish your agency’s online presence, portfolio, and client acquisition strategies.",
+        "actions": [
+          {
+            "label": "Build a website and portfolio",
+            "prompt": "What should I include on my agency’s website and in my marketing portfolio?"
+          },
+          {
+            "label": "Develop marketing strategies",
+            "prompt": "How do I market my own agency to attract clients?"
+          },
+          {
+            "label": "Leverage social proof",
+            "prompt": "How can I use testimonials and case studies to build credibility for my agency?"
+          },
+          {
+            "label": "Get first clients",
+            "prompt": "What are effective ways to acquire my first clients as a new agency?"
+          }
+        ]
+      },
+      {
+        "title": "Build a Team and Company Culture",
+        "description": "Recruit key roles, foster a positive culture, and invest in team development.",
+        "actions": [
+          {
+            "label": "Identify key roles",
+            "prompt": "What roles and skills are essential for a marketing agency team?"
+          },
+          {
+            "label": "Recruit and retain talent",
+            "prompt": "How do I attract and retain top talent for my agency?"
+          },
+          {
+            "label": "Foster company culture",
+            "prompt": "What are best practices for building a positive and collaborative agency culture?"
+          },
+          {
+            "label": "Support employee growth",
+            "prompt": "How can I support ongoing training and development for my team?"
+          }
+        ]
+      },
+      {
+        "title": "Set Up Efficient Operations",
+        "description": "Implement workflows, tools, and documentation for smooth agency operations.",
+        "actions": [
+          {
+            "label": "Establish workflows",
+            "prompt": "How do I create efficient workflows for client onboarding and project management?"
+          },
+          {
+            "label": "Choose software and tools",
+            "prompt": "What software and tools are essential for running a marketing agency?"
+          },
+          {
+            "label": "Document processes",
+            "prompt": "How do I document agency processes for consistency and scalability?"
+          }
+        ]
+      },
+      {
+        "title": "Navigate Challenges and Seize Opportunities",
+        "description": "Prepare for industry challenges and identify growth opportunities.",
+        "actions": [
+          {
+            "label": "Overcome competition",
+            "prompt": "How can my agency stand out in a competitive market?"
+          },
+          {
+            "label": "Adapt to client expectations",
+            "prompt": "How do I manage rising client expectations and deliver measurable results?"
+          },
+          {
+            "label": "Leverage new technologies",
+            "prompt": "What new technologies should my agency adopt to stay competitive?"
+          },
+          {
+            "label": "Find growth opportunities",
+            "prompt": "What are emerging opportunities for marketing agencies in today’s market?"
+          }
+        ]
+      },
+      {
+        "title": "Scale and Grow Your Agency",
+        "description": "Develop strategies for sustainable growth, brand building, and client retention.",
+        "actions": [
+          {
+            "label": "Build a strong brand",
+            "prompt": "How do I create a strong and recognizable brand for my agency?"
+          },
+          {
+            "label": "Productize services",
+            "prompt": "How can I productize my agency’s services for scalability?"
+          },
+          {
+            "label": "Invest in automation",
+            "prompt": "What automation tools can help my agency scale efficiently?"
+          },
+          {
+            "label": "Retain clients",
+            "prompt": "What strategies can I use to retain clients and encourage repeat business?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "self-assessment-and-planning",
+    "title": "How start an online business",
+    "description": "A step-by-step guide to launching a successful online business, from planning and branding to scaling and avoiding pitfalls.",
+    "color": "#6B4CE6",
+    "category": "Business",
+    "discord": null,
+    "social_link": null,
+    "steps": [
+      {
+        "title": "Self-Assessment and Planning",
+        "description": "Evaluate your readiness, resources, and business idea before starting.",
+        "actions": [
+          {
+            "label": "Assess my readiness",
+            "prompt": "What factors should I consider to determine if I’m ready to start an online business?"
+          },
+          {
+            "label": "Evaluate time and capital",
+            "prompt": "How do I assess the time and capital required for my online business idea?"
+          },
+          {
+            "label": "Align with my passion and skills",
+            "prompt": "How can I align my business idea with my personal interests and skills?"
+          },
+          {
+            "label": "Analyze market opportunity",
+            "prompt": "How do I evaluate if there’s a real market opportunity for my online business?"
+          }
+        ]
+      },
+      {
+        "title": "Identify and Validate Your Niche",
+        "description": "Find a profitable, low-competition, high-demand market segment.",
+        "actions": [
+          {
+            "label": "Find a niche",
+            "prompt": "What are the best strategies to identify a profitable niche for my online business?"
+          },
+          {
+            "label": "Validate niche demand",
+            "prompt": "How do I validate that my chosen niche has enough demand and is not oversaturated?"
+          },
+          {
+            "label": "Analyze competitors",
+            "prompt": "How can I analyze competitors to find gaps and opportunities in my niche?"
+          }
+        ]
+      },
+      {
+        "title": "Define Your Product or Service",
+        "description": "Decide what you will offer and ensure it fits your market and skills.",
+        "actions": [
+          {
+            "label": "Choose my offering",
+            "prompt": "How do I decide whether to sell physical products, digital products, or services online?"
+          },
+          {
+            "label": "Evaluate product-market fit",
+            "prompt": "How can I ensure my product or service fits the needs of my target market?"
+          },
+          {
+            "label": "Assess profitability",
+            "prompt": "What steps should I take to assess the profitability of my product or service idea?"
+          }
+        ]
+      },
+      {
+        "title": "Develop Your Unique Value Proposition",
+        "description": "Craft a clear statement that differentiates your business.",
+        "actions": [
+          {
+            "label": "Create a UVP",
+            "prompt": "How do I create a unique value proposition that sets my business apart?"
+          },
+          {
+            "label": "Refine my USP",
+            "prompt": "What are the best ways to refine and communicate my unique selling proposition?"
+          }
+        ]
+      },
+      {
+        "title": "Build Your Brand Identity",
+        "description": "Establish a memorable and consistent brand across all channels.",
+        "actions": [
+          {
+            "label": "Design my brand",
+            "prompt": "What are the key elements of a strong online brand identity?"
+          },
+          {
+            "label": "Create brand guidelines",
+            "prompt": "How do I create brand guidelines to ensure consistency across platforms?"
+          },
+          {
+            "label": "Develop brand voice",
+            "prompt": "How can I develop a unique and consistent brand voice for my business?"
+          }
+        ]
+      },
+      {
+        "title": "Set Up Your Online Presence",
+        "description": "Choose platforms, build your website, and prepare for sales.",
+        "actions": [
+          {
+            "label": "Select e-commerce platform",
+            "prompt": "How do I choose the best e-commerce platform for my business needs?"
+          },
+          {
+            "label": "Build my website",
+            "prompt": "What are the steps to build a user-friendly and effective business website?"
+          },
+          {
+            "label": "Set up payment and shipping",
+            "prompt": "How do I set up secure payment gateways and efficient shipping options for my online store?"
+          }
+        ]
+      },
+      {
+        "title": "Drive Traffic and Acquire Customers",
+        "description": "Implement strategies to attract and convert visitors.",
+        "actions": [
+          {
+            "label": "SEO strategy",
+            "prompt": "What advanced SEO strategies should I use to drive organic traffic in 2025?"
+          },
+          {
+            "label": "Content marketing plan",
+            "prompt": "How do I create a content marketing plan that attracts and engages my target audience?"
+          },
+          {
+            "label": "Social media tactics",
+            "prompt": "What are the most effective social media tactics for online business growth in 2025?"
+          },
+          {
+            "label": "Paid advertising tips",
+            "prompt": "How can I leverage AI-powered and unconventional paid advertising strategies for my online business?"
+          }
+        ]
+      },
+      {
+        "title": "Nurture Customer Relationships and Build Loyalty",
+        "description": "Foster long-term relationships and encourage repeat business.",
+        "actions": [
+          {
+            "label": "Personalize customer experience",
+            "prompt": "How do I use data and AI to personalize the customer experience in my online business?"
+          },
+          {
+            "label": "Create loyalty programs",
+            "prompt": "What are the best practices for designing effective customer loyalty and referral programs?"
+          },
+          {
+            "label": "Engage and retain customers",
+            "prompt": "How can I engage and retain customers through multi-channel communication and community building?"
+          }
+        ]
+      },
+      {
+        "title": "Scale and Automate Operations",
+        "description": "Implement automation and outsourcing to grow efficiently.",
+        "actions": [
+          {
+            "label": "Automate workflows",
+            "prompt": "What business processes should I automate to scale my online business efficiently?"
+          },
+          {
+            "label": "Outsource non-core tasks",
+            "prompt": "How do I identify and outsource non-core business functions for growth?"
+          },
+          {
+            "label": "Reinvest for growth",
+            "prompt": "What are the smartest ways to reinvest profits for sustainable online business growth?"
+          }
+        ]
+      },
+      {
+        "title": "Expand and Diversify",
+        "description": "Explore new markets, products, and business models.",
+        "actions": [
+          {
+            "label": "Expand product offerings",
+            "prompt": "How do I identify and launch new products or services that align with my brand?"
+          },
+          {
+            "label": "Enter new markets",
+            "prompt": "What should I consider when expanding my online business into new markets or regions?"
+          },
+          {
+            "label": "Diversify revenue streams",
+            "prompt": "How can I diversify my revenue streams for long-term business stability?"
+          }
+        ]
+      },
+      {
+        "title": "Ensure Compliance and Manage Finances",
+        "description": "Stay legally compliant and manage your finances for sustainability.",
+        "actions": [
+          {
+            "label": "Legal requirements",
+            "prompt": "What legal and regulatory requirements must I meet to operate my online business?"
+          },
+          {
+            "label": "Tax obligations",
+            "prompt": "How do I understand and manage tax obligations for my online business?"
+          },
+          {
+            "label": "Financial planning",
+            "prompt": "What are the key financial considerations and hidden costs I should plan for in my online business?"
+          }
+        ]
+      },
+      {
+        "title": "Avoid Common Pitfalls",
+        "description": "Learn from common mistakes and ensure long-term success.",
+        "actions": [
+          {
+            "label": "Startup mistakes to avoid",
+            "prompt": "What are the most common mistakes new online businesses make and how can I avoid them?"
+          },
+          {
+            "label": "Validate product-market fit",
+            "prompt": "How do I validate product-market fit before scaling my online business?"
+          },
+          {
+            "label": "Prevent founder burnout",
+            "prompt": "What strategies can I use to prevent founder burnout and maintain work-life balance?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "assess-your-startup-s-funding-needs",
+    "title": "Assess Your Startup's Funding Needs",
+    "description": "A step-by-step guide to planning, preparing, and succeeding with startup funding: from estimating needs and researching sources to pitching and avoiding common pitfalls.",
+    "color": "#8C6EFF",
+    "category": "Business",
+    "discord": null,
+    "social_link": null,
+    "steps": [
+      {
+        "title": "Assess Your Startup's Funding Needs",
+        "description": "Evaluate your business model, growth stage, and capital requirements to determine how much funding you need and for what purpose.",
+        "actions": [
+          {
+            "label": "Estimate funding requirements",
+            "prompt": "How do I calculate how much funding my startup needs for the next 12-24 months?"
+          },
+          {
+            "label": "Identify funding use cases",
+            "prompt": "What are the typical uses of startup funding and how should I allocate my budget?"
+          },
+          {
+            "label": "Analyze financial runway",
+            "prompt": "How do I determine my startup's financial runway and when I'll need to raise more capital?"
+          }
+        ]
+      },
+      {
+        "title": "Research and Select Funding Sources",
+        "description": "Explore and compare different funding avenues such as government grants, loans, equity financing, crowdfunding, and bootstrapping.",
+        "actions": [
+          {
+            "label": "Compare funding options",
+            "prompt": "What are the pros and cons of government grants, venture capital, angel investors, crowdfunding, and loans for startups?"
+          },
+          {
+            "label": "Find relevant government programs",
+            "prompt": "Which government grants or loan programs are available for startups in my industry and location?"
+          },
+          {
+            "label": "Evaluate equity vs. debt",
+            "prompt": "Should my startup pursue equity financing or debt financing at this stage?"
+          }
+        ]
+      },
+      {
+        "title": "Prepare a Compelling Business Plan",
+        "description": "Develop a detailed business plan that clearly communicates your vision, market opportunity, financial projections, and funding needs.",
+        "actions": [
+          {
+            "label": "Business plan essentials",
+            "prompt": "What are the key components of a business plan that investors and lenders look for?"
+          },
+          {
+            "label": "Create financial projections",
+            "prompt": "How do I create realistic financial projections for my startup?"
+          },
+          {
+            "label": "Tailor plan for funders",
+            "prompt": "How should I adapt my business plan for different types of funders (VCs, banks, grant agencies)?"
+          }
+        ]
+      },
+      {
+        "title": "Determine and Justify Your Startup Valuation",
+        "description": "Understand and apply appropriate valuation methods to set a fair and credible value for your startup.",
+        "actions": [
+          {
+            "label": "Choose valuation method",
+            "prompt": "What are the most common methods for valuing an early-stage startup?"
+          },
+          {
+            "label": "Factors influencing valuation",
+            "prompt": "What factors will most impact my startup's valuation in the eyes of investors?"
+          },
+          {
+            "label": "Prepare for valuation negotiation",
+            "prompt": "How can I justify my startup's valuation when negotiating with investors?"
+          }
+        ]
+      },
+      {
+        "title": "Engage with Potential Funders",
+        "description": "Identify, approach, and pitch to the right investors, lenders, or grant agencies for your startup.",
+        "actions": [
+          {
+            "label": "Find and research investors",
+            "prompt": "How do I find and research investors or funding partners that are a good fit for my startup?"
+          },
+          {
+            "label": "Craft a compelling pitch",
+            "prompt": "What are the key elements of a successful pitch to investors or lenders?"
+          },
+          {
+            "label": "Leverage incubators and accelerators",
+            "prompt": "How can I use incubators or accelerators to access funding and mentorship?"
+          }
+        ]
+      },
+      {
+        "title": "Navigate Legal and Regulatory Requirements",
+        "description": "Ensure your startup is legally prepared for funding, with clear ownership, IP protection, and compliance.",
+        "actions": [
+          {
+            "label": "Legal documents checklist",
+            "prompt": "What legal documents and agreements do I need in place before raising funds?"
+          },
+          {
+            "label": "Protect intellectual property",
+            "prompt": "How do I protect my startup's intellectual property before seeking funding?"
+          },
+          {
+            "label": "Understand securities regulations",
+            "prompt": "What legal and regulatory issues should I be aware of when raising capital, especially through crowdfunding or equity rounds?"
+          }
+        ]
+      },
+      {
+        "title": "Avoid Common Funding Pitfalls",
+        "description": "Learn about and proactively address common mistakes that hinder startup fundraising success.",
+        "actions": [
+          {
+            "label": "Identify common mistakes",
+            "prompt": "What are the most common mistakes startups make when seeking funding and how can I avoid them?"
+          },
+          {
+            "label": "Plan for equity dilution",
+            "prompt": "How can I manage and plan for equity dilution when raising multiple funding rounds?"
+          },
+          {
+            "label": "Time your fundraising",
+            "prompt": "How do I know when is the right time to start seeking funding for my startup?"
+          }
+        ]
+      },
+      {
+        "title": "Leverage Success Stories and Case Studies",
+        "description": "Draw inspiration and practical lessons from real-world examples of successful startup funding strategies.",
+        "actions": [
+          {
+            "label": "Study funding case studies",
+            "prompt": "Can you share case studies of startups that used innovative or diverse funding strategies?"
+          },
+          {
+            "label": "Learn from bootstrapped startups",
+            "prompt": "What can I learn from startups that succeeded through bootstrapping or non-traditional funding?"
+          },
+          {
+            "label": "Analyze recent funding trends",
+            "prompt": "What are the latest trends in startup funding, especially in high-growth sectors like AI and cybersecurity?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "understand-financial-statements",
+    "title": "Understand Financial Statements",
+    "description": "Learn to analyze, interpret, and apply financial statements for business insights and decision-making.",
+    "color": "#7C4DFF",
+    "category": "Business",
+    "discord": null,
+    "social_link": null,
+    "steps": [
+      {
+        "title": "Understand Financial Statements",
+        "description": "Learn the purpose and structure of balance sheets and profit and loss accounts.",
+        "actions": [
+          {
+            "label": "Explain the role of financial statements",
+            "prompt": "What is the purpose of balance sheets and profit and loss accounts in business?"
+          },
+          {
+            "label": "Identify key users of financial statements",
+            "prompt": "Who uses financial statements and why are they important to different stakeholders?"
+          },
+          {
+            "label": "Overview of statement types",
+            "prompt": "What are the main types of financial statements and how do they relate to each other?"
+          }
+        ]
+      },
+      {
+        "title": "Analyze the Balance Sheet",
+        "description": "Break down the components and principles of the balance sheet.",
+        "actions": [
+          {
+            "label": "Explain the accounting equation",
+            "prompt": "What is the accounting equation and why must the balance sheet always balance?"
+          },
+          {
+            "label": "List and define asset types",
+            "prompt": "What are current and non-current assets, and what are some examples of each?"
+          },
+          {
+            "label": "List and define liability types",
+            "prompt": "What are current and non-current liabilities, and what are some examples of each?"
+          },
+          {
+            "label": "Describe equity components",
+            "prompt": "What is equity on the balance sheet and what are its main components?"
+          }
+        ]
+      },
+      {
+        "title": "Analyze the Profit and Loss Account",
+        "description": "Understand the structure and key metrics of the profit and loss account.",
+        "actions": [
+          {
+            "label": "Explain revenue and expense recognition",
+            "prompt": "How are revenues and expenses recognized on the profit and loss account?"
+          },
+          {
+            "label": "Describe key profitability metrics",
+            "prompt": "What are gross profit, operating profit, net profit, and EBITDA, and how are they calculated?"
+          },
+          {
+            "label": "Discuss accounting methods",
+            "prompt": "What is the difference between accrual and cash accounting methods?"
+          }
+        ]
+      },
+      {
+        "title": "Connect the Balance Sheet and P&L",
+        "description": "Explore how the balance sheet and profit and loss account are linked.",
+        "actions": [
+          {
+            "label": "Explain retained earnings",
+            "prompt": "How does net income from the profit and loss account affect retained earnings on the balance sheet?"
+          },
+          {
+            "label": "Show statement articulation",
+            "prompt": "How do transactions flow between the profit and loss account and the balance sheet?"
+          },
+          {
+            "label": "Describe the role of cash flow",
+            "prompt": "How does the statement of cash flows connect to the balance sheet and profit and loss account?"
+          }
+        ]
+      },
+      {
+        "title": "Apply Analytical Techniques",
+        "description": "Use advanced methods to extract insights from financial statements.",
+        "actions": [
+          {
+            "label": "Perform ratio analysis",
+            "prompt": "What are key financial ratios for analyzing liquidity, solvency, and profitability?"
+          },
+          {
+            "label": "Conduct trend analysis",
+            "prompt": "How do you use trend analysis to evaluate financial performance over time?"
+          },
+          {
+            "label": "Do comparative analysis",
+            "prompt": "How can you compare financial statements across periods or with competitors?"
+          }
+        ]
+      },
+      {
+        "title": "Avoid Common Mistakes",
+        "description": "Recognize and prevent frequent errors in financial statement preparation and analysis.",
+        "actions": [
+          {
+            "label": "List common balance sheet errors",
+            "prompt": "What are common mistakes made when preparing a balance sheet?"
+          },
+          {
+            "label": "List common P&L errors",
+            "prompt": "What are common mistakes made when preparing a profit and loss account?"
+          },
+          {
+            "label": "Discuss industry-specific challenges",
+            "prompt": "What are some unique accounting challenges faced by different industries?"
+          }
+        ]
+      },
+      {
+        "title": "Interpret and Use Insights",
+        "description": "Leverage financial statement analysis for decision-making and strategic planning.",
+        "actions": [
+          {
+            "label": "Assess financial health",
+            "prompt": "How do you interpret financial statements to assess a company's financial health?"
+          },
+          {
+            "label": "Support business valuation",
+            "prompt": "How are financial statements used in business valuation and what should be considered?"
+          },
+          {
+            "label": "Guide strategic decisions",
+            "prompt": "How can insights from financial statements inform business strategy and risk management?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "study-plan",
+    "title": "Create a Study Plan for My Exam",
+    "description": "Organize your study schedule for an exam in 2 weeks.",
+    "color": "#4DD599",
+    "category": "Education",
+    "discord": null,
+    "social_link": null,
+    "steps": [
+      {
+        "title": "Define your goal",
+        "description": "Clarify the subject and exam type",
+        "actions": [
+          {
+            "label": "Set exam details",
+            "prompt": "What subject is the exam for and what type of questions will it include?"
+          }
+        ]
+      },
+      {
+        "title": "Break down the material",
+        "description": "Divide topics into daily tasks",
+        "actions": [
+          {
+            "label": "Create daily topics",
+            "prompt": "Can you split the study material into 14-day chunks?"
+          },
+          {
+            "label": "Prioritize weak areas",
+            "prompt": "Which topics should I spend more time on based on difficulty?"
+          }
+        ]
+      },
+      {
+        "title": "Build daily schedules",
+        "description": "Organize a realistic study plan",
+        "actions": [
+          {
+            "label": "Set daily study hours",
+            "prompt": "How many hours a day should I study based on my deadline?"
+          },
+          {
+            "label": "Include revision sessions",
+            "prompt": "Can you add revision days before the exam?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "summarize-article",
+    "title": "Summarize Article in 5 Bullet Points",
+    "description": "Get a concise summary of any article in just 5 key points.",
+    "color": "#6C63FF",
+    "category": "Education",
+    "discord": null,
+    "social_link": null,
+    "steps": [
+      {
+        "title": "Select the article",
+        "description": "Choose the article you want to summarize",
+        "actions": [
+          {
+            "label": "Find the article link or text",
+            "prompt": "Can you copy and paste the article you want me to summarize?"
+          }
+        ]
+      },
+      {
+        "title": "Summarize key points",
+        "description": "Generate a short, clear summary",
+        "actions": [
+          {
+            "label": "Highlight the main ideas",
+            "prompt": "Summarize this article into 5 main bullet points"
+          },
+          {
+            "label": "Make it concise",
+            "prompt": "Can you rewrite the summary in a more concise and easy-to-read way?"
+          }
+        ]
+      },
+      {
+        "title": "Polish the summary",
+        "description": "Adjust tone or format if needed",
+        "actions": [
+          {
+            "label": "Adapt for audience",
+            "prompt": "Can you make the summary sound more professional/informal depending on the audience?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "news-post",
+    "title": "Hot News Blog Post",
+    "description": "Research and write engaging news blog posts",
+    "color": "#FF6B6B",
+    "category": "Marketing",
+    "discord": null,
+    "social_link": null,
+    "steps": [
+      {
+        "title": "Research the news",
+        "description": "Find and analyze current hot topics",
+        "actions": [
+          {
+            "label": "Find trending topics",
+            "prompt": "What are the most trending news topics right now that would make for an engaging blog post?"
+          },
+          {
+            "label": "Source reliable information",
+            "prompt": "How can I find reliable sources for my news blog post? What are some credible sources for current events?"
+          },
+          {
+            "label": "Analyze audience interests",
+            "prompt": "How do I identify what news topics my target audience would be most interested in?"
+          }
+        ]
+      },
+      {
+        "title": "Write blog post",
+        "description": "Craft an engaging and informative news article",
+        "actions": [
+          {
+            "label": "Create compelling headline",
+            "prompt": "How do I write an attention-grabbing headline for a news blog post that isn't clickbait?"
+          },
+          {
+            "label": "Structure the article",
+            "prompt": "What's the best structure for a news blog post? How should I organize the information?"
+          },
+          {
+            "label": "Maintain journalistic standards",
+            "prompt": "How can I ensure my news blog post is factual, balanced, and ethical while still being engaging?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "startupPitch",
+    "title": "Startup Pitch",
+    "description": "Craft a compelling startup pitch",
+    "color": "#FF6B6B",
+    "category": "Business",
+    "discord": null,
+    "social_link": null,
+    "steps": [
+      {
+        "title": "Structure your pitch",
+        "description": "Organize your pitch into a clear, compelling narrative",
+        "actions": [
+          {
+            "label": "Create pitch outline",
+            "prompt": "What should be included in a successful startup pitch deck?"
+          },
+          {
+            "label": "Develop compelling story",
+            "prompt": "Help me create a narrative structure for my startup pitch"
+          },
+          {
+            "label": "Time my presentation",
+            "prompt": "How should I structure a 5-minute pitch presentation?"
+          }
+        ]
+      },
+      {
+        "title": "Define your value proposition",
+        "description": "Clearly articulate what problem you solve and why it matters",
+        "actions": [
+          {
+            "label": "Identify customer problem",
+            "prompt": "Help me identify and articulate the key problem my startup solves"
+          },
+          {
+            "label": "Craft unique value proposition",
+            "prompt": "How do I create a compelling unique value proposition for my startup?"
+          },
+          {
+            "label": "Differentiate from competitors",
+            "prompt": "Help me articulate how my startup differs from existing solutions"
+          }
+        ]
+      },
+      {
+        "title": "Showcase traction & market",
+        "description": "Demonstrate your potential with data and market analysis",
+        "actions": [
+          {
+            "label": "Present market size",
+            "prompt": "How should I present my total addressable market in a pitch?"
+          },
+          {
+            "label": "Highlight existing traction",
+            "prompt": "What metrics should I include to show traction in my startup pitch?"
+          },
+          {
+            "label": "Develop growth projections",
+            "prompt": "Help me create realistic but ambitious growth projections for my pitch"
+          }
+        ]
+      },
+      {
+        "title": "Perfect your delivery",
+        "description": "Refine how you present your pitch for maximum impact",
+        "actions": [
+          {
+            "label": "Handle objections",
+            "prompt": "What are common investor objections and how should I address them?"
+          },
+          {
+            "label": "Create elevator pitch",
+            "prompt": "Help me craft a 30-second elevator pitch for my startup"
+          },
+          {
+            "label": "Improve presentation skills",
+            "prompt": "What techniques can I use to deliver my pitch more confidently?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "marketing",
+    "title": "Marketing Copy",
+    "description": "Create compelling marketing materials",
+    "color": "#82D8A7",
+    "category": "Marketing",
+    "discord": null,
+    "social_link": null,
+    "steps": [
+      {
+        "title": "Define your audience",
+        "description": "Identify who your marketing copy is targeting",
+        "actions": [
+          {
+            "label": "Help me identify my target audience",
+            "prompt": "I need to create marketing copy. How do I define and understand my target audience?"
+          },
+          {
+            "label": "Create audience personas",
+            "prompt": "Can you help me create customer personas for my marketing campaign?"
+          },
+          {
+            "label": "Segment my audience",
+            "prompt": "How should I segment my audience for more effective marketing?"
+          }
+        ]
+      },
+      {
+        "title": "Develop key messaging",
+        "description": "Craft your core value proposition and messages",
+        "actions": [
+          {
+            "label": "Help with value proposition",
+            "prompt": "How do I create a compelling value proposition for my product/service?"
+          },
+          {
+            "label": "Develop brand messaging",
+            "prompt": "Help me develop consistent brand messaging for my marketing materials"
+          },
+          {
+            "label": "Create persuasive claims",
+            "prompt": "What are techniques for creating persuasive marketing claims?"
+          }
+        ]
+      },
+      {
+        "title": "Choose marketing formats",
+        "description": "Select the right channels and content formats",
+        "actions": [
+          {
+            "label": "Compare marketing channels",
+            "prompt": "What marketing channels would work best for my product/service?"
+          },
+          {
+            "label": "Social media strategy",
+            "prompt": "Help me create a social media marketing strategy"
+          },
+          {
+            "label": "Email marketing tips",
+            "prompt": "What are best practices for effective email marketing campaigns?"
+          }
+        ]
+      },
+      {
+        "title": "Create and optimize",
+        "description": "Refine your marketing copy for maximum impact",
+        "actions": [
+          {
+            "label": "Improve conversion rates",
+            "prompt": "How can I optimize my marketing copy to improve conversion rates?"
+          },
+          {
+            "label": "A/B testing strategies",
+            "prompt": "What A/B testing strategies should I use for my marketing copy?"
+          },
+          {
+            "label": "SEO optimization tips",
+            "prompt": "How do I optimize my marketing content for better SEO performance?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "poem-writing",
+    "title": "Poem Writing",
+    "description": "Create beautiful poems in various styles",
+    "color": "#FED770",
+    "category": "Art",
+    "discord": null,
+    "social_link": null,
+    "steps": [
+      {
+        "title": "Choose poem style",
+        "description": "Select the type of poem you want to write",
+        "actions": [
+          {
+            "label": "Help me choose a poem style",
+            "prompt": "I want to write a poem. Can you explain different poem styles and help me choose one?"
+          },
+          {
+            "label": "I want to write a sonnet",
+            "prompt": "I want to write a sonnet. What structure should I follow?"
+          },
+          {
+            "label": "I want to create a haiku",
+            "prompt": "I want to create a haiku. Can you explain the format and give me some examples?"
+          }
+        ]
+      },
+      {
+        "title": "Select theme",
+        "description": "Choose what your poem will be about",
+        "actions": [
+          {
+            "label": "Suggest themes for my poem",
+            "prompt": "Can you suggest some powerful themes for my poem?"
+          },
+          {
+            "label": "I want to write about nature",
+            "prompt": "I want to write a poem about nature. What aspects of nature work well in poetry?"
+          },
+          {
+            "label": "Help me explore emotions in poetry",
+            "prompt": "How can I effectively express emotions in my poem?"
+          }
+        ]
+      },
+      {
+        "title": "Develop imagery",
+        "description": "Create vivid images and metaphors",
+        "actions": [
+          {
+            "label": "Help with poetic imagery",
+            "prompt": "How can I create strong imagery in my poem?"
+          },
+          {
+            "label": "Suggest metaphors for my theme",
+            "prompt": "Can you suggest some metaphors related to my poem theme?"
+          },
+          {
+            "label": "Tips for sensory descriptions",
+            "prompt": "Give me tips for incorporating sensory details in poetry"
+          }
+        ]
+      },
+      {
+        "title": "Finalize structure",
+        "description": "Refine rhythm, rhyme, and overall structure",
+        "actions": [
+          {
+            "label": "Help with rhythm and flow",
+            "prompt": "How can I improve the rhythm and flow of my poem?"
+          },
+          {
+            "label": "Suggestions for better line breaks",
+            "prompt": "Can you give advice on effective line breaks in poetry?"
+          },
+          {
+            "label": "Tips for a powerful ending",
+            "prompt": "How can I create a strong ending for my poem?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "marketing-campaign-analysis",
+    "title": "Marketing Campaign Analysis",
+    "description": "Analyze the effectiveness of a marketing campaign and identify areas for improvement",
+    "color": "#4F46E5",
+    "category": "Marketing",
+    "discord": null,
+    "social_link": null,
+    "steps": [
+      {
+        "title": "Define Campaign Goals",
+        "description": "Clearly outline the objectives and key performance indicators (KPIs) for your marketing campaign",
+        "actions": [
+          {
+            "label": "Identify Goals",
+            "prompt": "Help me identify and clarify the primary goals for my marketing campaign. I want to ensure they are specific, measurable, achievable, relevant, and time-bound (SMART)."
+          },
+          {
+            "label": "Set KPIs",
+            "prompt": "What are the most important KPIs I should track for my marketing campaign? I want to ensure I am measuring the right metrics to determine success."
+          }
+        ]
+      },
+      {
+        "title": "Analyze Target Audience",
+        "description": "Research and understand your target audience demographics, behaviors, and preferences",
+        "actions": [
+          {
+            "label": "Audience Research",
+            "prompt": "Help me research my target audience for this marketing campaign. I need to understand their demographics, behaviors, preferences, and pain points."
+          },
+          {
+            "label": "Create Personas",
+            "prompt": "Based on my audience research, help me create detailed customer personas that I can use to tailor my marketing messages and channels."
+          }
+        ]
+      },
+      {
+        "title": "Evaluate Results",
+        "description": "Analyze campaign performance data against your established KPIs and identify insights",
+        "actions": [
+          {
+            "label": "Data Analysis",
+            "prompt": "I need help analyzing my marketing campaign results. Here is the data I have collected: [insert your data]. What insights can you provide about performance against our KPIs?"
+          },
+          {
+            "label": "Improvement Plan",
+            "prompt": "Based on the campaign analysis, what specific improvements would you recommend for our next marketing campaign?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "how-to-get-started-as-a-tattoo-artist-1747297443620",
+    "title": "How to Get Started as a Tattoo Artist",
+    "description": "A scenario generated from Airtable.",
+    "color": "#1976D2",
+    "category": "Art",
+    "discord": null,
+    "social_link": null,
+    "steps": [
+      {
+        "title": "Develop Your Personal Visual Language and Style",
+        "description": "Cultivate a unique artistic identity that sets your work apart in the tattoo industry.",
+        "actions": [
+          {
+            "label": "Find my recurring artistic themes",
+            "prompt": "How can I analyze my sketches to identify recurring motifs or techniques that could define my tattoo style?"
+          },
+          {
+            "label": "Experiment with different art mediums",
+            "prompt": "What are some creative ways to experiment with different art forms to inspire my tattoo designs?"
+          },
+          {
+            "label": "Visualize art on the body",
+            "prompt": "How do I train myself to design art that fits and flows with the human body for tattoos?"
+          }
+        ]
+      },
+      {
+        "title": "Seek Mentorship in Unexpected Places",
+        "description": "Learn from experienced artists and other creatives, even outside traditional apprenticeships.",
+        "actions": [
+          {
+            "label": "Learn as a tattoo client",
+            "prompt": "What should I observe and ask when getting tattooed by a professional to learn about their process?"
+          },
+          {
+            "label": "Find online mentors and communities",
+            "prompt": "How can I use online forums and social media to connect with experienced tattoo artists for advice and critique?"
+          },
+          {
+            "label": "Cross-train with other art mentors",
+            "prompt": "What types of non-tattoo art mentors can help me improve my tattoo skills, and how do I approach them?"
+          },
+          {
+            "label": "Explore apprenticeship alternatives",
+            "prompt": "What are some alternatives to traditional tattoo apprenticeships for learning the craft?"
+          }
+        ]
+      },
+      {
+        "title": "Leverage Social Media in Unconventional Ways",
+        "description": "Use social platforms creatively to build your brand, network, and credibility before working in a shop.",
+        "actions": [
+          {
+            "label": "Document my artistic journey",
+            "prompt": "How can I use social media to share my progress and engage followers as an aspiring tattoo artist?"
+          },
+          {
+            "label": "Build a distinctive online brand",
+            "prompt": "What are the best practices for creating a memorable and professional online presence as a beginner tattoo artist?"
+          },
+          {
+            "label": "Engage and network creatively",
+            "prompt": "How can I use social media challenges, hashtags, and platforms like Pinterest to reach potential clients and mentors?"
+          },
+          {
+            "label": "Educate and inform my audience",
+            "prompt": "What kind of educational content can I share as a beginner to build credibility without overstepping my experience?"
+          }
+        ]
+      },
+      {
+        "title": "Differentiate Yourself Early with a Signature Niche",
+        "description": "Stand out by specializing in a style or theme that reflects your passion and expertise.",
+        "actions": [
+          {
+            "label": "Identify my tattoo niche",
+            "prompt": "How do I choose a tattoo style or theme to specialize in as a new artist?"
+          },
+          {
+            "label": "Create a focused portfolio",
+            "prompt": "What should I include in a beginner tattoo design portfolio to showcase my chosen niche?"
+          },
+          {
+            "label": "Develop a personal brand story",
+            "prompt": "How can I craft a compelling personal story around my tattoo niche to attract clients and mentors?"
+          },
+          {
+            "label": "Innovate within my niche",
+            "prompt": "What are creative ways to mix influences and push my tattoo style into new territory?"
+          }
+        ]
+      },
+      {
+        "title": "Build Credibility Before You’re Licensed",
+        "description": "Establish a reputation for professionalism, safety, and reliability even before you’re officially working as a tattooist.",
+        "actions": [
+          {
+            "label": "Master hygiene and safety fundamentals",
+            "prompt": "What certifications and hygiene practices should I complete and demonstrate as a beginner tattoo artist?"
+          },
+          {
+            "label": "Practice professionalism with every project",
+            "prompt": "How can I treat practice tattoos and design work with the same professionalism as real client jobs?"
+          },
+          {
+            "label": "Learn regulations and ethics",
+            "prompt": "What legal and ethical guidelines should I research and follow as an aspiring tattoo artist?"
+          },
+          {
+            "label": "Build community presence",
+            "prompt": "How can I get involved in the local or online tattoo community to build my reputation before I’m licensed?"
+          },
+          {
+            "label": "Showcase reliability online",
+            "prompt": "What are effective ways to demonstrate my professionalism and commitment to safety on my social media or website?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "how-to-create-album-art-for-ai-agentic-app-1747316857417",
+    "title": "How to Create Album Art for AI Agentic App",
+    "description": "A scenario generated from Airtable.",
+    "color": "#1976D2",
+    "category": "Art",
+    "discord": null,
+    "social_link": null,
+    "steps": [
+      {
+        "title": "Define the App’s Identity and Audience",
+        "description": "Clarify the app’s core purpose, target users, and brand personality to guide the visual direction.",
+        "actions": [
+          {
+            "label": "Clarify app’s purpose and values",
+            "prompt": "What is the core purpose and value proposition of my AI agentic app?"
+          },
+          {
+            "label": "Identify target audience",
+            "prompt": "Who is the primary audience for my AI agentic app, and what are their preferences?"
+          },
+          {
+            "label": "Describe brand personality",
+            "prompt": "How would you describe the brand personality of my AI agentic app (e.g., friendly, futuristic, professional)?"
+          }
+        ]
+      },
+      {
+        "title": "Conceptualize the Visual Theme",
+        "description": "Develop a central visual concept that reflects the app’s function, mood, and user experience.",
+        "actions": [
+          {
+            "label": "Brainstorm visual metaphors",
+            "prompt": "What visual metaphors or symbols could represent the capabilities of an AI agentic app?"
+          },
+          {
+            "label": "Create a mood board",
+            "prompt": "Can you help me create a mood board with images, colors, and styles that fit my app’s vision?"
+          },
+          {
+            "label": "Define the main theme",
+            "prompt": "What should be the central theme or story conveyed by my app’s album art?"
+          }
+        ]
+      },
+      {
+        "title": "Select Imagery and Art Style",
+        "description": "Choose the type of imagery (photography, illustration, abstract, AI-generated) and art style that best fits the app.",
+        "actions": [
+          {
+            "label": "Compare imagery options",
+            "prompt": "Should I use photography, illustration, abstract, or AI-generated art for my app’s album cover?"
+          },
+          {
+            "label": "Explore AI art generators",
+            "prompt": "What are the best AI art generators for creating unique album art for my app?"
+          },
+          {
+            "label": "Ensure high resolution",
+            "prompt": "What resolution and file format should I use to ensure my album art looks professional on all platforms?"
+          }
+        ]
+      },
+      {
+        "title": "Choose Typography",
+        "description": "Select fonts that reflect the app’s personality and ensure legibility across digital platforms.",
+        "actions": [
+          {
+            "label": "Pick suitable fonts",
+            "prompt": "What font styles would best match the tone and function of my AI agentic app?"
+          },
+          {
+            "label": "Check font licensing",
+            "prompt": "How do I ensure the fonts I use for my album art are properly licensed for commercial use?"
+          },
+          {
+            "label": "Optimize for readability",
+            "prompt": "How can I make sure the text on my album art is readable even at small sizes?"
+          }
+        ]
+      },
+      {
+        "title": "Select a Color Palette",
+        "description": "Choose colors that evoke the desired mood and align with the app’s branding and genre conventions.",
+        "actions": [
+          {
+            "label": "Generate color palettes",
+            "prompt": "Can you suggest color palettes that would suit a modern, AI-driven app?"
+          },
+          {
+            "label": "Apply color theory",
+            "prompt": "How can I use color theory to create a visually appealing and emotionally resonant album cover?"
+          },
+          {
+            "label": "Consider genre conventions",
+            "prompt": "What color schemes are commonly used for tech or AI-related album art?"
+          }
+        ]
+      },
+      {
+        "title": "Apply Design Principles",
+        "description": "Use balance, contrast, focal points, and simplicity to create a standout and versatile album cover.",
+        "actions": [
+          {
+            "label": "Create a strong focal point",
+            "prompt": "How do I design a focal point that immediately draws attention to my album art?"
+          },
+          {
+            "label": "Balance elements",
+            "prompt": "What are some techniques for achieving visual balance and harmony in my album art design?"
+          },
+          {
+            "label": "Use white space effectively",
+            "prompt": "How can I use white space to make my album art look clean and professional?"
+          }
+        ]
+      },
+      {
+        "title": "Meet Technical Requirements",
+        "description": "Ensure the album art meets digital platform specifications for size, format, and content restrictions.",
+        "actions": [
+          {
+            "label": "Check platform specs",
+            "prompt": "What are the current technical requirements for album art on major digital platforms like Spotify and Apple Music?"
+          },
+          {
+            "label": "Prepare for print and digital",
+            "prompt": "How do I prepare my album art files for both digital distribution and physical printing?"
+          },
+          {
+            "label": "Avoid restricted content",
+            "prompt": "What content should I avoid including in my album art to comply with platform guidelines?"
+          }
+        ]
+      },
+      {
+        "title": "Finalize and Review",
+        "description": "Review, export, and test the album art for quality, consistency, and impact before release.",
+        "actions": [
+          {
+            "label": "Get feedback",
+            "prompt": "Can you suggest ways to get useful feedback on my album art before finalizing it?"
+          },
+          {
+            "label": "Test in different formats",
+            "prompt": "How can I preview my album art to see how it will look as a thumbnail and in other formats?"
+          },
+          {
+            "label": "Archive source files",
+            "prompt": "What is the best way to organize and archive my album art files for future use or edits?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "how-to-start-a-marketing-business-for-ai-agentic-app-1747318496488",
+    "title": "How to Start a Marketing Business for AI Agentic App",
+    "description": "A scenario generated from Airtable.",
+    "color": "#1976D2",
+    "category": "Business",
+    "discord": null,
+    "social_link": null,
+    "steps": [
+      {
+        "title": "Define Your Niche and Target Market",
+        "description": "Identify the specific market segment and audience your AI agentic app marketing business will serve.",
+        "actions": [
+          {
+            "label": "Identify profitable niches",
+            "prompt": "What are the most promising niches for a marketing agency focused on AI agentic apps?"
+          },
+          {
+            "label": "Define ideal client profile",
+            "prompt": "How do I create an ideal client profile for my AI agentic app marketing business?"
+          },
+          {
+            "label": "Conduct market research",
+            "prompt": "What steps should I take to research the market for AI agentic app marketing services?"
+          }
+        ]
+      },
+      {
+        "title": "Develop Your Unique Value Proposition",
+        "description": "Craft a compelling mission, vision, and unique selling proposition (USP) that sets your agency apart.",
+        "actions": [
+          {
+            "label": "Write mission and vision statements",
+            "prompt": "Can you help me write a mission and vision statement for my AI agentic app marketing agency?"
+          },
+          {
+            "label": "Define core values",
+            "prompt": "What core values should I consider for my AI agentic app marketing business?"
+          },
+          {
+            "label": "Create a unique selling proposition",
+            "prompt": "How do I develop a unique selling proposition for my AI agentic app marketing agency?"
+          }
+        ]
+      },
+      {
+        "title": "Plan Your Business Structure and Legal Setup",
+        "description": "Establish your agency’s legal structure, register your business, and set up financial systems.",
+        "actions": [
+          {
+            "label": "Choose a legal structure",
+            "prompt": "What legal structure is best for a new marketing agency focused on AI agentic apps?"
+          },
+          {
+            "label": "Register the business",
+            "prompt": "What are the steps to register my AI agentic app marketing business?"
+          },
+          {
+            "label": "Set up business banking and taxes",
+            "prompt": "How do I set up business banking and manage taxes for my marketing agency?"
+          }
+        ]
+      },
+      {
+        "title": "Define Your Service Offerings and Pricing",
+        "description": "Select the marketing services you’ll offer and determine your pricing strategy.",
+        "actions": [
+          {
+            "label": "Choose service specializations",
+            "prompt": "What marketing services should I offer for AI agentic app clients?"
+          },
+          {
+            "label": "Develop service packages",
+            "prompt": "How do I create service packages and tiers for my marketing agency?"
+          },
+          {
+            "label": "Set pricing models",
+            "prompt": "What pricing models work best for marketing agencies serving AI agentic apps?"
+          }
+        ]
+      },
+      {
+        "title": "Build Your Online Presence and Portfolio",
+        "description": "Create a professional website and showcase your expertise to attract clients.",
+        "actions": [
+          {
+            "label": "Develop agency website",
+            "prompt": "What should I include on my marketing agency website for AI agentic apps?"
+          },
+          {
+            "label": "Create a marketing portfolio",
+            "prompt": "How do I build a compelling portfolio for my new marketing agency?"
+          },
+          {
+            "label": "Collect client testimonials",
+            "prompt": "How can I gather and use client testimonials to build credibility?"
+          }
+        ]
+      },
+      {
+        "title": "Acquire Your First Clients",
+        "description": "Implement strategies to attract and secure your initial client base.",
+        "actions": [
+          {
+            "label": "Leverage personal network",
+            "prompt": "How can I use my personal and professional network to get my first clients?"
+          },
+          {
+            "label": "Cold outreach strategies",
+            "prompt": "What are effective cold outreach strategies for a new marketing agency?"
+          },
+          {
+            "label": "Offer introductory packages",
+            "prompt": "Should I offer discounted or introductory packages to attract first clients?"
+          }
+        ]
+      },
+      {
+        "title": "Build and Manage Your Team",
+        "description": "Recruit key roles and foster a positive, collaborative company culture.",
+        "actions": [
+          {
+            "label": "Identify key team roles",
+            "prompt": "What roles should I hire for first in my AI agentic app marketing agency?"
+          },
+          {
+            "label": "Recruit and retain talent",
+            "prompt": "How do I attract and retain top marketing talent for my agency?"
+          },
+          {
+            "label": "Foster company culture",
+            "prompt": "What are best practices for building a strong agency culture?"
+          }
+        ]
+      },
+      {
+        "title": "Set Up Efficient Operations",
+        "description": "Implement workflows, tools, and processes for smooth project management and client delivery.",
+        "actions": [
+          {
+            "label": "Choose project management tools",
+            "prompt": "What project management tools are best for a marketing agency?"
+          },
+          {
+            "label": "Document agency processes",
+            "prompt": "How do I document workflows and processes for my agency?"
+          },
+          {
+            "label": "Automate routine tasks",
+            "prompt": "What tasks can I automate in my marketing agency to improve efficiency?"
+          }
+        ]
+      },
+      {
+        "title": "Navigate Industry Challenges and Opportunities",
+        "description": "Stay agile and informed to overcome challenges and capitalize on new trends.",
+        "actions": [
+          {
+            "label": "Monitor industry trends",
+            "prompt": "How do I keep up with trends in AI and marketing for my agency?"
+          },
+          {
+            "label": "Address client expectations",
+            "prompt": "How can I manage and exceed client expectations in a competitive market?"
+          },
+          {
+            "label": "Ensure data privacy compliance",
+            "prompt": "What are the key data privacy considerations for a marketing agency?"
+          }
+        ]
+      },
+      {
+        "title": "Scale and Grow Your Agency",
+        "description": "Develop strategies for sustainable growth, client retention, and service expansion.",
+        "actions": [
+          {
+            "label": "Productize services",
+            "prompt": "How do I productize my agency’s services for scalability?"
+          },
+          {
+            "label": "Invest in automation and technology",
+            "prompt": "What technologies should I invest in to scale my marketing agency?"
+          },
+          {
+            "label": "Implement client retention strategies",
+            "prompt": "What are the best strategies for retaining clients in a marketing agency?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "conflict-resolution-methods-in-the-workplace-1747318507204",
+    "title": "Conflict Resolution Methods in the Workplace",
+    "description": "A scenario generated from Airtable.",
+    "color": "#1976D2",
+    "category": "Leadership",
+    "discord": null,
+    "social_link": null,
+    "steps": [
+      {
+        "title": "Identify and Clarify the Conflict",
+        "description": "Recognize the existence of a conflict and ensure all parties have a shared understanding of the issue.",
+        "actions": [
+          {
+            "label": "Clarify the disagreement",
+            "prompt": "How do I help my team clearly identify and articulate the conflict at hand?"
+          },
+          {
+            "label": "Acknowledge the problem",
+            "prompt": "What are effective ways to acknowledge a workplace conflict without escalating tensions?"
+          },
+          {
+            "label": "Pinpoint specific issues",
+            "prompt": "How can I move beyond vague complaints and identify the specific points of contention in a conflict?"
+          }
+        ]
+      },
+      {
+        "title": "Gather Information and Perspectives",
+        "description": "Collect relevant information and understand the viewpoints and underlying causes from all parties involved.",
+        "actions": [
+          {
+            "label": "Active listening techniques",
+            "prompt": "What are the best active listening techniques to use during a workplace conflict?"
+          },
+          {
+            "label": "Ask clarifying questions",
+            "prompt": "Can you suggest questions to ask to better understand each party’s perspective in a conflict?"
+          },
+          {
+            "label": "Demonstrate empathy",
+            "prompt": "How do I show empathy when mediating a workplace dispute?"
+          }
+        ]
+      },
+      {
+        "title": "Establish Common Goals",
+        "description": "Shift focus from individual positions to shared desired outcomes to create a foundation for resolution.",
+        "actions": [
+          {
+            "label": "Find shared interests",
+            "prompt": "How do I help conflicting parties identify common goals or interests?"
+          },
+          {
+            "label": "Set a collaborative tone",
+            "prompt": "What are ways to encourage a collaborative mindset during conflict resolution?"
+          }
+        ]
+      },
+      {
+        "title": "Explore and Evaluate Solutions",
+        "description": "Brainstorm and discuss potential solutions, considering different conflict resolution styles.",
+        "actions": [
+          {
+            "label": "Brainstorm solutions",
+            "prompt": "What are effective brainstorming techniques for resolving workplace conflicts?"
+          },
+          {
+            "label": "Compare conflict resolution styles",
+            "prompt": "Can you explain when to use competing, collaborating, compromising, avoiding, or accommodating styles in conflict resolution?"
+          },
+          {
+            "label": "Address barriers",
+            "prompt": "How do I identify and overcome barriers to resolving a workplace conflict?"
+          }
+        ]
+      },
+      {
+        "title": "Negotiate and Agree on a Solution",
+        "description": "Facilitate negotiation, compromise, or collaboration to reach a mutually acceptable agreement.",
+        "actions": [
+          {
+            "label": "Apply negotiation principles",
+            "prompt": "What negotiation principles should I use to resolve a workplace conflict?"
+          },
+          {
+            "label": "Facilitate compromise",
+            "prompt": "How can I help parties reach a fair compromise in a workplace dispute?"
+          },
+          {
+            "label": "Formalize the agreement",
+            "prompt": "What should be included in a written agreement after resolving a conflict?"
+          }
+        ]
+      },
+      {
+        "title": "Implement and Monitor the Solution",
+        "description": "Assign responsibilities, ensure accountability, and monitor progress to ensure the resolution is effective.",
+        "actions": [
+          {
+            "label": "Assign responsibilities",
+            "prompt": "How do I clearly assign responsibilities to ensure the conflict resolution plan is implemented?"
+          },
+          {
+            "label": "Monitor progress",
+            "prompt": "What are best practices for monitoring the effectiveness of a conflict resolution agreement?"
+          },
+          {
+            "label": "Evaluate outcomes",
+            "prompt": "How can I evaluate the success of a conflict resolution process and identify lessons learned?"
+          }
+        ]
+      },
+      {
+        "title": "Leverage HR and Third-Party Methods",
+        "description": "Utilize HR, mediation, or arbitration when conflicts require formal intervention or cannot be resolved informally.",
+        "actions": [
+          {
+            "label": "Engage HR as mediator",
+            "prompt": "When should I involve HR in a workplace conflict, and what role should they play?"
+          },
+          {
+            "label": "Use mediation",
+            "prompt": "How does workplace mediation work and when is it appropriate?"
+          },
+          {
+            "label": "Consider arbitration",
+            "prompt": "What are the pros and cons of using arbitration to resolve workplace disputes?"
+          }
+        ]
+      },
+      {
+        "title": "Apply Emerging and Specialized Techniques",
+        "description": "Incorporate innovative approaches such as appreciative inquiry, restorative justice, or online dispute resolution as appropriate.",
+        "actions": [
+          {
+            "label": "Use appreciative inquiry",
+            "prompt": "How can appreciative inquiry be used to resolve workplace conflicts?"
+          },
+          {
+            "label": "Implement restorative justice",
+            "prompt": "What steps are involved in applying restorative justice to a workplace dispute?"
+          },
+          {
+            "label": "Try online dispute resolution",
+            "prompt": "What are the benefits and challenges of using online dispute resolution for remote teams?"
+          }
+        ]
+      },
+      {
+        "title": "Foster Emotional Intelligence and Communication",
+        "description": "Develop emotional intelligence and communication skills to prevent and manage conflicts more effectively.",
+        "actions": [
+          {
+            "label": "Build emotional intelligence",
+            "prompt": "What are practical ways to improve emotional intelligence for better conflict management?"
+          },
+          {
+            "label": "Practice active listening",
+            "prompt": "How can I practice and encourage active listening during conflict resolution?"
+          },
+          {
+            "label": "Use constructive communication",
+            "prompt": "What are examples of constructive communication techniques for resolving workplace disagreements?"
+          }
+        ]
+      },
+      {
+        "title": "Cultivate a Positive Conflict Culture",
+        "description": "Shape organizational culture to support open communication, respect, and proactive conflict management.",
+        "actions": [
+          {
+            "label": "Integrate conflict training",
+            "prompt": "What should be included in a comprehensive conflict resolution training program for employees?"
+          },
+          {
+            "label": "Promote open communication",
+            "prompt": "How can I foster a culture of open communication to prevent workplace conflicts?"
+          },
+          {
+            "label": "Model positive conflict behaviors",
+            "prompt": "What conflict resolution behaviors should leaders model to set a positive example?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "how-do-i-start-an-online-business-for-an-ai-agentic-app-1747318687302",
+    "title": "How do I start an online business for an AI agentic app?",
+    "description": "A scenario generated from Airtable.",
+    "color": "#1976D2",
+    "category": "Business",
+    "discord": null,
+    "social_link": null,
+    "steps": [
+      {
+        "title": "Define Your Business Idea and Niche",
+        "description": "Identify a profitable, underserved niche for your AI agentic app and validate market demand.",
+        "actions": [
+          {
+            "label": "Find a profitable niche",
+            "prompt": "How do I identify a profitable and low-competition niche for my AI agentic app?"
+          },
+          {
+            "label": "Validate market demand",
+            "prompt": "What steps should I take to validate the market demand for my AI agentic app idea?"
+          },
+          {
+            "label": "Analyze competitors",
+            "prompt": "How can I analyze competitors in the AI agentic app space to find opportunities?"
+          }
+        ]
+      },
+      {
+        "title": "Develop Your Unique Value Proposition",
+        "description": "Craft a compelling value proposition that differentiates your AI agentic app from competitors.",
+        "actions": [
+          {
+            "label": "Create a value proposition",
+            "prompt": "How do I create a unique value proposition for my AI agentic app?"
+          },
+          {
+            "label": "Identify key differentiators",
+            "prompt": "What makes my AI agentic app stand out from others in the market?"
+          },
+          {
+            "label": "Refine messaging",
+            "prompt": "Can you help me refine my core messaging for my AI agentic app?"
+          }
+        ]
+      },
+      {
+        "title": "Plan Your Business Model and Monetization",
+        "description": "Choose the right business model and define how your AI agentic app will generate revenue.",
+        "actions": [
+          {
+            "label": "Select a business model",
+            "prompt": "What business models work best for AI agentic apps?"
+          },
+          {
+            "label": "Explore monetization options",
+            "prompt": "What are effective monetization strategies for an AI agentic app?"
+          },
+          {
+            "label": "Estimate startup costs",
+            "prompt": "How do I estimate the startup and operational costs for my AI agentic app business?"
+          }
+        ]
+      },
+      {
+        "title": "Build Your Brand Identity",
+        "description": "Develop a strong brand identity, including name, logo, and messaging, for your AI agentic app.",
+        "actions": [
+          {
+            "label": "Create a brand name and logo",
+            "prompt": "Can you help me brainstorm a brand name and logo for my AI agentic app?"
+          },
+          {
+            "label": "Define brand voice",
+            "prompt": "How do I define a consistent brand voice for my AI agentic app?"
+          },
+          {
+            "label": "Develop brand guidelines",
+            "prompt": "What should be included in brand guidelines for my online business?"
+          }
+        ]
+      },
+      {
+        "title": "Set Up Legal and Financial Foundations",
+        "description": "Register your business, ensure legal compliance, and set up financial systems.",
+        "actions": [
+          {
+            "label": "Register my business",
+            "prompt": "What are the steps to legally register my online business for an AI agentic app?"
+          },
+          {
+            "label": "Understand tax obligations",
+            "prompt": "What tax and accounting requirements should I be aware of for my online AI business?"
+          },
+          {
+            "label": "Protect intellectual property",
+            "prompt": "How do I protect the intellectual property of my AI agentic app?"
+          }
+        ]
+      },
+      {
+        "title": "Develop and Launch Your AI Agentic App",
+        "description": "Design, build, and launch your AI agentic app with a focus on user experience and scalability.",
+        "actions": [
+          {
+            "label": "Plan app development",
+            "prompt": "What are the key steps to plan and develop an AI agentic app?"
+          },
+          {
+            "label": "Choose tech stack",
+            "prompt": "What technology stack should I use to build a scalable AI agentic app?"
+          },
+          {
+            "label": "Launch MVP",
+            "prompt": "How do I launch a minimum viable product (MVP) for my AI agentic app?"
+          }
+        ]
+      },
+      {
+        "title": "Build Your Online Presence",
+        "description": "Create a professional website and establish your presence on relevant platforms.",
+        "actions": [
+          {
+            "label": "Create a business website",
+            "prompt": "What are the best practices for building a website for my AI agentic app?"
+          },
+          {
+            "label": "Optimize for SEO",
+            "prompt": "How do I optimize my website for search engines to attract users to my AI app?"
+          },
+          {
+            "label": "Set up social media profiles",
+            "prompt": "Which social media platforms should I use to promote my AI agentic app?"
+          }
+        ]
+      },
+      {
+        "title": "Acquire Users and Drive Traffic",
+        "description": "Implement marketing strategies to attract and convert users for your AI agentic app.",
+        "actions": [
+          {
+            "label": "Develop a marketing plan",
+            "prompt": "Can you help me create a marketing plan to acquire users for my AI agentic app?"
+          },
+          {
+            "label": "Leverage content marketing",
+            "prompt": "What content marketing strategies work best for promoting an AI app?"
+          },
+          {
+            "label": "Run paid ad campaigns",
+            "prompt": "How do I set up and optimize paid advertising for my AI agentic app?"
+          }
+        ]
+      },
+      {
+        "title": "Nurture Customer Relationships",
+        "description": "Build loyalty and engagement through excellent support and personalized experiences.",
+        "actions": [
+          {
+            "label": "Set up customer support",
+            "prompt": "What are the best practices for providing customer support for an AI agentic app?"
+          },
+          {
+            "label": "Implement loyalty programs",
+            "prompt": "How can I create a customer loyalty program for my AI app users?"
+          },
+          {
+            "label": "Personalize user experience",
+            "prompt": "How do I use data to personalize the experience for my AI agentic app users?"
+          }
+        ]
+      },
+      {
+        "title": "Scale and Optimize Your Business",
+        "description": "Automate processes, outsource non-core tasks, and reinvest for growth.",
+        "actions": [
+          {
+            "label": "Automate business processes",
+            "prompt": "What automation tools can help me scale my AI agentic app business?"
+          },
+          {
+            "label": "Outsource non-core functions",
+            "prompt": "Which business functions should I consider outsourcing as I grow?"
+          },
+          {
+            "label": "Track KPIs and optimize",
+            "prompt": "What key performance indicators should I track to optimize my AI agentic app business?"
+          }
+        ]
+      },
+      {
+        "title": "Ensure Compliance and Security",
+        "description": "Stay compliant with regulations and protect user data and business assets.",
+        "actions": [
+          {
+            "label": "Comply with data privacy laws",
+            "prompt": "What data privacy regulations must my AI agentic app comply with?"
+          },
+          {
+            "label": "Implement cybersecurity measures",
+            "prompt": "How do I ensure the security of my AI agentic app and user data?"
+          },
+          {
+            "label": "Update legal policies",
+            "prompt": "What legal policies should I include on my website and app?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "how-to-do-affiliate-marketing-on-youtube-for-ai-agentic-app-1747318696323",
+    "title": "How to Do Affiliate Marketing on YouTube for AI Agentic App",
+    "description": "A scenario generated from Airtable.",
+    "color": "#1976D2",
+    "category": "Business",
+    "discord": null,
+    "social_link": null,
+    "steps": [
+      {
+        "title": "Identify Your Niche and Audience",
+        "description": "Define the target audience and niche for your AI agentic app to ensure content relevance and higher conversion rates.",
+        "actions": [
+          {
+            "label": "Define my YouTube niche",
+            "prompt": "What is the best way to identify a profitable YouTube niche for promoting an AI agentic app?"
+          },
+          {
+            "label": "Research my target audience",
+            "prompt": "How do I research and understand the target audience for an AI agentic app on YouTube?"
+          },
+          {
+            "label": "Analyze competitors",
+            "prompt": "Can you help me analyze competitors who promote AI apps on YouTube?"
+          }
+        ]
+      },
+      {
+        "title": "Select Affiliate Programs",
+        "description": "Find and join affiliate programs that offer commissions for promoting your AI agentic app.",
+        "actions": [
+          {
+            "label": "Find affiliate programs",
+            "prompt": "What are the best affiliate programs for AI agentic apps?"
+          },
+          {
+            "label": "Evaluate program terms",
+            "prompt": "How do I evaluate commission rates and terms for AI app affiliate programs?"
+          },
+          {
+            "label": "Sign up for affiliate links",
+            "prompt": "Guide me through signing up for an affiliate program for my AI agentic app."
+          }
+        ]
+      },
+      {
+        "title": "Plan High-Converting Video Content",
+        "description": "Choose video formats and plan content that naturally integrates your AI app affiliate links.",
+        "actions": [
+          {
+            "label": "Choose video formats",
+            "prompt": "What YouTube video formats work best for promoting AI agentic apps with affiliate links?"
+          },
+          {
+            "label": "Content ideas",
+            "prompt": "Give me content ideas for YouTube videos to promote an AI agentic app as an affiliate."
+          },
+          {
+            "label": "Script product integration",
+            "prompt": "How do I script a natural and authentic integration of an AI agentic app in my YouTube video?"
+          }
+        ]
+      },
+      {
+        "title": "Optimize for YouTube SEO",
+        "description": "Use SEO strategies to increase the discoverability of your affiliate videos.",
+        "actions": [
+          {
+            "label": "Keyword research",
+            "prompt": "What keywords should I target to promote an AI agentic app on YouTube?"
+          },
+          {
+            "label": "Optimize titles and descriptions",
+            "prompt": "How do I write SEO-optimized titles and descriptions for my AI app affiliate videos?"
+          },
+          {
+            "label": "Use tags and playlists",
+            "prompt": "How should I use tags and playlists to boost my AI agentic app affiliate videos?"
+          }
+        ]
+      },
+      {
+        "title": "Strategically Place Affiliate Links",
+        "description": "Maximize affiliate link visibility and clicks by placing them in optimal locations.",
+        "actions": [
+          {
+            "label": "Best link placement",
+            "prompt": "Where should I place affiliate links for my AI agentic app in my YouTube videos and descriptions?"
+          },
+          {
+            "label": "Use cards and end screens",
+            "prompt": "How do I use YouTube cards and end screens to promote my AI app affiliate links?"
+          },
+          {
+            "label": "Pin links in comments",
+            "prompt": "Should I pin my AI agentic app affiliate link in the comments, and how do I do it effectively?"
+          }
+        ]
+      },
+      {
+        "title": "Disclose Affiliate Relationships",
+        "description": "Ensure legal compliance and build trust by transparently disclosing affiliate links.",
+        "actions": [
+          {
+            "label": "Disclosure best practices",
+            "prompt": "What is the best way to disclose affiliate links for an AI agentic app on YouTube?"
+          },
+          {
+            "label": "Verbal and written disclosure",
+            "prompt": "How do I include both verbal and written affiliate disclosures in my YouTube videos?"
+          },
+          {
+            "label": "Comply with YouTube and FTC rules",
+            "prompt": "What are the YouTube and FTC requirements for affiliate marketing disclosures?"
+          }
+        ]
+      },
+      {
+        "title": "Track and Optimize Performance",
+        "description": "Monitor analytics and optimize your strategy for better conversions and revenue.",
+        "actions": [
+          {
+            "label": "Track affiliate link clicks",
+            "prompt": "What tools can I use to track clicks and conversions on my AI agentic app affiliate links?"
+          },
+          {
+            "label": "Analyze YouTube metrics",
+            "prompt": "Which YouTube Analytics metrics should I monitor to measure my affiliate marketing success?"
+          },
+          {
+            "label": "A/B test strategies",
+            "prompt": "How do I A/B test different calls to action or link placements for my AI app affiliate videos?"
+          }
+        ]
+      },
+      {
+        "title": "Engage and Build Trust with Your Audience",
+        "description": "Foster a loyal community to increase conversions and long-term affiliate success.",
+        "actions": [
+          {
+            "label": "Encourage interaction",
+            "prompt": "What are effective ways to encourage comments and engagement on my AI agentic app affiliate videos?"
+          },
+          {
+            "label": "Respond to feedback",
+            "prompt": "How should I respond to audience feedback and questions about the AI agentic app?"
+          },
+          {
+            "label": "Build credibility",
+            "prompt": "What are the best practices for building credibility and trust as an affiliate marketer on YouTube?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "how-to-write-a-genealogy-book-1747318703084",
+    "title": "How to Write a Genealogy Book",
+    "description": "A scenario generated from Airtable.",
+    "color": "#1976D2",
+    "category": "History",
+    "discord": null,
+    "social_link": null,
+    "steps": [
+      {
+        "title": "Define Purpose and Scope",
+        "description": "Clarify the main goal and boundaries of your genealogy book to guide your research and writing.",
+        "actions": [
+          {
+            "label": "Identify the purpose of my genealogy book",
+            "prompt": "How do I determine the main purpose and message for my genealogy book?"
+          },
+          {
+            "label": "Set the scope of my project",
+            "prompt": "What are effective ways to define the scope of my genealogy book?"
+          },
+          {
+            "label": "Choose a focus for my family history",
+            "prompt": "Should I focus on a single line of descent, all descendants, or a specific family branch for my genealogy book?"
+          }
+        ]
+      },
+      {
+        "title": "Gather and Organize Information",
+        "description": "Collect and structure genealogical data, stories, and supporting materials.",
+        "actions": [
+          {
+            "label": "Find non-trivial family information",
+            "prompt": "How can I uncover interesting stories and details about my ancestors beyond names and dates?"
+          },
+          {
+            "label": "Leverage diverse sources",
+            "prompt": "What sources should I use to gather rich information for my genealogy book?"
+          },
+          {
+            "label": "Organize my research",
+            "prompt": "What are the best ways to organize genealogical data and stories for writing a book?"
+          }
+        ]
+      },
+      {
+        "title": "Structure the Narrative",
+        "description": "Choose a format and organize chapters for maximum engagement and clarity.",
+        "actions": [
+          {
+            "label": "Select a book structure",
+            "prompt": "What are the most effective ways to structure a genealogy book?"
+          },
+          {
+            "label": "Organize chapters for engagement",
+            "prompt": "How should I organize chapters to keep readers interested in my genealogy book?"
+          },
+          {
+            "label": "Create chapter outlines",
+            "prompt": "Can you help me outline chapters for my genealogy book based on my chosen structure?"
+          }
+        ]
+      },
+      {
+        "title": "Write Compelling Stories",
+        "description": "Transform research into engaging narratives using storytelling techniques.",
+        "actions": [
+          {
+            "label": "Use storytelling techniques",
+            "prompt": "What storytelling techniques can I use to make my genealogy book more engaging?"
+          },
+          {
+            "label": "Make ancestors relatable",
+            "prompt": "How do I write about my ancestors in a way that makes them relatable to readers?"
+          },
+          {
+            "label": "Incorporate emotion and description",
+            "prompt": "How can I add emotional depth and vivid descriptions to my genealogy writing?"
+          }
+        ]
+      },
+      {
+        "title": "Integrate Visual Elements",
+        "description": "Enhance your book with photos, documents, maps, and artifacts.",
+        "actions": [
+          {
+            "label": "Select and prepare images",
+            "prompt": "What types of images and documents should I include in my genealogy book, and how do I prepare them?"
+          },
+          {
+            "label": "Organize visuals for impact",
+            "prompt": "How should I organize and caption photos and documents in my genealogy book?"
+          },
+          {
+            "label": "Add interactive or unique visuals",
+            "prompt": "What creative visual elements can I add to make my genealogy book more engaging?"
+          }
+        ]
+      },
+      {
+        "title": "Cite Sources and Ensure Accuracy",
+        "description": "Document your sources and maintain credibility throughout your book.",
+        "actions": [
+          {
+            "label": "Choose a citation style",
+            "prompt": "What citation styles are best for genealogy books, and how do I use them?"
+          },
+          {
+            "label": "Cite sources as I write",
+            "prompt": "How do I efficiently cite sources while writing my genealogy book?"
+          },
+          {
+            "label": "Handle unverified information",
+            "prompt": "How should I present family stories or information that can't be fully verified?"
+          }
+        ]
+      },
+      {
+        "title": "Polish and Supplement",
+        "description": "Refine your manuscript with appendices, indexing, and professional editing.",
+        "actions": [
+          {
+            "label": "Add appendices and extras",
+            "prompt": "What supplementary materials should I include in the appendices of my genealogy book?"
+          },
+          {
+            "label": "Create an index",
+            "prompt": "How do I create a useful index for names, places, and events in my genealogy book?"
+          },
+          {
+            "label": "Edit and proofread",
+            "prompt": "What are the best practices for editing and proofreading a genealogy book?"
+          }
+        ]
+      },
+      {
+        "title": "Format, Design, and Publish",
+        "description": "Finalize the layout and choose the best publishing option for your audience.",
+        "actions": [
+          {
+            "label": "Design the book layout",
+            "prompt": "What are the key considerations for designing the layout of a genealogy book?"
+          },
+          {
+            "label": "Choose a publishing method",
+            "prompt": "What are the pros and cons of self-publishing, professional publishing, and DIY options for genealogy books?"
+          },
+          {
+            "label": "Prepare for print or digital release",
+            "prompt": "How do I prepare my genealogy book for print or digital publication?"
+          }
+        ]
+      },
+      {
+        "title": "Engage and Connect with Readers",
+        "description": "Keep your audience interested and foster a personal connection to the family history.",
+        "actions": [
+          {
+            "label": "Keep writing focused and concise",
+            "prompt": "How do I ensure my genealogy book is focused, concise, and engaging for readers?"
+          },
+          {
+            "label": "Highlight relatable stories",
+            "prompt": "What are effective ways to highlight relatable and universal stories in my genealogy book?"
+          },
+          {
+            "label": "Enhance visual appeal",
+            "prompt": "How can I use visuals and design to make my genealogy book more appealing and accessible?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "how-to-turn-artwork-into-nft-1747318484067",
+    "title": "How to Turn Artwork into NFT",
+    "description": "A scenario generated from Airtable.",
+    "color": "#1976D2",
+    "category": "Art",
+    "discord": "https://discord.com/channels/1364644446796255375/1371563825517695057",
+    "social_link": "-",
+    "steps": [
+      {
+        "title": "Prepare Your Digital Artwork",
+        "description": "Get your artwork ready in a suitable digital format and resolution for NFT minting.",
+        "actions": [
+          {
+            "label": "Choose the right file format",
+            "prompt": "What file formats are best for minting my artwork as an NFT?"
+          },
+          {
+            "label": "Optimize file size and resolution",
+            "prompt": "How do I optimize my artwork's file size and resolution for NFT platforms?"
+          },
+          {
+            "label": "Convert physical art to digital",
+            "prompt": "How can I digitize my physical artwork for NFT creation?"
+          }
+        ]
+      },
+      {
+        "title": "Select a Blockchain Platform",
+        "description": "Choose the blockchain where your NFT will be minted (e.g., Ethereum, Solana, Tezos).",
+        "actions": [
+          {
+            "label": "Compare blockchain options",
+            "prompt": "What are the pros and cons of different blockchains for NFTs?"
+          },
+          {
+            "label": "Understand transaction fees",
+            "prompt": "How do transaction fees differ between NFT blockchains?"
+          },
+          {
+            "label": "Consider environmental impact",
+            "prompt": "Which blockchain is most eco-friendly for NFT minting?"
+          }
+        ]
+      },
+      {
+        "title": "Set Up a Crypto Wallet",
+        "description": "Create a compatible crypto wallet to store your NFTs and receive payments.",
+        "actions": [
+          {
+            "label": "Choose a wallet",
+            "prompt": "What crypto wallets are best for NFT artists?"
+          },
+          {
+            "label": "Secure your wallet",
+            "prompt": "How do I securely set up and back up my crypto wallet for NFTs?"
+          },
+          {
+            "label": "Connect wallet to marketplace",
+            "prompt": "How do I connect my crypto wallet to an NFT marketplace?"
+          }
+        ]
+      },
+      {
+        "title": "Pick an NFT Marketplace",
+        "description": "Select a marketplace that fits your art style, audience, and blockchain choice.",
+        "actions": [
+          {
+            "label": "Compare NFT marketplaces",
+            "prompt": "What are the top NFT marketplaces and how do they differ?"
+          },
+          {
+            "label": "Find artist-friendly platforms",
+            "prompt": "Which NFT marketplaces are best for digital artists?"
+          },
+          {
+            "label": "Understand marketplace fees",
+            "prompt": "What fees should I expect when selling NFTs on different platforms?"
+          }
+        ]
+      },
+      {
+        "title": "Mint Your NFT",
+        "description": "Upload your artwork, add metadata, set royalties, and mint your NFT on the chosen platform.",
+        "actions": [
+          {
+            "label": "Upload and mint artwork",
+            "prompt": "How do I upload and mint my artwork as an NFT?"
+          },
+          {
+            "label": "Set up royalties",
+            "prompt": "How can I set up royalties for my NFT sales?"
+          },
+          {
+            "label": "Add metadata and description",
+            "prompt": "What metadata should I include when minting my NFT?"
+          }
+        ]
+      },
+      {
+        "title": "Store and Secure Your NFT",
+        "description": "Ensure your NFT and its associated files are stored securely and remain accessible.",
+        "actions": [
+          {
+            "label": "Use decentralized storage",
+            "prompt": "How do I store my NFT artwork securely using decentralized storage like IPFS?"
+          },
+          {
+            "label": "Back up NFT data",
+            "prompt": "What are the best practices for backing up my NFT and wallet information?"
+          },
+          {
+            "label": "Protect against scams",
+            "prompt": "How can I protect myself from NFT scams and security threats?"
+          }
+        ]
+      },
+      {
+        "title": "Navigate Legal and Copyright Issues",
+        "description": "Understand copyright, licensing, and legal considerations when minting and selling NFTs.",
+        "actions": [
+          {
+            "label": "Understand copyright and ownership",
+            "prompt": "What copyright rights do I retain when I sell an NFT of my artwork?"
+          },
+          {
+            "label": "Set licensing terms",
+            "prompt": "How do I specify what rights NFT buyers have to my artwork?"
+          },
+          {
+            "label": "Avoid copyright infringement",
+            "prompt": "How can I ensure I’m not infringing on others’ copyrights when minting NFTs?"
+          }
+        ]
+      },
+      {
+        "title": "Showcase and Sell Your NFT",
+        "description": "Promote your NFT, engage with collectors, and manage sales.",
+        "actions": [
+          {
+            "label": "Promote NFT on social media",
+            "prompt": "What are effective ways to promote my NFT art on social media?"
+          },
+          {
+            "label": "Engage with collectors",
+            "prompt": "How can I build a community around my NFT art?"
+          },
+          {
+            "label": "Display NFTs in virtual galleries",
+            "prompt": "How do I showcase my NFTs in virtual galleries or metaverse spaces?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "how-to-write-a-research-article-1747371782082",
+    "title": "How to Write a Research Article",
+    "description": "A scenario generated from Airtable.",
+    "color": "#1976D2",
+    "category": "Education",
+    "discord": "https://discord.com/channels/1364644446796255375/1368985849332498552",
+    "social_link": "-",
+    "steps": [
+      {
+        "title": "Define Your Research Focus",
+        "description": "Clarify your research question, objectives, and the significance of your study.",
+        "actions": [
+          {
+            "label": "Identify a research gap",
+            "prompt": "How do I find a gap in the existing literature for my research article?"
+          },
+          {
+            "label": "Formulate a research question",
+            "prompt": "Can you help me craft a clear and focused research question for my study?"
+          },
+          {
+            "label": "State research objectives",
+            "prompt": "What are effective ways to define the objectives of my research?"
+          }
+        ]
+      },
+      {
+        "title": "Structure Your Article",
+        "description": "Understand and plan the standard sections of a research article.",
+        "actions": [
+          {
+            "label": "Outline article structure",
+            "prompt": "What is the typical structure of a research article and what should each section include?"
+          },
+          {
+            "label": "IMRAD format guidance",
+            "prompt": "Can you explain the IMRAD structure and how to apply it to my research article?"
+          },
+          {
+            "label": "Section planning",
+            "prompt": "Help me plan the content for each section of my research paper."
+          }
+        ]
+      },
+      {
+        "title": "Write the Title Page and Abstract",
+        "description": "Create an informative title page and a concise, comprehensive abstract.",
+        "actions": [
+          {
+            "label": "Craft a title",
+            "prompt": "How do I write an effective and informative title for my research article?"
+          },
+          {
+            "label": "Write the abstract",
+            "prompt": "What are the key elements of a strong research article abstract?"
+          },
+          {
+            "label": "Select keywords",
+            "prompt": "How do I choose the best keywords for my research article?"
+          }
+        ]
+      },
+      {
+        "title": "Develop the Introduction",
+        "description": "Introduce your topic, provide background, and state your research question or hypothesis.",
+        "actions": [
+          {
+            "label": "Write a compelling opening",
+            "prompt": "What are some strategies for writing an engaging introduction to my research article?"
+          },
+          {
+            "label": "Apply the CARS model",
+            "prompt": "How can I use the CARS model to structure my research article introduction?"
+          },
+          {
+            "label": "State the research purpose",
+            "prompt": "How do I clearly state the purpose and significance of my research?"
+          }
+        ]
+      },
+      {
+        "title": "Describe the Methodology",
+        "description": "Detail your research design, data collection, and analysis methods.",
+        "actions": [
+          {
+            "label": "Outline research methods",
+            "prompt": "What should I include in the methodology section of my research article?"
+          },
+          {
+            "label": "Justify methodological choices",
+            "prompt": "How do I justify my choice of research methods in my article?"
+          },
+          {
+            "label": "Ensure reproducibility",
+            "prompt": "What details are necessary to make my research methods reproducible?"
+          }
+        ]
+      },
+      {
+        "title": "Present the Results",
+        "description": "Report your findings objectively, using text, tables, and figures as appropriate.",
+        "actions": [
+          {
+            "label": "Summarize findings",
+            "prompt": "How do I present my research results clearly and objectively?"
+          },
+          {
+            "label": "Use tables and figures",
+            "prompt": "What are best practices for using tables and figures in the results section?"
+          },
+          {
+            "label": "Highlight key outcomes",
+            "prompt": "How do I emphasize the most important findings in my results section?"
+          }
+        ]
+      },
+      {
+        "title": "Write the Discussion",
+        "description": "Interpret your results, relate them to existing research, and discuss implications and limitations.",
+        "actions": [
+          {
+            "label": "Interpret findings",
+            "prompt": "How do I analyze and interpret my research findings in the discussion section?"
+          },
+          {
+            "label": "Address limitations",
+            "prompt": "What is the best way to discuss the limitations of my research?"
+          },
+          {
+            "label": "Suggest future research",
+            "prompt": "How can I propose directions for future research in my discussion section?"
+          }
+        ]
+      },
+      {
+        "title": "Conclude Your Article",
+        "description": "Summarize your main findings and their significance, and provide a strong closing statement.",
+        "actions": [
+          {
+            "label": "Summarize key points",
+            "prompt": "How do I write a concise and impactful conclusion for my research article?"
+          },
+          {
+            "label": "Connect to broader context",
+            "prompt": "How can I relate my research findings to the broader field in the conclusion?"
+          },
+          {
+            "label": "Avoid common conclusion mistakes",
+            "prompt": "What should I avoid when writing the conclusion of my research article?"
+          }
+        ]
+      },
+      {
+        "title": "Cite Sources and Compile References",
+        "description": "Acknowledge all sources and format your reference list according to the required style.",
+        "actions": [
+          {
+            "label": "Choose citation style",
+            "prompt": "How do I select and apply the correct citation style for my research article?"
+          },
+          {
+            "label": "Format references",
+            "prompt": "What are the key rules for formatting a reference list in a research article?"
+          },
+          {
+            "label": "Use reference management tools",
+            "prompt": "Can you recommend tools to help manage and format my references?"
+          }
+        ]
+      },
+      {
+        "title": "Enhance with Visual Aids",
+        "description": "Use tables, figures, and advanced visualizations to clarify and emphasize your data.",
+        "actions": [
+          {
+            "label": "Select appropriate visualizations",
+            "prompt": "How do I choose the right type of chart or graph for my research data?"
+          },
+          {
+            "label": "Design clear visuals",
+            "prompt": "What are best practices for designing clear and effective tables and figures?"
+          },
+          {
+            "label": "Cite visual sources",
+            "prompt": "How do I properly cite sources for tables and figures in my research article?"
+          }
+        ]
+      },
+      {
+        "title": "Navigate Peer Review",
+        "description": "Submit your article, respond to reviewer feedback, and revise your manuscript as needed.",
+        "actions": [
+          {
+            "label": "Prepare for peer review",
+            "prompt": "What should I expect during the peer review process for my research article?"
+          },
+          {
+            "label": "Respond to reviewer comments",
+            "prompt": "How do I address reviewer feedback constructively and revise my manuscript?"
+          },
+          {
+            "label": "Increase acceptance chances",
+            "prompt": "What strategies can help improve my chances of publication after peer review?"
+          }
+        ]
+      },
+      {
+        "title": "Polish and Finalize",
+        "description": "Edit for clarity, conciseness, and adherence to guidelines before submission.",
+        "actions": [
+          {
+            "label": "Edit for clarity",
+            "prompt": "What are effective techniques for editing my research article for clarity and conciseness?"
+          },
+          {
+            "label": "Check formatting and guidelines",
+            "prompt": "How do I ensure my research article meets all formatting and submission requirements?"
+          },
+          {
+            "label": "Proofread for errors",
+            "prompt": "What should I look for when proofreading my research article before submission?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "how-to-write-a-scientific-literature-review-1747371792346",
+    "title": "How to Write a Scientific Literature Review",
+    "description": "A scenario generated from Airtable.",
+    "color": "#1976D2",
+    "category": "Education",
+    "discord": "https://discord.com/channels/1364644446796255375/1368985849332498552",
+    "social_link": "-",
+    "steps": [
+      {
+        "title": "Search for Relevant Literature",
+        "description": "Develop and execute a comprehensive search strategy using academic databases and other resources.",
+        "actions": [
+          {
+            "label": "Develop search strategy",
+            "prompt": "How do I create an effective search strategy for finding relevant literature?"
+          },
+          {
+            "label": "Select databases and resources",
+            "prompt": "Which academic databases and resources should I use for my literature review?"
+          },
+          {
+            "label": "Use advanced search techniques",
+            "prompt": "What advanced search techniques (Boolean, truncation, wildcards) can I use to improve my literature search?"
+          },
+          {
+            "label": "Document search process",
+            "prompt": "How should I document my search process for transparency and reproducibility?"
+          }
+        ]
+      },
+      {
+        "title": "Critically Evaluate Sources",
+        "description": "Assess the quality, credibility, and relevance of each source using structured frameworks.",
+        "actions": [
+          {
+            "label": "Apply evaluation frameworks",
+            "prompt": "How do I use the CRAAP test or similar frameworks to evaluate sources for my literature review?"
+          },
+          {
+            "label": "Assess methodology and bias",
+            "prompt": "What should I look for when evaluating the methodology and potential biases in research articles?"
+          },
+          {
+            "label": "Distinguish source types",
+            "prompt": "How do I distinguish between primary, secondary, and tertiary sources in my literature review?"
+          }
+        ]
+      },
+      {
+        "title": "Synthesize the Literature",
+        "description": "Integrate findings from multiple sources to identify patterns, themes, debates, and gaps.",
+        "actions": [
+          {
+            "label": "Identify themes and trends",
+            "prompt": "How do I identify and organize key themes and trends across the literature?"
+          },
+          {
+            "label": "Use synthesis tools",
+            "prompt": "What tools or matrices can help me systematically compare and synthesize research findings?"
+          },
+          {
+            "label": "Analyze agreements and disagreements",
+            "prompt": "How do I analyze and present areas of agreement, disagreement, and gaps in the literature?"
+          }
+        ]
+      },
+      {
+        "title": "Structure and Write the Review",
+        "description": "Organize your review with a clear introduction, body, and conclusion, maintaining academic rigor.",
+        "actions": [
+          {
+            "label": "Outline the review",
+            "prompt": "What is the best structure for a scientific literature review?"
+          },
+          {
+            "label": "Write a strong introduction",
+            "prompt": "How do I write an effective introduction for my literature review?"
+          },
+          {
+            "label": "Synthesize in the body",
+            "prompt": "How do I present synthesized findings in the body of my literature review?"
+          },
+          {
+            "label": "Conclude and suggest future research",
+            "prompt": "How should I write the conclusion and suggest areas for future research in my literature review?"
+          }
+        ]
+      },
+      {
+        "title": "Cite Sources and Edit",
+        "description": "Ensure accurate citation, avoid plagiarism, and polish your review for clarity and coherence.",
+        "actions": [
+          {
+            "label": "Cite sources correctly",
+            "prompt": "What citation style should I use and how do I ensure all sources are properly cited in my literature review?"
+          },
+          {
+            "label": "Check for plagiarism",
+            "prompt": "How can I check my literature review for unintentional plagiarism?"
+          },
+          {
+            "label": "Edit and proofread",
+            "prompt": "What are best practices for editing and proofreading my literature review for clarity and accuracy?"
+          }
+        ]
+      },
+      {
+        "title": "Define Your Research Question",
+        "description": "Establish a clear, focused, and researchable question to guide your literature review.",
+        "actions": [
+          {
+            "label": "Formulate a research question",
+            "prompt": "How do I create a focused and researchable question for my literature review?"
+          },
+          {
+            "label": "Refine the scope",
+            "prompt": "What strategies can I use to narrow or broaden my research question for a manageable review?"
+          },
+          {
+            "label": "Identify research gaps",
+            "prompt": "How can I identify gaps in the existing literature to justify my research question?"
+          }
+        ]
+      },
+      {
+        "title": "Determine the Scope and Criteria",
+        "description": "Set boundaries for your review, including inclusion/exclusion criteria, time frame, and source types.",
+        "actions": [
+          {
+            "label": "Set inclusion/exclusion criteria",
+            "prompt": "What criteria should I use to decide which studies to include or exclude in my literature review?"
+          },
+          {
+            "label": "Define time frame and source types",
+            "prompt": "How do I determine the relevant time period and types of sources for my literature review?"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "how-to-write-a-recommendation-letter-for-a-student-1747371813613",
+    "title": "How to Write a Recommendation Letter for a Student",
+    "description": "A scenario generated from Airtable.",
+    "color": "#1976D2",
+    "category": "Education",
+    "discord": "https://discord.com/channels/1364644446796255375/1368985849332498552",
+    "social_link": "-",
+    "steps": [
+      {
+        "title": "Understand the Purpose and Audience",
+        "description": "Clarify the specific purpose of the letter and identify the intended audience (e.g., college admissions, scholarship board, employer, graduate program).",
+        "actions": [
+          {
+            "label": "Clarify letter purpose",
+            "prompt": "What is the specific purpose of the recommendation letter I need to write for this student?"
+          },
+          {
+            "label": "Identify audience priorities",
+            "prompt": "Who will read this letter, and what are their main priorities or criteria for selection?"
+          },
+          {
+            "label": "Request student details",
+            "prompt": "What information should I ask the student to provide to tailor the letter to its purpose?"
+          }
+        ]
+      },
+      {
+        "title": "Establish Your Relationship with the Student",
+        "description": "Clearly state how you know the student, your role, and the duration of your relationship.",
+        "actions": [
+          {
+            "label": "Describe your connection",
+            "prompt": "How should I describe my relationship with the student in the letter?"
+          },
+          {
+            "label": "Mention relevant context",
+            "prompt": "What specific courses, projects, or activities should I reference to establish context?"
+          }
+        ]
+      },
+      {
+        "title": "Highlight Specific Strengths and Achievements",
+        "description": "Provide concrete examples and anecdotes that showcase the student's abilities, character, and accomplishments.",
+        "actions": [
+          {
+            "label": "Share specific examples",
+            "prompt": "Can you help me generate specific examples or stories that highlight the student's strengths?"
+          },
+          {
+            "label": "Quantify achievements",
+            "prompt": "How can I include quantifiable achievements or comparisons to peers in the letter?"
+          }
+        ]
+      },
+      {
+        "title": "Discuss Potential for Future Success",
+        "description": "Comment on the student's motivation, intellectual curiosity, and suitability for their intended path.",
+        "actions": [
+          {
+            "label": "Address future potential",
+            "prompt": "How do I effectively discuss the student's potential for future success in the letter?"
+          },
+          {
+            "label": "Connect to goals",
+            "prompt": "How can I link the student's skills and qualities to their academic or career aspirations?"
+          }
+        ]
+      },
+      {
+        "title": "Maintain Professional Tone and Format",
+        "description": "Use formal language, proper structure, and ensure the letter is well-organized and error-free.",
+        "actions": [
+          {
+            "label": "Format the letter",
+            "prompt": "What is the recommended format and structure for a professional recommendation letter?"
+          },
+          {
+            "label": "Proofread for errors",
+            "prompt": "What are best practices for proofreading and ensuring the letter is free of errors?"
+          }
+        ]
+      },
+      {
+        "title": "Personalize and Tailor the Letter",
+        "description": "Customize the letter to the specific opportunity and avoid generic statements.",
+        "actions": [
+          {
+            "label": "Tailor to opportunity",
+            "prompt": "How do I tailor the recommendation letter to a specific program, scholarship, or job?"
+          },
+          {
+            "label": "Use vivid language",
+            "prompt": "What are some examples of vivid, descriptive language I can use instead of generic phrases?"
+          }
+        ]
+      },
+      {
+        "title": "Conclude with a Strong Endorsement",
+        "description": "End the letter with a clear, confident recommendation and offer to provide further information.",
+        "actions": [
+          {
+            "label": "Write a strong conclusion",
+            "prompt": "How should I conclude the letter to leave a strong, positive impression?"
+          },
+          {
+            "label": "Offer further contact",
+            "prompt": "What is the best way to offer further information or contact in the closing?"
+          }
+        ]
+      },
+      {
+        "title": "Adhere to Ethical and Cultural Considerations",
+        "description": "Ensure honesty, confidentiality, and awareness of cultural differences in tone and content.",
+        "actions": [
+          {
+            "label": "Follow ethical guidelines",
+            "prompt": "What ethical considerations should I keep in mind when writing a recommendation letter?"
+          },
+          {
+            "label": "Navigate cultural differences",
+            "prompt": "How do I adapt my letter for international or culturally diverse audiences?"
+          }
+        ]
+      },
+      {
+        "title": "Manage Logistics and Submission",
+        "description": "Format the letter correctly, address it appropriately, and submit it according to required procedures and deadlines.",
+        "actions": [
+          {
+            "label": "Check formatting and length",
+            "prompt": "What are the standard formatting and length requirements for recommendation letters?"
+          },
+          {
+            "label": "Submit the letter",
+            "prompt": "What are the best practices for submitting recommendation letters through online portals or other systems?"
+          }
+        ]
+      }
+    ]
+  }
+]

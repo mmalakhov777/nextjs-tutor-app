@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Agent URL Parameters</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(35, 35, 35, 0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .url-display {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .examples {
+            margin-top: 30px;
+        }
+        .example-link {
+            display: inline-block;
+            margin: 5px;
+            padding: 8px 16px;
+            background-color: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .example-link:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Agent URL Parameters</h1>
+        
+        <div class="form-group">
+            <label for="baseUrl">Base URL:</label>
+            <input type="text" id="baseUrl" value="http://localhost:3000/" />
+        </div>
+        
+        <div class="form-group">
+            <label for="userId">User ID:</label>
+            <input type="text" id="userId" value="test-user" />
+        </div>
+        
+        <div class="form-group">
+            <label for="conversationId">Conversation ID (optional):</label>
+            <input type="text" id="conversationId" placeholder="Leave empty for new conversation" />
+        </div>
+        
+        <div class="form-group">
+            <label for="agent">Agent:</label>
+            <select id="agent">
+                <option value="">No agent (use default)</option>
+                <option value="General Assistant">General Assistant</option>
+                <option value="SEO Agent">SEO Agent</option>
+                <option value="Claude Creative">Claude Creative</option>
+                <option value="Perplexity">Perplexity</option>
+                <option value="Deep Seek">Deep Seek</option>
+                <option value="Mistral Europe">Mistral Europe</option>
+                <option value="Deep Thinker">Deep Thinker</option>
+                <option value="Grok X">Grok X</option>
+                <option value="Content Writer Agent">Content Writer Agent</option>
+                <option value="Flash Card Maker">Flash Card Maker</option>
+                <option value="Web Researcher">Web Researcher</option>
+                <option value="YouTube Agent">YouTube Agent</option>
+                <option value="CV Writer Agent">CV Writer Agent</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="message">Message:</label>
+            <textarea id="message" placeholder="Enter your message here...">Help me optimize my website for search engines</textarea>
+        </div>
+        
+        <button onclick="generateUrl()">Generate URL</button>
+        <button onclick="openUrl()">Open in New Tab</button>
+        <button onclick="copyUrl()">Copy URL</button>
+        
+        <div id="urlDisplay" class="url-display" style="display: none;"></div>
+        
+        <div class="examples">
+            <h3>Quick Examples:</h3>
+            <a href="#" class="example-link" onclick="setExample('SEO Agent', 'Analyze the SEO of my website and suggest improvements'); return false;">SEO Analysis</a>
+            <a href="#" class="example-link" onclick="setExample('Claude Creative', 'Write a creative story about a robot learning to paint'); return false;">Creative Writing</a>
+            <a href="#" class="example-link" onclick="setExample('Perplexity', 'What are the latest developments in quantum computing?'); return false;">Research</a>
+            <a href="#" class="example-link" onclick="setExample('Content Writer Agent', 'Write a blog post about sustainable living'); return false;">Blog Post</a>
+            <a href="#" class="example-link" onclick="setExample('CV Writer Agent', 'Help me create a professional CV for a software engineer position'); return false;">CV Writing</a>
+        </div>
+    </div>
+    
+    <script>
+        let generatedUrl = '';
+        
+        function generateUrl() {
+            const baseUrl = document.getElementById('baseUrl').value;
+            const userId = document.getElementById('userId').value;
+            const conversationId = document.getElementById('conversationId').value;
+            const agent = document.getElementById('agent').value;
+            const message = document.getElementById('message').value;
+            
+            const params = new URLSearchParams();
+            
+            if (userId) params.append('user_id', userId);
+            if (conversationId) params.append('conversation_id', conversationId);
+            if (agent) params.append('agent', agent);
+            if (message) params.append('message', message);
+            
+            generatedUrl = baseUrl + '?' + params.toString();
+            
+            const urlDisplay = document.getElementById('urlDisplay');
+            urlDisplay.textContent = generatedUrl;
+            urlDisplay.style.display = 'block';
+        }
+        
+        function openUrl() {
+            if (!generatedUrl) generateUrl();
+            window.open(generatedUrl, '_blank');
+        }
+        
+        function copyUrl() {
+            if (!generatedUrl) generateUrl();
+            navigator.clipboard.writeText(generatedUrl).then(() => {
+                alert('URL copied to clipboard!');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = generatedUrl;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('URL copied to clipboard!');
+            });
+        }
+        
+        function setExample(agent, message) {
+            document.getElementById('agent').value = agent;
+            document.getElementById('message').value = message;
+            generateUrl();
+        }
+        
+        // Generate URL on page load if there are values
+        window.onload = function() {
+            if (document.getElementById('message').value) {
+                generateUrl();
+            }
+        };
+    </script>
+</body>
+</html> 

@@ -1,0 +1,256 @@
+/* ChatInput Component Styles */
+
+/* Main container styles */
+.chatInputContainer {
+  display: flex;
+  padding: 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: stretch;
+  border-radius: 16px;
+  border: 1px solid var(--Monochrome-Light, #E8E8E5);
+  background: var(--Monochrome-White, #FFF);
+  box-shadow: 0px 0px 20px 0px rgba(203, 203, 203, 0.20);
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+/* No message state styles */
+.chatInputContainerNoMessage {
+  display: flex;
+  padding: 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: stretch;
+  height: 200px;
+  border-radius: 20px;
+  border: 1px solid var(--Monochrome-Light, #E8E8E5);
+  background: var(--Monochrome-White, #FFF);
+  /* Shadow Big */
+  box-shadow: 0px 15px 40px 0px rgba(203, 203, 203, 0.25);
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  margin: 20px;
+}
+
+.chatInputContainerMobile {
+  padding: 12px;
+}
+
+/* No message state mobile styles */
+.chatInputContainerNoMessageMobile {
+  padding: 12px;
+  margin: 15px;
+}
+
+/* Content editable textarea styles */
+.contentEditableTextarea {
+  min-height: 44px;
+  max-height: 150px;
+  overflow-y: auto;
+  padding: 0;
+  line-height: 24px;
+  outline: none;
+  border: none;
+  width: 100%;
+  margin-bottom: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  text-align: left;
+}
+
+/* Content editable textarea styles for no-message state */
+.contentEditableTextareaNoMessage {
+  min-height: 120px;
+  max-height: 150px;
+  overflow-y: auto;
+  padding: 0;
+  line-height: 24px;
+  outline: none;
+  border: none;
+  width: 100%;
+  margin-bottom: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  text-align: left;
+}
+
+/* File mention dropdown styles */
+.fileMentionDropdown {
+  width: 300px;
+  max-height: 240px;
+  padding: 8px;
+  border-radius: 12px;
+  background: var(--Monochrome-Black, #232323);
+  box-shadow: 0px 0px 20px 0px rgba(203, 203, 203, 0.20);
+  overflow: auto;
+}
+
+/* File item styles */
+.fileItemTitle {
+  max-width: 180px;
+}
+
+.fileItemSubtitle {
+  max-width: 180px;
+}
+
+/* Bottom controls container */
+.bottomControls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  align-self: stretch;
+}
+
+/* Agent selector container */
+.agentSelectorContainer {
+  min-width: fit-content;
+  height: 35px;
+  background: #f2f2ed;
+  border-radius: 8px;
+  border: 1px solid #E8E8E5;
+  padding: 0;
+  gap: 2px;
+}
+
+/* Agent selector dropdown */
+.agentSelectorDropdown {
+  bottom: calc(100% + 12px);
+  left: 0;
+  width: 320px;
+  max-height: 360px;
+  padding: 12px;
+  border-radius: 16px;
+  background: #232323;
+  box-shadow: 0 10px 40px rgba(35, 35, 35, 0.2), 0 4px 12px rgba(35, 35, 35, 0.1);
+  border: 1px solid rgba(255,255,255,0.1);
+  overflow: auto;
+  pointer-events: all;
+}
+
+/* Agent toggle button */
+.agentToggleButton {
+  min-width: fit-content;
+  height: 100%;
+  color: #232323;
+  font-weight: 600;
+  border-radius: 10px;
+  transition: all 0.2s ease-out;
+  position: relative;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+}
+
+.agentToggleButtonSmall {
+  padding: 0 8px;
+}
+
+/* Agent name text */
+.agentNameText {
+  font-size: 14px;
+  font-weight: 600;
+  color: #232323;
+  transition: color 0.2s ease-out;
+  white-space: nowrap;
+  margin-right: 4px;
+}
+
+/* Recording button styles - Fixed height for consistency */
+.recordingButton {
+  display: flex;
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  min-width: 36px;
+  padding: 0 8px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--Monochrome-Superlight, #F2F2ED);
+  border: 1px solid #E8E8E5;
+  cursor: pointer;
+  position: relative;
+  box-sizing: border-box;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.recordingButtonMobile {
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  min-width: 36px;
+  padding: 0 8px;
+  box-sizing: border-box;
+}
+
+.recordingButtonActive {
+  background: var(--Error-400, #EF4444);
+}
+
+.recordingButtonDisabled {
+  opacity: 0.5;
+}
+
+/* Recording stop text */
+.recordingStopText {
+  position: absolute;
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+/* Send button styles - Fixed height for consistency */
+.sendButton {
+  display: flex;
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  min-width: 36px;
+  padding: 0 12px;
+  align-items: center;
+  gap: 10px;
+  border-radius: 8px;
+  background: var(--Monochrome-Superlight, #F2F2ED);
+  border: 1px solid #E8E8E5;
+  cursor: pointer;
+  box-sizing: border-box;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.sendButtonMobile {
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  min-width: 36px;
+  padding: 0 8px;
+  box-sizing: border-box;
+}
+
+.sendButtonDisabled {
+  opacity: 0.5;
+}
+
+/* Send button text */
+.sendButtonText {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* File highlight styles */
+.fileHighlight {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border-radius: 4px;
+  padding: 1px 3px;
+  margin: 0 1px;
+  display: inline-block;
+  font-size: 0.9em;
+} 

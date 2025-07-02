@@ -1,0 +1,65 @@
+// Helper function for difficulty level
+export function getDifficultyLevel(difficulty: number | null | undefined): string {
+  if (difficulty === null || difficulty === undefined) return '';
+  if (difficulty < 30) return '(Easy)';
+  if (difficulty < 60) return '(Moderate)';
+  if (difficulty < 80) return '(Hard)';
+  return '(Very Hard)';
+}
+
+// Country mapping for SEO analysis
+export const COUNTRY_MAP: Record<string, string> = {
+  'usa': 'us',
+  'united states': 'us',
+  'america': 'us',
+  'uk': 'gb',
+  'united kingdom': 'gb',
+  'britain': 'gb',
+  'great britain': 'gb',
+  'england': 'gb',
+  'canada': 'ca',
+  'australia': 'au',
+  'germany': 'de',
+  'france': 'fr',
+  'spain': 'es',
+  'italy': 'it',
+  'netherlands': 'nl',
+  'india': 'in',
+  'japan': 'jp',
+  'brazil': 'br',
+  'mexico': 'mx',
+  'singapore': 'sg',
+  'new zealand': 'nz',
+  'south africa': 'za',
+  'ireland': 'ie',
+  'sweden': 'se',
+  'norway': 'no',
+  'denmark': 'dk',
+  'finland': 'fi',
+  'poland': 'pl',
+  'belgium': 'be',
+  'switzerland': 'ch',
+  'austria': 'at',
+  'portugal': 'pt',
+  'greece': 'gr',
+  'turkey': 'tr',
+  'russia': 'ru',
+  'china': 'cn',
+  'hong kong': 'hk',
+  'south korea': 'kr',
+  'indonesia': 'id',
+  'malaysia': 'my',
+  'thailand': 'th',
+  'philippines': 'ph',
+  'vietnam': 'vn',
+  'argentina': 'ar',
+  'chile': 'cl',
+  'colombia': 'co',
+  'peru': 'pe',
+  'egypt': 'eg',
+  'saudi arabia': 'sa',
+  'uae': 'ae',
+  'israel': 'il',
+  'nigeria': 'ng',
+  'kenya': 'ke',
+}; 

@@ -1,0 +1,43 @@
+/* Global styles for ChatInput component */
+
+/* Custom scrollbar styles - need to be global for webkit selectors */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #555 transparent;
+}
+
+/* Chat input placeholder styles - need to be global for contenteditable */
+.chat-input::placeholder {
+  color: #9ca3af;
+}
+
+.chat-input[contenteditable]:empty:before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+  display: block;
+}
+
+.chat-input[contenteditable]:focus:empty:before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+  display: block;
+} 
